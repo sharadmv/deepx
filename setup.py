@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name = "deepx",
@@ -7,9 +7,7 @@ setup(
     author_email = "sharad.vikram@gmail.com",
     license = "MIT",
     keywords = "theano",
-    packages=[
-        'deepx',
-    ],
+    packages=find_packages(),
     classifiers=[
     ],
 )
