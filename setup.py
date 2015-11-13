@@ -7,6 +7,7 @@ setup(
     author_email = "sharad.vikram@gmail.com",
     license = "MIT",
     keywords = "theano",
+    install_requires=['theanify==0.0.19'],
     packages=find_packages(),
     classifiers=[
     ],
