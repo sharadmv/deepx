@@ -1,4 +1,3 @@
-import theano
 import numpy as np
 import theano.tensor as T
 
@@ -8,14 +7,14 @@ from model import ParameterModel
 
 from theano.tensor.shared_randomstreams import RandomStreams
 
-def LSTMLayer(*args, **kwargs):
-    class LSTMLayer(ParameterModel):
+def LSTM(*args, **kwargs):
+    class LSTM(ParameterModel):
 
         def __init__(self, name, n_input, n_output,
                     use_forget_gate=True,
                     use_input_peep=False, use_output_peep=False, use_forget_peep=False,
                     use_tanh_output=True, seed=None, rng=None):
-            super(LSTMLayer, self).__init__(name)
+            super(LSTM, self).__init__(name)
 
             self.rng = rng or RandomStreams(seed)
 
@@ -139,11 +138,11 @@ def LSTMLayer(*args, **kwargs):
 
     return LSTMLayer(*args, **kwargs)
 
-def LSTM(*args, **kwargs):
-    class LSTM(ParameterModel):
+def MultiLayerLSTM(*args, **kwargs):
+    class MultiLayerLSTM(ParameterModel):
         def __init__(self, name, n_input, n_hidden=10, n_layers=2, dropout_probability=0.0,
                      rng=None):
-            super(LSTM, self).__init__(name)
+            super(MultiLayerLSTM, self).__init__(name)
 
             self.n_input = n_input
             self.n_hidden = n_hidden
@@ -151,12 +150,12 @@ def LSTM(*args, **kwargs):
             assert self.n_layers >= 1
             self.layers = []
             self.dropout_probability = dropout_probability
-            self.input_layer = LSTMLayer('%s-input' % name,
+            self.input_layer = LSTM('%s-input' % name,
                                         self.n_input,
                                         self.n_hidden,
                                         rng=rng)
             for i in xrange(self.n_layers - 1):
-                self.layers.append(LSTMLayer('%s-layer-%u' % (name, i),
+                self.layers.append(LSTM('%s-layer-%u' % (name, i),
                                             self.n_hidden,
                                             self.n_hidden,
                                             rng=rng))
@@ -197,4 +196,4 @@ def LSTM(*args, **kwargs):
             for layer, layer_state in zip(self.layers, state['layers']):
                 layer.load(layer_state)
 
-    return LSTM(*args, **kwargs)
+    return MultiLayerLSTM(*args, **kwargs)
