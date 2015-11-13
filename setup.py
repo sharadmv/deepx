@@ -5,6 +5,7 @@ setup(
     version = "0.0.1",
     author = "Sharad Vikram and Zachary Chase Lipton",
     author_email = "sharad.vikram@gmail.com",
+    description = "A basic deep learning library for sequence learning built using Theano.",
     license = "MIT",
     keywords = "theano",
     install_requires=['theanify==0.0.19'],
