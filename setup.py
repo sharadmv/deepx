@@ -8,8 +8,10 @@ setup(
     description = "A basic deep learning library for sequence learning built using Theano.",
     license = "MIT",
     keywords = "theano",
-    install_requires=['theanify==0.0.19'],
-    packages=find_packages(),
+    install_requires = ['theanify'],
+    packages=find_packages(
+        '.'
+    ),
     classifiers=[
     ],
 )

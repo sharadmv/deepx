@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import logging
 
 class Trainer(object):
@@ -33,18 +32,7 @@ class Trainer(object):
             ))
             self.index = self.batcher.batch_index
             self.total_iterations += 1
-            if self.total_iterations % 10 == 0:
-                self.plot_learning_curve()
-        self.plot_learning_curve()
         return loss
-
-    def plot_learning_curve(self):
-        plt.figure()
-        plt.plot(self.running_losses)
-        plt.xlabel("Iterations")
-        plt.ylabel("Average Cross-Entropy Loss")
-        plt.savefig(self.learning_curve, bbox_inches='tight')
-        plt.close()
 
     def reset(self):
         self.batcher.batch_index = 0
