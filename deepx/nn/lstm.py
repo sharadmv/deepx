@@ -138,11 +138,11 @@ def LSTM(*args, **kwargs):
 
     return LSTM(*args, **kwargs)
 
-def MultiLayerLSTM(*args, **kwargs):
-    class MultiLayerLSTM(ParameterModel):
+def MultilayerLSTM(*args, **kwargs):
+    class MultilayerLSTM(ParameterModel):
         def __init__(self, name, n_input, n_hidden=10, n_layers=2, dropout_probability=0.0,
                      rng=None):
-            super(MultiLayerLSTM, self).__init__(name)
+            super(MultilayerLSTM, self).__init__(name)
 
             self.n_input = n_input
             self.n_hidden = n_hidden
@@ -196,4 +196,4 @@ def MultiLayerLSTM(*args, **kwargs):
             for layer, layer_state in zip(self.layers, state['layers']):
                 layer.load(layer_state)
 
-    return MultiLayerLSTM(*args, **kwargs)
+    return MultilayerLSTM(*args, **kwargs)

@@ -6,7 +6,7 @@ import theano.tensor as T
 from theano.tensor.shared_randomstreams import RandomStreams
 
 from theanify import theanify
-from deepx.nn import ParameterModel, MultiLayerLSTM, Softmax
+from deepx.nn import ParameterModel, MultilayerLSTM, Softmax
 
 class CharacterRNN(ParameterModel):
 
@@ -19,7 +19,7 @@ class CharacterRNN(ParameterModel):
         self.n_input = n_input
         self.n_output = n_output
 
-        self.lstm = MultiLayerLSTM('%s-charrnn' % name, self.n_input,
+        self.lstm = MultilayerLSTM('%s-charrnn' % name, self.n_input,
                          n_hidden=self.n_hidden,
                          n_layers=self.n_layers,
                          )
