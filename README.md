@@ -5,5 +5,6 @@ Installation
 ====================================
 
 ```
+$ pip install git+git://github.com/Theano/Theano.git
 $ pip install deepx
 ```
