@@ -1,2 +1,2 @@
-from sequence import Sequence
-from encoding import OneHotEncoding, IdentityEncoding
+from sequence import *
+from encoding import *

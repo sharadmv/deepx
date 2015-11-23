@@ -3,12 +3,15 @@ import numpy as np
 import theano
 import theano.tensor as T
 
+from theano.tensor.shared_randomstreams import RandomStreams
+
 from theanify import theanify
-from deepx.nn import ParameterModel, LSTM, Softmax
+from deepx.nn import ParameterModel, MultiLayerLSTM, Softmax
 
 class CharacterRNN(ParameterModel):
 
-    def __init__(self, name, n_input, n_output, n_hidden=10, n_layers=2):
+    def __init__(self, name, n_input, n_output, n_hidden=10, n_layers=2,
+                 seed=None):
         super(CharacterRNN, self).__init__(name)
         self.n_hidden = n_hidden
         self.n_layers = n_layers
@@ -16,10 +19,12 @@ class CharacterRNN(ParameterModel):
         self.n_input = n_input
         self.n_output = n_output
 
-        self.lstm = LSTM('%s-charrnn' % name, self.n_input,
+        self.lstm = MultiLayerLSTM('%s-charrnn' % name, self.n_input,
                          n_hidden=self.n_hidden,
                          n_layers=self.n_layers,
-                         rng=self.rng)
+                         )
+        self.rng = RandomStreams(seed)
+
         self.output = Softmax('%s-softmax' % name, n_hidden, self.n_output)
 
     def save_parameters(self, location):

@@ -136,7 +136,7 @@ def LSTM(*args, **kwargs):
             for param, value in state['parameters'].items():
                 self.set_parameter_value(param, value)
 
-    return LSTMLayer(*args, **kwargs)
+    return LSTM(*args, **kwargs)
 
 def MultiLayerLSTM(*args, **kwargs):
     class MultiLayerLSTM(ParameterModel):
