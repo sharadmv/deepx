@@ -33,7 +33,7 @@ class Optimizer(Theanifiable):
         else:
             self.cost = self.cost_result
 
-        self.rest = []
+        self.rest = ()
         if isinstance(self.cost, tuple):
             self.rest = self.cost[1:]
             self.cost = self.cost[0]
@@ -51,7 +51,9 @@ class Optimizer(Theanifiable):
 
     @theanify(updates="updates", returns_updates=True)
     def optimize(self, *args):
-        return (self.cost,) + self.rest, self.cost_updates
+        if len(self.rest):
+            return (self.cost,) + self.rest, self.cost_updates
+        return self.cost, self.cost_updates
 
     def get_parameters(self):
         return self.model.get_parameters()

@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     # Training
 
-    iterations = 10000
+    iterations = 100
     learning_rate = 100.0
 
     batch_size = 50
