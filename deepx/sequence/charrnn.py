@@ -46,7 +46,7 @@ class CharacterRNN(ParameterModel):
         self.lstm.load(state['lstm'])
         self.output.load(state['output'])
 
-    @theanify(T.tensor3('X'), T.tensor3('state'), T.tensor3('y'))
+    @theanify(T.tensor3('X'), T.tensor3('state'), T.tensor3('y'), returns_updates=True)
     def cost(self, X, state, y):
         (_, state, ypred), updates = self.forward(X, state)
         S, N, V = y.shape
@@ -79,7 +79,7 @@ class CharacterRNN(ParameterModel):
                               n_steps=S)
         return (encoder_output, encoder_state, softmax_output), updates
 
-    @theanify(T.fvector('start_token'), T.iscalar('length'), T.fscalar('temperature'), returns_updates=True)
+    @theanify(T.vector('start_token'), T.iscalar('length'), T.scalar('temperature'), returns_updates=True)
     def generate(self, start_token, length, temperature):
         start_token = start_token[:, np.newaxis].T
         N = 1
