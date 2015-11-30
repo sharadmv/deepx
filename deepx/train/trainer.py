@@ -2,11 +2,13 @@ import logging
 
 class Trainer(object):
 
-    def __init__(self, optimizer, batcher, learning_curve=None):
+    def __init__(self, optimizer, batcher, learning_curve=None,
+                 callbacks=None):
         self.optimizer = optimizer
         self.batcher = batcher
         self.reset()
         self.learning_curve = learning_curve
+        self.callbacks = callbacks or []
 
     def train(self, n_iterations, *args):
         loss = []
@@ -32,6 +34,9 @@ class Trainer(object):
             ))
             self.index = self.batcher.batch_index
             self.total_iterations += 1
+            if self.total_iterations % 10 == 0:
+                for callback in self.callbacks:
+                    callback()
         return loss
 
     def reset(self):
