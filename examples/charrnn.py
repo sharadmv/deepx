@@ -138,5 +138,5 @@ if __name__ == "__main__":
     )
 
     rmsprop = RMSProp(discriminator)
-    trainer = Trainer(rmsprop, batcher, callbacks=[])
+    trainer = Trainer(rmsprop, batcher, callbacks=[ ])
     
