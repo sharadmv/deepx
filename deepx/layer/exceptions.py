@@ -7,3 +7,6 @@ class DimensionException(Exception):
             str(out_layer), out_layer.n_in
         )
         super(DimensionException, self).__init__(message)
+
+class DataException(Exception):
+    pass

@@ -3,9 +3,7 @@ import theano.tensor as T
 from layer import Layer
 
 class Linear(Layer):
-
     def __init__(self, n_in, n_out):
-
         super(Linear, self).__init__(n_in, n_out)
 
         self.W = self.init_parameter('W', (n_in, n_out))
@@ -13,6 +11,12 @@ class Linear(Layer):
 
     def activation(self, X):
         return X
+
+    def get_layer_var(self):
+        return T.matrix()
+
+    def get_in_var(self):
+        return T.matrix()
 
     def _forward(self, X):
         return self.activation(T.dot(X, self.W) + self.b)

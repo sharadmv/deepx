@@ -1,6 +1,6 @@
 import theano.tensor as T
 
-from sequence import StatefulRecurrentLayer
+from rnn import StatefulRecurrentLayer
 
 class LSTM(StatefulRecurrentLayer):
 
@@ -43,8 +43,8 @@ class LSTM(StatefulRecurrentLayer):
         if self.use_forget_peep:
             self.Pf = self.init_parameter('P_f', (self.n_out, self.n_out))
 
-    def step(self, X, H):
-        previous_hidden, previous_state = H
+    def _forward(self, X, previous_hidden):
+        previous_hidden, previous_state = previous_hidden
         if self.use_input_peep:
             input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:

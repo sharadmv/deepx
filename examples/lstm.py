@@ -1,9 +1,11 @@
 import theano.tensor as T
 import numpy as np
 
+from deepx.optimize import RMSProp
 from deepx.layer import *
 
 if __name__ == "__main__":
-    X = Data(T.tensor3())
-    lstm1 = LSTM(10, 20)
-    lstm2 = LSTM(20, 20)
+    data_dim = 1
+
+    model = Softmax(784, 10) | output
+    rmsprop = RMSProp(model)

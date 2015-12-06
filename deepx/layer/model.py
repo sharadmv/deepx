@@ -2,13 +2,30 @@ import theano
 import theano.tensor as T
 from theanify import theanify, Theanifiable
 
+from exceptions import DataException
+
 class Data(object):
 
-    def __init__(self, X):
+    def __init__(self, X, previous=None):
         self.X = X
+        self.previous = previous
+
+    def get_data(self):
+        if type(self.X) == tuple:
+            return self.X[0]
+        else:
+            return self.X
 
     def __gt__(self, layer):
-        return layer.forward(self)
+        if layer.is_recurrent() and self.previous is None:
+            raise DataException("Cannot pass non-sequential data into recurrent network")
+        return layer.forward(self, self.previous)
+
+    def __str__(self):
+        return "Data(%s)" % str(self.X)
+
+    def __repr__(self):
+        return "Data<%s>" % str(self.X)
 
 class SequenceData(object):
 

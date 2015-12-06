@@ -1,25 +1,20 @@
 import theano.tensor as T
 
-from model import Model, SequenceModel
-from sequence import RecurrentLayer
+from mixin import Mixin
 
-class Loss(object):
+class Loss(Mixin):
 
-    def loss(self, y_pred, y):
-        raise NotImplementedError
+    name = 'loss'
 
-    def __ne__(self, layer):
-        return Model(layer, self)
+    def get_aux_vars(self):
+        return [T.matrix('y')]
 
-    def __str__(self):
-        return "Loss(%s)" % (self.__class__.__name__)
-
-class MSE(Loss):
-
-    def loss(self, y_pred, y):
-        return ((y - y_pred) ** 2).mean()
+    def mixin(self, activations, *args):
+        return self.loss(activations[-1].get_data(), *args)
 
 class CrossEntropy(Loss):
 
     def loss(self, y_pred, y):
         return T.nnet.categorical_crossentropy(y_pred, y).mean()
+
+cross_entropy = CrossEntropy()

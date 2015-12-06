@@ -1,59 +1,42 @@
-import numpy as np
 import theano.tensor as T
+from theanify import DecoratedTheano
 
-from theanify import theanify, Theanifiable
+from ..layer import Mixin
 
-class Optimizable(Theanifiable):
+class Optimizer(Mixin):
 
-    def __init__(self):
-        super(Optimizable, self).__init__()
+    name = 'train'
 
-    def cost(self, *args, **kwargs):
+    priority = -1
+
+    def get_aux_vars(self):
         raise NotImplementedError
 
+    def setup(self, model):
+        assert "loss" in model.mixins, "Must add loss mixin before optimizer mixin"
+        self.model = model
+        loss_mixin = self.model.mixins['loss']
+        self.model = model
+        self.in_var = loss_mixin.in_var
+        self.input_vars = loss_mixin.input_vars
+        self.layer_vars = loss_mixin.layer_vars
+        self.prev_aux_vars = loss_mixin.aux_vars
+        aux_vars = self.get_aux_vars()
 
-class Optimizer(Theanifiable):
+        loss_args = [self.in_var] + self.input_vars + self.prev_aux_vars
+        self.parameters = self.model.get_parameters()
+        self.init_parameters()
 
-    def __init__(self, optimizable, optimize_args=[], clip=5):
-        super(Optimizer, self).__init__()
-        self.model = optimizable
-        self.cost_function = self.model.cost
-        self.cost_updates = []
+        self.loss = self.model.loss(*loss_args)
+        self.grads = T.grad(self.loss, self.model.get_parameters())
+        self.updates = self.updates(*aux_vars)
 
-        if not hasattr(self.cost_function, 'args'):
-            raise Exception('Please annotate cost with @theanify')
+        opt_args = loss_args + aux_vars
+        self.mix = DecoratedTheano(self.mix, opt_args, updates=self.updates)
+        self.mix.set_instance(self)
 
-        self.cost_args = self.model.cost.args
-        self.optimize_args = optimize_args
+    def get_opt_vars(self):
+        raise NotImplementedError
 
-        self.cost_result = self.model.cost(*self.cost_args)
-        if self.cost_function.returns_updates:
-            self.cost, cost_updates = self.cost_result
-            self.cost_updates.extend(cost_updates)
-        else:
-            self.cost = self.cost_result
-
-        self.rest = ()
-        if isinstance(self.cost, tuple):
-            self.rest = self.cost[1:]
-            self.cost = self.cost[0]
-        self.grads = T.grad(self.cost, self.get_parameters())
-
-        self.compile_method('optimize', args=self.optimize_args + list(self.cost_args))
-
-    def get_initial_state(self, batch_size):
-        return np.zeros((batch_size, self.model.n_layers, self.model.n_hidden))
-
-    def train(self, *args):
-        cost_args = args[:len(self.cost_args)]
-        training_args = args[len(self.cost_args):]
-        return self.optimize(*(training_args + cost_args))
-
-    @theanify(updates="updates", returns_updates=True)
-    def optimize(self, *args):
-        if len(self.rest):
-            return (self.cost,) + self.rest, self.cost_updates
-        return self.cost, self.cost_updates
-
-    def get_parameters(self):
-        return self.model.get_parameters()
+    def mixin(self, *args):
+        return self.loss
