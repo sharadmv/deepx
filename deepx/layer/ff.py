@@ -1,8 +1,8 @@
 import theano.tensor as T
 
-from layer import FeedForwardLayer
+from layer import Layer
 
-class Linear(FeedForwardLayer):
+class Linear(Layer):
 
     def __init__(self, n_in, n_out):
 
@@ -16,10 +16,6 @@ class Linear(FeedForwardLayer):
 
     def _forward(self, X):
         return self.activation(T.dot(X, self.W) + self.b)
-
-    def __str__(self):
-        return "%s(%u, %u)" % (self.__class__.__name__,
-                               self.n_in, self.n_out)
 
 class Softmax(Linear):
 

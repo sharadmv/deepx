@@ -1,6 +1,7 @@
 import theano.tensor as T
 
-from model import Model
+from model import Model, SequenceModel
+from sequence import RecurrentLayer
 
 class Loss(object):
 
@@ -10,9 +11,8 @@ class Loss(object):
     def __ne__(self, layer):
         return Model(layer, self)
 
-    def str(self):
-        pass
-
+    def __str__(self):
+        return "Loss(%s)" % (self.__class__.__name__)
 
 class MSE(Loss):
 
