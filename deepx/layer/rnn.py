@@ -1,3 +1,5 @@
+import numpy as np
+import theano
 import theano.tensor as T
 
 from layer import Layer
@@ -14,22 +16,23 @@ class RecurrentLayer(Layer):
     def is_recurrent(self):
         return True
 
+    def get_sequence_var(self):
+        return T.tensor3()
+
     def forward(self, X, previous):
-        return [Data(self._forward(X.X, previous.X))]
+        return [Data(self._forward(X.get_data(), previous.get_data()))]
 
 class StatefulRecurrentLayer(RecurrentLayer):
 
-    def get_layer_var(self, ndim):
-        if ndim == 1:
-            return (T.matrix(), T.matrix())
-        if ndim == 2:
-            return (T.tensor3(), T.tensor3())
-        if ndim == 3:
-            return (T.tensor4(), T.tensor4())
-        raise Exception("Data too dimensional")
+    def alloc(self, N):
+        return (T.alloc(np.array(0).astype(theano.config.floatX), N, self.n_out),
+                T.alloc(np.array(0).astype(theano.config.floatX), N, self.n_out))
+
+    def get_layer_var(self):
+        return (T.matrix('output'), T.matrix('state'))
 
     def is_recurrent(self):
         return True
 
     def forward(self, X, previous):
-        return [Data(self._forward(X.X, previous))]
+        return [Data(self._forward(X.get_data(), previous))]

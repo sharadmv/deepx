@@ -16,8 +16,12 @@ class Data(object):
         else:
             return self.X
 
+    def get_state(self):
+        return self.X[1]
+
+
     def __gt__(self, layer):
-        if layer.is_recurrent() and self.previous is None:
+        if any(layer.is_recurrent()) and self.previous is None:
             raise DataException("Cannot pass non-sequential data into recurrent network")
         return layer.forward(self, self.previous)
 

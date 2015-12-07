@@ -15,6 +15,9 @@ class Linear(Layer):
     def get_layer_var(self):
         return T.matrix()
 
+    def get_sequence_var(self):
+        return T.tensor3()
+
     def get_in_var(self):
         return T.matrix()
 
