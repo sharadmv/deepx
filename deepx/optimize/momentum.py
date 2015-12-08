@@ -2,7 +2,7 @@ import theano
 import theano.tensor as T
 from optimizer import Optimizer
 
-class Momentum(Optimizer):
+class momentum(Optimizer):
 
     def init_parameters(self):
         self.caches = [theano.shared(p.get_value() * 0) for p in self.parameters]
