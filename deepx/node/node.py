@@ -84,7 +84,7 @@ class Node(object):
         return self.chain(node)
 
     def __or__(self, mixins):
-        return self, self.create_model(mixins)
+        return self.create_model(mixins)
 
     def __add__(self, node):
         return self.concat(node)

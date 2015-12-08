@@ -1,5 +1,5 @@
 import dataset
 import nn
 import train
-import sequence
-import layer
+import node
+import rnn

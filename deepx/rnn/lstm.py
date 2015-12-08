@@ -1,8 +1,10 @@
+import theano
 import theano.tensor as T
+import numpy as np
 
-from rnn import StatefulRecurrentLayer
+from ..node import Node
 
-class LSTM(StatefulRecurrentLayer):
+class LSTM(Node):
 
     def __init__(self, n_in, n_out,
                  use_forget_gate=True,
@@ -43,8 +45,28 @@ class LSTM(StatefulRecurrentLayer):
         if self.use_forget_peep:
             self.Pf = self.init_parameter('P_f', (self.n_out, self.n_out))
 
-    def _forward(self, X, previous_hidden):
-        previous_hidden, previous_state = previous_hidden
+    def _forward(self, X):
+        S, N, D = X.shape
+
+        H = self.n_out
+
+        def step(input, previous_hidden, previous_state):
+            lstm_hidden, state = self.step(input, previous_hidden, previous_state)
+            return lstm_hidden, state
+
+        hidden = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
+        state = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
+
+        (lstm_out, _), updates = theano.scan(step,
+                              sequences=[X],
+                              outputs_info=[
+                                            hidden,
+                                            state,
+                                           ],
+                              n_steps=S)
+        return lstm_out
+
+    def step(self, X, previous_hidden, previous_state):
         if self.use_input_peep:
             input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:

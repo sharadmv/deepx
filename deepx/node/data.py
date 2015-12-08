@@ -10,7 +10,7 @@ class Data(object):
     def ndim(self):
         return self.data.ndim
 
-    def __gt__(self, node):
+    def __rshift__(self, node):
         node.add_input(self)
         node.propagate()
         return node

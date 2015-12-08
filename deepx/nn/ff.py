@@ -1,6 +1,6 @@
 import theano.tensor as T
 
-from node import Node
+from ..node import Node
 
 class Linear(Node):
     def __init__(self, n_in, n_out):
@@ -18,7 +18,11 @@ class Linear(Node):
 class Softmax(Linear):
 
     def activate(self, X):
-        return T.nnet.softmax(X)
+        if X.ndim <= 2:
+            e_x = T.exp((X - X.max(axis=1)[:, None]))
+            return e_x / e_x.sum(axis=1)[:, None]
+        e_x = T.exp((X - X.max(axis=2)[:, :, None]))
+        return e_x / e_x.sum(axis=2)[:, :, None]
 
 class Sigmoid(Linear):
 

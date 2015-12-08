@@ -15,7 +15,13 @@ class Loss(Mixin):
         return [i.get_data() for i in self.arch.get_inputs()] + [self.y]
 
     def get_result(self):
-        return self.loss(self.arch.get_activation().get_data(), self.y)
+        ypred = self.arch.get_activation().get_data()
+        y = self.y
+        if ypred.ndim == 3:
+            S, N, V = ypred.shape
+            y = y.reshape((S * N, V))
+            ypred = ypred.reshape((S * N, V))
+        return self.loss(ypred, y)
 
     def loss(self, ypred, y):
         raise NotImplementedError

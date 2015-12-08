@@ -1,7 +1,7 @@
 import theano
 import theano.tensor as T
 
-from ..layer import Mixin
+from ..node import Mixin
 
 class Optimizer(Mixin):
 
