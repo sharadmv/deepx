@@ -1,23 +1,19 @@
+import matplotlib.pyplot as plt
 import theano.tensor as T
 import numpy as np
 
-from deepx.optimize import rmsprop
 from deepx.layer import *
+from deepx.optimize import rmsprop, sgd
 
 if __name__ == "__main__":
-    data_dim = 1
 
     X = Matrix('X')
     Y = Matrix('Y')
 
-    model1 = X > Tanh(10, 20) >> Softmax(20, 10)
-    model2 = Y > Tanh(10, 20) >> Softmax(20, 10)
+    arch1 = X > Tanh(10, 20) >> Tanh(20, 30) >> Softmax(30, 10)
+    arch2 = Y > Tanh(10, 30)
+    arch3, model = (arch1 + arch2) >> Softmax(40, 10) | (predict, cross_entropy, rmsprop)
+    arch3, model2 = (arch1 + arch2) >> Softmax(40, 10) | (cross_entropy, sgd)
 
-    model3 = model1 + model2
-
-    #model2 = LSTM(10, 50) >> LSTM(40, 10) >> Softmax(10, 20) | output
-
-    #x = model1.output()
-    #y = model1.output()
-
-    #model.compile()
+    x = np.zeros((20, 10))
+    y = np.zeros((20, 10))

@@ -1,42 +1,31 @@
-from theanify import Theanifiable, theanify, DecoratedTheano
+import theano
 
-from model import Data
+class Mixin(object):
 
-class Mixin(Theanifiable):
-    name = 'mixin'
-    priority = 1
-
-    def __init__(self):
-        super(Mixin, self).__init__()
-
-    def get_aux_vars(self, model):
-        raise NotImplementedError
-
-    def get_input_vars(self, model):
-        raise NotImplementedError
+    name = None
 
     def setup(self, model):
-        self.in_vars = self.get_input_vars(model)
-        self.aux_vars = self.get_vars(model)
+        self.arch = model.arch
+        self.inputs = self.get_inputs()
+        self.result = self.get_result()
 
-        self.inputs = self.in_vars + self.aux_vars
+        self.func = self.create_function()
 
-    def mix(model, self, X, *args):
-        data = Data(X, self.layer_vars)
-        activations = data > self.model
-        return self.mixin(activations, *args)
+    def get_result(self):
+        raise NotImplementedError
 
-class OutputMixin(Mixin):
+    def get_inputs(self):
+        raise NotImplementedError
 
-    name = 'output'
+    def create_function(self):
+        return theano.function(self.inputs, self.result)
 
-    def get_input_vars(self, model):
-        return []
+class predict(Mixin):
 
-    def get_aux_vars(self, model):
-        return []
+    name = 'predict'
 
-    def mixin(self, activations, *args):
-        return activations[-1].get_data()
+    def get_inputs(self):
+        return [i.get_data() for i in self.arch.get_inputs()]
 
-output = OutputMixin()
+    def get_result(self):
+        return self.arch.get_activation().get_data()

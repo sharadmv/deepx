@@ -1,5 +1,5 @@
+import theano
 import theano.tensor as T
-from theanify import DecoratedTheano
 
 from ..layer import Mixin
 
@@ -7,36 +7,37 @@ class Optimizer(Mixin):
 
     name = 'train'
 
-    priority = -1
-
-    def get_aux_vars(self):
-        raise NotImplementedError
+    def init_parameters(self):
+        pass
 
     def setup(self, model):
-        assert "loss" in model.mixins, "Must add loss mixin before optimizer mixin"
         self.model = model
-        loss_mixin = self.model.mixins['loss']
-        self.model = model
-        self.in_var = loss_mixin.in_var
-        self.input_vars = loss_mixin.input_vars
-        self.layer_vars = loss_mixin.layer_vars
-        self.prev_aux_vars = loss_mixin.aux_vars
-        aux_vars = self.get_aux_vars()
+        assert model.has_mixin('loss')
 
-        loss_args = [self.in_var] + self.input_vars + self.prev_aux_vars
-        self.parameters = self.model.get_parameters()
+        self.arch = model.arch
+
+        self.parameters = self.arch.get_parameters()
         self.init_parameters()
 
-        self.loss = self.model.loss(*loss_args)
-        self.grads = T.grad(self.loss, self.model.get_parameters())
-        self.updates = self.updates(*aux_vars)
+        self.loss = self.model.get_mixin('loss')
+        self.grads = T.grad(self.loss.result, self.parameters)
 
-        opt_args = loss_args + aux_vars
-        self.mix = DecoratedTheano(self.mix, opt_args, updates=self.updates)
-        self.mix.set_instance(self)
+        self.aux_inputs = self.get_aux_inputs()
 
-    def get_opt_vars(self):
+        self.inputs = self.get_inputs()
+        self.result = self.get_result()
+        self.gradient_updates = self.updates(*self.aux_inputs)
+
+        self.func = self.create_function()
+
+    def get_inputs(self):
+        return self.loss.inputs + self.aux_inputs
+
+    def get_aux_inputs(self):
         raise NotImplementedError
 
-    def mixin(self, *args):
-        return self.loss
+    def get_result(self):
+        return self.model.get_mixin('loss').result
+
+    def create_function(self):
+        return theano.function(self.inputs, self.result, updates=self.gradient_updates)
