@@ -1,48 +1,19 @@
+import matplotlib.pyplot as plt
+import theano.tensor as T
 import numpy as np
 
 from deepx.layer import *
-from deepx.optimize import rmsprop
+from deepx.optimize import rmsprop, sgd
 
 if __name__ == "__main__":
-    # Creating dataset
-    D, C = 1, 2
-    N = 10000
-    np.random.seed(1)
-    mu = np.random.normal(0, 10, size=C)
-    X, y = [], []
 
-    for i in xrange(N):
-        yi = np.random.choice(xrange(C))
-        y.append(yi)
-        X.append(np.random.normal(loc=mu[yi], scale=0.1))
+    X = Matrix('X')
+    Y = Matrix('Y')
 
-    X, y = np.vstack(X), np.array(y)
-    split = int(0.9 * N)
-    X, Xtest = X[:split], X[split:]
-    labels, labels_test = y[:split], y[split:]
+    arch1 = X > Tanh(10, 20) >> Tanh(20, 30) >> Softmax(30, 10)
+    arch2 = Y > Tanh(10, 30)
+    arch3, model = (arch1 + arch2) >> Softmax(40, 10) | (predict, cross_entropy, rmsprop)
+    arch3, model2 = (arch1 + arch2) >> Softmax(40, 10) | (cross_entropy, sgd)
 
-    y = np.zeros((split, C))
-
-    for i in xrange(split):
-        y[i, labels[i]] = 1
-
-    H = 2
-
-    mlp = Tanh(D, H) >> Softmax(H, C) | output | cross_entropy | rmsprop
-    mlp.compile()
-
-    def errors(X, labels):
-        ypred = (mlp.output(X)).argmax(axis=1)
-        return (ypred != labels).sum()
-
-    batch_size = 50
-    iterations = 1000
-    learning_rate = 10
-    for i in xrange(iterations):
-        u = np.random.randint(X.shape[0] - batch_size)
-        print "Iteration %u: %f" % (i + 1, mlp.train(X[u:u+batch_size, :],
-                                                            y[u:u+batch_size],
-                                                            learning_rate))
-
-    print "Training Error: %f" % (errors(X, labels) / float(split))
-    print "Test Error: %f" % (errors(Xtest, labels_test) / float(N - split))
+    x = np.zeros((20, 10))
+    y = np.zeros((20, 10))
