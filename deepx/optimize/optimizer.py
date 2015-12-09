@@ -6,6 +6,7 @@ from ..node import Mixin
 class Optimizer(Mixin):
 
     name = 'train'
+    priority = 1
 
     def init_parameters(self):
         pass

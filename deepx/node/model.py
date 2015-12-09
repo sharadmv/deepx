@@ -8,17 +8,17 @@ class Model(object):
         for mixin in mixins:
             if isinstance(mixin, type):
                 mixin = mixin()
-            self.mixins[mixin.name] = mixin
+            self.mixins[mixin.name] = (mixin, mixin.priority)
 
-        for name, mixin in self.mixins.iteritems():
+        for mixin, priority in sorted(self.mixins.values(), key=lambda x: x[1]):
             mixin.setup(self)
-            setattr(self, name, mixin.func)
+            setattr(self, mixin.name, mixin.func)
 
     def has_mixin(self, name):
         return name in self.mixins
 
     def get_mixin(self, name):
-        return self.mixins[name]
+        return self.mixins[name][0]
 
     def __str__(self):
         return str(self.arch)

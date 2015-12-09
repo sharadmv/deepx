@@ -1,5 +1,5 @@
 from deepx.rnn import LSTM
-from deepx.layer import *
+from deepx.node import *
 from deepx.optimize import rmsprop
 
 if __name__ == "__main__":

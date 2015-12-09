@@ -17,6 +17,9 @@ class Node(object):
 
         self.parameters = {}
 
+    def is_elementwise(self):
+        return False
+
     def forward(self, *inputs):
         return Data(self._forward(*(i.get_data() for i in self.inputs)))
 
@@ -48,8 +51,8 @@ class Node(object):
     def get_inputs(self):
         return self.inputs
 
-    def get_activation(self):
-        return self.activation
+    def get_activation(self, use_dropout=True):
+        return self.forward(self.inputs)
 
     def create_model(self, mixins):
         if isinstance(mixins, tuple):
@@ -94,6 +97,9 @@ class Node(object):
     def is_data(self):
         return False
 
+    def is_dropout(self):
+        return False
+
     def __iter__(self):
         yield self
 
@@ -110,6 +116,10 @@ class Node(object):
 class CompositeNode(Node):
 
     def __init__(self, in_node, out_node):
+        if out_node.is_elementwise():
+            in_node.n_out = out_node.n_in
+        if in_node.is_elementwise():
+            out_node.n_in = in_node.n_out
         super(CompositeNode, self).__init__(in_node.n_in, out_node.n_out)
         self.in_node = in_node
         self.out_node = out_node
@@ -118,6 +128,9 @@ class CompositeNode(Node):
             raise DimensionException(self.in_node, self.out_node)
 
         self.propagate()
+
+    def is_elementwise(self):
+        return self.in_node.is_elementwise() and self.out_node.is_elementwise()
 
     def add_input(self, data):
         self.in_node.add_input(data)
@@ -131,8 +144,8 @@ class CompositeNode(Node):
     def get_inputs(self):
         return self.in_node.get_inputs()
 
-    def get_activation(self):
-        return self.out_node.get_activation()
+    def get_activation(self, use_dropout=True):
+        return self.out_node.get_activation(use_dropout=use_dropout)
 
     def get_parameters(self):
         return self.in_node.get_parameters() + self.out_node.get_parameters()
@@ -163,7 +176,7 @@ class ConcatenateNode(Node):
         self.propagate()
 
     def _forward(self, *inputs):
-        return T.concatenate(inputs, axis=1)
+        return T.concatenate(inputs, axis=-1)
 
     def get_inputs(self):
         return self.left_node.get_inputs() + self.right_node.get_inputs()

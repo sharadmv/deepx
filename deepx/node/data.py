@@ -43,3 +43,8 @@ class Sequence(Primitive):
 
     def get_var(self, name):
         return T.tensor3(name)
+
+class Image(Primitive):
+
+    def get_var(self, name):
+        return T.tensor4(name)
