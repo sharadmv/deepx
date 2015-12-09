@@ -1,3 +1,4 @@
+import numpy as np
 import math
 import theano.tensor as T
 from theano.tensor.nnet.conv import conv2d
@@ -31,8 +32,6 @@ class Conv(Node):
         self.W = self.init_parameter('W', shape_weights)
         self.b = self.init_parameter('b', channels_out)
 
-
-
     def rectify(self, X):
         return T.nnet.relu(X)
 
@@ -41,3 +40,17 @@ class Conv(Node):
         act     = self.rectify(lin)
         pooled  = max_pool_2d(act, (self.pool_factor, self.pool_factor))
         return pooled
+
+class Reshape(Node):
+
+    def _forward(self, X):
+        N = X.shape[0]
+        n_out = self.n_out
+        if not isinstance(n_out, tuple):
+            n_out = (self.n_out,)
+        return X.reshape((N,) + n_out)
+
+
+
+
+
