@@ -43,9 +43,6 @@ class Conv(Node):
 
 class Reshape(Node):
 
-    def __init__(self, n_in, n_out):
-        super(Reshape, self).__init__(n_in, n_out)
-
     def _forward(self, X):
         N = X.shape[0]
         n_out = self.n_out
