@@ -10,7 +10,7 @@ class Conv(Node):
 
         channels_out, channels_in, kernel_height, kernel_width = shape_weights
 
-        h_in, w_in, d_in = shape_in
+        d_in, h_in, w_in = shape_in
         if border_mode == "full":
             h_out = h_in + kernel_height - 1
             w_out = w_in + kernel_width - 1
@@ -21,10 +21,10 @@ class Conv(Node):
         else:
             raise Exception("Border mode must be {full, valid}.")
 
-        h_out = math.ceil(h_out/2.)
-        w_out = math.ceil(w_out/2.)
+        h_out = int(math.ceil(h_out/2.))
+        w_out = int(math.ceil(w_out/2.))
 
-        shape_out = (h_out, w_out, channels_out)
+        shape_out = (channels_out, h_out, w_out)
         super(Conv, self).__init__(shape_in, shape_out)
 
         self.pool_factor = pool_factor
