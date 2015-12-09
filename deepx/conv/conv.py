@@ -55,5 +55,4 @@ class Flatten(Elem):
 
     def _forward(self, X):
         N = X.shape[0]
-        rest = X.shape[1:]
-        return X.reshape((N, T.prod(rest)))
+        return X.reshape((N, -1))
