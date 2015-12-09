@@ -5,6 +5,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano.tensor.signal.downsample import max_pool_2d
 
 from ..node import Node
+from ..elem import Elem
 
 class Conv(Node):
     def __init__(self, shape_in, shape_weights, stride=1, pool_factor=2, border_mode="full"):
@@ -50,7 +51,9 @@ class Reshape(Node):
             n_out = (self.n_out,)
         return X.reshape((N,) + n_out)
 
+class Flatten(Elem):
 
-
-
-
+    def _forward(self, X):
+        N = X.shape[0]
+        rest = X.shape[1:]
+        return X.reshape((N, T.prod(rest)))
