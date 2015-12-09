@@ -37,7 +37,7 @@ class Conv(Node):
         return T.nnet.relu(X)
 
     def _forward(self, X):
-        lin     = conv2d(X, self.W, border_mode='full') + self.b
+        lin     = conv2d(X, self.W, border_mode='full') + self.b.dimshuffle('x', 0, 'x', 'x')
         act     = self.rectify(lin)
         pooled  = max_pool_2d(act, (self.pool_factor, self.pool_factor))
         return pooled
