@@ -19,7 +19,7 @@ class Mixin(object):
         raise NotImplementedError
 
     def create_function(self):
-        return theano.function(self.inputs, self.result)
+        return theano.function(self.inputs, self.result, allow_input_downcast=True)
 
 class predict(Mixin):
 
