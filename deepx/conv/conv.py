@@ -8,7 +8,7 @@ from ..node import Node
 class Conv(Node):
     def __init__(self, shape_in, shape_weights, stride=1, pool_factor=2, border_mode="full"):
 
-        channels_in, channels_out, kernel_height, kernel_width = shape_weights
+        channels_out, channels_in, kernel_height, kernel_width = shape_weights
 
         h_in, w_in, d_in = shape_in
         if border_mode == "full":
