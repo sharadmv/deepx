@@ -41,3 +41,17 @@ class Conv(Node):
         act     = self.rectify(lin)
         pooled  = max_pool_2d(act, (self.pool_factor, self.pool_factor))
         return pooled
+
+class ReShape(Node):
+    def __init__(self, shape_in, shape_out):
+        super(ReShape, self).__init__(shape_in, shape_out)
+        self.shape_in  = shape_in
+        self.shape_out = shape_out
+
+    def _forward(self, X):
+        return X.reshape(shape_out)
+
+
+
+
+
