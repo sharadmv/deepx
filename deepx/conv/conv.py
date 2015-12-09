@@ -47,7 +47,11 @@ class Reshape(Node):
         super(Reshape, self).__init__(n_in, n_out)
 
     def _forward(self, X):
-        return X.reshape(self.n_out)
+        N = X.shape[0]
+        n_out = self.n_out
+        if not isinstance(n_out, tuple):
+            n_out = (self.n_out,)
+        return X.reshape((N,) + n_out)
 
 
 
