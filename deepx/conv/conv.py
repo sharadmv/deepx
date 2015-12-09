@@ -49,7 +49,7 @@ class ReShape(Node):
         self.shape_out = shape_out
 
     def _forward(self, X):
-        return X.reshape(shape_out)
+        return X.reshape(self.shape_out)
 
 
 
