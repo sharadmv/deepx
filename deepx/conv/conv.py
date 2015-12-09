@@ -2,8 +2,9 @@ from ..node import Node
 from theano.tensor.nnet.conv import conv2d
 from theano.tensor.signal.downsample import max_pool_2d
 
+
 class Conv(Node):
-    def __init__(self, shape_in, shape_weights, stride, padding, pool_factor=2, border_mode="full"):
+    def __init__(self, shape_in, shape_weights, stride=1, pool_factor=2, border_mode="full"):
 
         channels_in, channels_out, kernel_height, kernel_width = shape_weights
 
@@ -15,11 +16,15 @@ class Conv(Node):
         if border_mode == "full":
             h_out = h_in + kernel_height - 1
             w_out = w_in + kernel_width - 1
+
         elif border_mode == "valid":
             h_out = h_in - kernel_height + 1
             W_out = w_in - kernel_width + 1
         else:
             raise Exception("Border mode must be {full, valid}.")
+
+        h_out = math.ceil(h_out/2.)
+        w_out = math.ceil(w_out/2.)
 
         shape_out = (h_out, w_out, channels_out)
         super(Conv, self).__init__(shape_in, shape_out)
