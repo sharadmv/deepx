@@ -1,7 +1,7 @@
 import theano.tensor as T
 
-from mixin import Mixin
-from util import create_tensor
+from ..node import Mixin
+from ..util import create_tensor
 
 class Loss(Mixin):
 

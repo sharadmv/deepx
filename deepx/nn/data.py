@@ -1,6 +1,6 @@
 import theano.tensor as T
 
-from node import Data
+from ..node import Data
 
 class Primitive(Data):
 
