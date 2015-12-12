@@ -27,34 +27,39 @@ class LSTM(Node):
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
 
-        self.Wi = self.init_parameter('W_ix', (self.n_in, self.n_out))
-        self.Ui = self.init_parameter('U_ih', (self.n_out, self.n_out))
-        self.bi = self.init_parameter('b_i', self.n_out)
+    def _infer(self, shape_in):
+        return self.shape_out
 
-        self.Wo = self.init_parameter('W_ox', (self.n_in, self.n_out))
-        self.Uo = self.init_parameter('U_oh', (self.n_out, self.n_out))
-        self.bo = self.init_parameter('b_o', self.n_out)
+    def init_parameters(self):
+
+        self.Wi = self.init_parameter('W_ix', (self.shape_in, self.shape_out))
+        self.Ui = self.init_parameter('U_ih', (self.shape_out, self.shape_out))
+        self.bi = self.init_parameter('b_i', self.shape_out)
+
+        self.Wo = self.init_parameter('W_ox', (self.shape_in, self.shape_out))
+        self.Uo = self.init_parameter('U_oh', (self.shape_out, self.shape_out))
+        self.bo = self.init_parameter('b_o', self.shape_out)
 
         if self.use_forget_gate:
-            self.Wf = self.init_parameter('W_fx', (self.n_in, self.n_out))
-            self.Uf = self.init_parameter('U_fx', (self.n_out, self.n_out))
-            self.bf = self.init_parameter('b_f', self.n_out)
+            self.Wf = self.init_parameter('W_fx', (self.shape_in, self.shape_out))
+            self.Uf = self.init_parameter('U_fx', (self.shape_out, self.shape_out))
+            self.bf = self.init_parameter('b_f', self.shape_out)
 
-        self.Wg = self.init_parameter('W_gx', (self.n_in, self.n_out))
-        self.Ug = self.init_parameter('U_gx', (self.n_out, self.n_out))
-        self.bg = self.init_parameter('b_g', self.n_out)
+        self.Wg = self.init_parameter('W_gx', (self.shape_in, self.shape_out))
+        self.Ug = self.init_parameter('U_gx', (self.shape_out, self.shape_out))
+        self.bg = self.init_parameter('b_g', self.shape_out)
 
         if self.use_input_peep:
-            self.Pi = self.init_parameter('P_i', (self.n_out, self.n_out))
+            self.Pi = self.init_parameter('P_i', (self.shape_out, self.shape_out))
         if self.use_output_peep:
-            self.Po = self.init_parameter('P_o', (self.n_out, self.n_out))
+            self.Po = self.init_parameter('P_o', (self.shape_out, self.shape_out))
         if self.use_forget_peep:
-            self.Pf = self.init_parameter('P_f', (self.n_out, self.n_out))
+            self.Pf = self.init_parameter('P_f', (self.shape_out, self.shape_out))
 
     def _forward(self, X):
         S, N, D = X.shape
 
-        H = self.n_out
+        H = self.shape_out
 
         def step(input, previous_hidden, previous_state):
             lstm_hidden, state = self.step(input, previous_hidden, previous_state)
