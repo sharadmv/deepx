@@ -22,3 +22,4 @@ class Mixin(object):
         return theano.function(self.inputs, self.result,
                                allow_input_downcast=True)
 
+
