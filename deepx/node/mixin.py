@@ -7,7 +7,14 @@ class Mixin(object):
 
     def setup(self, model):
         self.arch = model.arch
-        self.inputs = self.get_inputs()
+        inputs = self.get_inputs()
+
+        self.inputs = []
+
+        for input in inputs:
+            if input not in self.inputs:
+                self.inputs.append(input)
+
         self.result = self.get_result()
 
         self.func = self.create_function()
