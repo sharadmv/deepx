@@ -1,7 +1,7 @@
 import theano.tensor as T
 
-from mixin import Mixin
-from util import create_tensor
+from ..node import Mixin
+from ..util import create_tensor
 
 class Loss(Mixin):
 
@@ -12,7 +12,7 @@ class Loss(Mixin):
         super(Loss, self).setup(model)
 
     def get_inputs(self):
-        return [i.get_data() for i in self.arch.get_inputs()] + [self.y]
+        return [i.get_data() for i in self.arch.get_input()] + [self.y]
 
     def get_result(self):
         ypred = self.arch.get_activation().get_data()
