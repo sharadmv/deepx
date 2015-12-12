@@ -148,6 +148,26 @@ class Node(object):
     def _forward(self, X):
         raise NotImplementedError
 
+    def load_state(self, state):
+        assert len(state) == len(self.node_chain), "Incorrect state format"
+        for node, s in zip(self.node_chain, state):
+            node.set_node_state(s)
+
+    def get_state(self):
+        state = []
+        for node in self.node_chain:
+            state.append(node.get_node_state())
+        return state
+
+    def get_node_state(self):
+        params = {}
+        for name, param in self.parameters.iteritems():
+            params[name] = param.get_value()
+        return params
+
+    def set_node_state(self, state):
+        for name, param in self.parameters.iteritems():
+            self.parameters[name].set_value(state[name])
 
 class ConcatenatedNode(Node):
 
@@ -165,6 +185,14 @@ class ConcatenatedNode(Node):
 
     def get_input(self):
         return self.left_chain.get_input() + self.right_chain.get_input()
+
+    def load_node_state(self, state):
+        assert len(state) == 2, "Incorrect state format"
+        self.left_chain.set_state(state[0])
+        self.right_chain.set_state(state[1])
+
+    def get_node_state(self):
+        return (self.left_chain.get_state(), self.right_chain.get_state())
 
 class Data(Node):
 

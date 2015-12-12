@@ -1,3 +1,4 @@
+import cPickle as pickle
 
 class Model(object):
 
@@ -22,3 +23,13 @@ class Model(object):
 
     def __str__(self):
         return str(self.arch)
+
+    def save_parameters(self, location):
+        state = self.arch.get_state()
+        with open(location, 'wb') as fp:
+            pickle.dump(state, fp)
+
+    def load_parameters(self, location):
+        with open(location, 'rb') as fp:
+            state = pickle.load(fp)
+        self.arch.load_state(state)

@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.datasets import fetch_mldata
-from deepx.nn import Image, Softmax, Tanh, Flatten, Conv, predict
+from deepx.nn import Image, Softmax, Tanh, Relu, Flatten, Conv, predict
 from deepx.optimize import rmsprop, cross_entropy
 
 if __name__ == "__main__":
@@ -30,16 +30,20 @@ if __name__ == "__main__":
 
     input = Image('X', (1, 28, 28))
 
-    tower1 = input >> Conv((10, 2, 2)) >> Tanh() >> Conv((20, 2, 2)) >> Flatten()
-    tower2 = input >> Conv((10, 2, 2)) >> Tanh() >> Conv((20, 2, 2)) >> Flatten()
+    tower1 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
+    tower2 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
 
     conv_net = (tower1 + tower2) >> Tanh(128) >> Softmax(10) | (predict, rmsprop, cross_entropy)
+
+    conv_net.load_parameters('alex.pkl')
 
     def train(n_iter, lr):
         for i in xrange(n_iter):
             u = np.random.choice(np.arange(N))
             loss = conv_net.train(X[u:u+50], y[u:u+50], lr)
-            print "Loss:", loss
+            print "Loss[%u]: %f" % (i, loss)
+        benchmark()
 
-        preds = conv_net.predict(Xtest).argmax(axis=1)
+    def benchmark(model):
+        preds = model.predict(Xtest).argmax(axis=1)
         print "Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split)
