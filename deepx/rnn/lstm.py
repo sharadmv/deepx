@@ -6,14 +6,20 @@ from ..node import Node
 
 class LSTM(Node):
 
-    def __init__(self, n_in, n_out,
+    def __init__(self, shape_in, shape_out=None,
                  use_forget_gate=True,
                  use_input_peep=False,
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True):
 
-        super(LSTM, self).__init__(n_in, n_out)
+        super(LSTM, self).__init__()
+        if shape_out is None:
+            self.shape_in = None
+            self.shape_out = shape_in
+        else:
+            self.shape_in = shape_in
+            self.shape_out = shape_out
 
         self.use_forget_gate = use_forget_gate
         self.use_input_peep = use_input_peep
