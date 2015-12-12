@@ -41,4 +41,4 @@ class Optimizer(Mixin):
         return self.model.get_mixin('loss').result
 
     def create_function(self):
-        return theano.function(self.inputs, self.result, updates=self.gradient_updates)
+        return theano.function(self.inputs, self.result, updates=self.gradient_updates, allow_input_downcast=True)
