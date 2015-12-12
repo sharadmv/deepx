@@ -12,7 +12,7 @@ class Loss(Mixin):
         super(Loss, self).setup(model)
 
     def get_inputs(self):
-        return [i.get_data() for i in self.arch.get_inputs()] + [self.y]
+        return [i.get_data() for i in self.arch.get_input()] + [self.y]
 
     def get_result(self):
         ypred = self.arch.get_activation().get_data()

@@ -1,33 +1,16 @@
 import theano.tensor as T
 
-class Data(object):
-
-    def __init__(self, data):
-        super(Data, self).__init__()
-        self.data = data
-
-    @property
-    def ndim(self):
-        return self.data.ndim
-
-    def __rshift__(self, node):
-        node.add_input(self)
-        node.propagate()
-        return node
-
-    def get_data(self):
-        return self.data
-
-    def __str__(self):
-        return "%s<%s>" % (self.__class__.__name__, self.data)
-
-    def __repr__(self):
-        return str(self)
+from node import Data
 
 class Primitive(Data):
 
-    def __init__(self, name):
-        super(Primitive, self).__init__(self.get_var(name))
+    def __init__(self, name, shape):
+        self.name = name
+        super(Primitive, self).__init__(self.get_var(name), shape)
+
+    def to_str(self):
+        return "%s<%s, %s>" % (self.__class__.__name__,
+                               self.name, self.shape_out)
 
 class Vector(Primitive):
 

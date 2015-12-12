@@ -2,86 +2,66 @@ import theano
 import theano.tensor as T
 import numpy as np
 
-from data import Data
-from model import Model
 from exceptions import DimensionException
+from model import Model
 
 class Node(object):
 
-    def __init__(self, n_in, n_out):
-        self.n_in = n_in
-        self.n_out = n_out
+    def __init__(self):
+        self.shape_in  = None
+        self.shape_out = None
 
-        self.inputs = []
-        self.activation = None
-
+        self.node_chain = [self]
         self.parameters = {}
+        self._initialized = False
+        self.input = None
 
-    def is_elementwise(self):
-        return False
+    # Node operations
 
-    def forward(self, *inputs):
-        return Data(self._forward(*(i.get_data() for i in self.inputs)))
-
-    def _forward(self, *inputs):
-        raise NotImplementedError
-
-    def propagate(self):
-        if self.has_input():
-            self.set_activation(self.forward(self.inputs))
-
-    def chain(self, node):
-        return CompositeNode(self, node)
-
-    def concat(self, node):
-        return ConcatenateNode(self, node)
-
-    def add_input(self, data):
-        self.inputs.append(data)
-
-    def set_activation(self, activation):
-        self.activation = activation
-
-    def has_input(self):
-        return len(self.inputs) > 0
-
-    def has_activation(self):
-        return self.get_activation() is not None
-
-    def get_inputs(self):
-        return self.inputs
-
-    def get_activation(self, use_dropout=True):
-        return self.forward(self.inputs)
-
-    def create_model(self, mixins):
-        if isinstance(mixins, tuple):
-            return Model(self, mixins)
-        elif isinstance(mixins, list):
-            return Model(self, mixins)
-        else:
-            return Model(self, (mixins,))
-
-    # Parameter methods
-
-    def initialize_weights(self, shape):
-        return (np.random.standard_normal(size=shape) * 0.01).astype(theano.config.floatX)
+    def infer(self, shape_in=None):
+        self.shape_in = self.shape_in or shape_in
+        if self.shape_in is not None:
+            self.shape_out = self._infer(self.shape_in)
+        if None not in self.shape:
+            self.init_parameters()
+            self._initialized = True
 
     def init_parameter(self, name, shape):
-        weights = self.initialize_weights(shape)
-        self.parameters[name] = theano.shared(weights)
-        return self.parameters[name]
+        param = theano.shared(np.random.normal(size=shape) * 0.01)
+        self.parameters[name] = param
+        return param
 
-    def get_parameter(self, name):
-        return self.parameters[name]
+    # Graph operations
 
-    def set_parameter(self, name, value):
-        return self.parameters[name].set_value(value)
+    def chain(self, node):
+        if node.is_data():
+            raise Exception("Cannot chain to a data node.")
+        new_node = Node()
+        new_node.node_chain = self.node_chain + node.node_chain
+        new_node.infer_shape()
+        return new_node
+
+    def create_model(self, mixins):
+        if isinstance(mixins, tuple) or isinstance(mixins, list):
+            return Model(self, mixins)
+        return Model(self, [mixins])
+
+    def infer_shape(self):
+        shape_out = self.node_chain[0].shape_in
+        for node in self.node_chain:
+            node.infer(shape_out)
+            shape_out = node.shape_out
 
     def get_parameters(self):
-        return self.parameters.values()
+        params = []
+        for node in self:
+            params.extend(node.parameters.values())
+        return params
 
-    # Infix methods
+    def copy(self):
+        pass
+
+    # Infix
 
     def __rshift__(self, node):
         return self.chain(node)
@@ -89,100 +69,111 @@ class Node(object):
     def __or__(self, mixins):
         return self.create_model(mixins)
 
-    def __add__(self, node):
-        return self.concat(node)
+    # Getters and setters
 
-    # General methods
+    def get_input(self):
+        input = self.node_chain[0]
+        if not input.is_data():
+            raise Exception("Cannot have chain without data at the beginning.")
+        return [input]
+
+    def get_shape_in(self):
+        return self.shape_in
+
+    def get_shape_out(self):
+        return self.shape_out
+
+    def get_in_nodes(self):
+        return self.in_nodes
+
+    def get_in_node(self):
+        return list(self.in_nodes)[0]
+
+    def get_out_node(self):
+        return self.out_node
+
+    def add_neighbor(self, node):
+        self.neighbors.add(node)
+
+    def get_neighbors(self):
+        return self.neighbors
+
+    def get_neighbor(self):
+        if len(self.neighbors) == 0:
+            return None
+        return list(self.neighbors)[0]
+
+    def __iter__(self):
+        for node in self.node_chain:
+            yield node
+
+    def is_initialized(self):
+        for node in self:
+            if not node._initialized:
+                return False
+        return True
+
+    def init_parameters(self):
+        pass
+
+    def get_activation(self):
+        input = self.get_input()[0]
+        X = input
+        for node in self.node_chain[1:]:
+            X = node.forward(X)
+        return X
 
     def is_data(self):
         return False
 
-    def is_dropout(self):
-        return False
-
-    def __iter__(self):
-        yield self
+    @property
+    def shape(self):
+        return (self.shape_in, self.shape_out)
 
     def __str__(self):
-        return "%s(%u, %u)" % (self.__class__.__name__,
-                               self.n_in, self.n_out)
+        return " >> ".join(n.to_str() for n in self)
 
     def __repr__(self):
         return str(self)
 
-    def __len__(self):
-        return 1
+    def to_str(self):
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self.shape_in, self.shape_out)
 
-class CompositeNode(Node):
+    # Abstract node methods
 
-    def __init__(self, in_node, out_node):
-        if out_node.is_elementwise():
-            in_node.n_out = out_node.n_in
-        if in_node.is_elementwise():
-            out_node.n_in = in_node.n_out
-        super(CompositeNode, self).__init__(in_node.n_in, out_node.n_out)
-        self.in_node = in_node
-        self.out_node = out_node
+    def _infer(self, shape_in):
+        return None
 
-        if self.out_node.n_in != self.in_node.n_out:
-            raise DimensionException(self.in_node, self.out_node)
+    def forward(self, X):
+        return Data(self._forward(X.get_data()), self.shape_out)
 
-        self.propagate()
+    def _forward(self, X):
+        raise NotImplementedError
 
-    def is_elementwise(self):
-        return self.in_node.is_elementwise() and self.out_node.is_elementwise()
+class Data(Node):
 
-    def add_input(self, data):
-        self.in_node.add_input(data)
+    def __init__(self, data, shape):
+        super(Data, self).__init__()
+        self.data = data
+        self.shape_out = shape
 
-    def propagate(self):
-        self.in_node.propagate()
-        if self.in_node.has_activation():
-            self.out_node.inputs = [self.in_node.get_activation()]
-        self.out_node.propagate()
+    @property
+    def ndim(self):
+        return self.data.ndim
 
-    def get_inputs(self):
-        return self.in_node.get_inputs()
+    def get_data(self):
+        return self.data
 
-    def get_activation(self, use_dropout=True):
-        return self.out_node.get_activation(use_dropout=use_dropout)
-
-    def get_parameters(self):
-        return self.in_node.get_parameters() + self.out_node.get_parameters()
-
-    def __iter__(self):
-        for node in self.in_node:
-            yield node
-        for node in self.out_node:
-            yield node
+    def is_data(self):
+        return True
 
     def __str__(self):
-        return "%s >> %s" % (self.in_node,
-                             self.out_node)
+        return self.to_str()
 
-class ConcatenateNode(Node):
+    def __repr__(self):
+        return str(self)
 
-    def __init__(self, left_node, right_node):
-        n_in = left_node.n_out + right_node.n_out
-        super(ConcatenateNode, self).__init__(n_in,
-                                              n_in)
-        self.left_node = left_node
-        self.right_node = right_node
-
-        self.left_node.propagate()
-        self.right_node.propagate()
-        self.inputs = [self.left_node.get_activation(), self.right_node.get_activation()]
-
-        self.propagate()
-
-    def _forward(self, *inputs):
-        return T.concatenate(inputs, axis=-1)
-
-    def get_inputs(self):
-        return self.left_node.get_inputs() + self.right_node.get_inputs()
-
-    def get_parameters(self):
-        return self.left_node.get_parameters() + self.right_node.get_parameters()
-
-    def __str__(self):
-        return "(%s) + (%s)" % (self.left_node, self.right_node)
+    def to_str(self):
+        return "%s(%s)" % (self.__class__.__name__,
+                               self.shape_out)
