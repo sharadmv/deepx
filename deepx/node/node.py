@@ -27,7 +27,7 @@ class Node(object):
             self._initialized = True
 
     def init_parameter(self, name, shape):
-        param = theano.shared(np.random.normal(size=shape) * 0.01)
+        param = theano.shared(np.random.normal(size=shape).astype(theano.config.floatX) * 0.01)
         self.parameters[name] = param
         return param
 
