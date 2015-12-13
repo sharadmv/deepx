@@ -13,6 +13,7 @@ class Node(object):
         self.node_chain = [self]
         self.parameters = {}
         self.input = None
+        self.frozen = False
 
     @property
     def _initialized(self):
@@ -65,10 +66,18 @@ class Node(object):
             if node._initialized:
                 node.init_parameters()
 
-    def get_parameters(self):
+    def get_node_parameters(self):
         params = []
         for node in self:
             params.extend(node.parameters.values())
+        return params
+
+    def get_parameters(self):
+        params = []
+        if self.frozen:
+            return params
+        for node in self:
+            params.extend(node.get_node_parameters())
         return params
 
     def copy(self):
@@ -165,6 +174,9 @@ class Node(object):
             params[name] = param.get_value()
         return params
 
+    def freeze_parameters(self):
+        self.frozen = True
+
     def set_node_state(self, state):
         for name, param in self.parameters.iteritems():
             self.parameters[name].set_value(state[name])
@@ -175,10 +187,10 @@ class ConcatenatedNode(Node):
         super(ConcatenatedNode, self).__init__()
         self.left_chain, self.right_chain = left_chain, right_chain
 
-    def _infer(self, shape_left, shape_right):
+    def _infer(self, *shapes):
         return self.left_chain.get_shape_out() + self.right_chain.get_shape_out()
 
-    def forward(self, X, Y):
+    def forward(self, *inputs):
         X = self.left_chain.get_activation()
         Y = self.right_chain.get_activation()
         return X.concat(Y)
@@ -193,6 +205,9 @@ class ConcatenatedNode(Node):
 
     def get_node_state(self):
         return (self.left_chain.get_state(), self.right_chain.get_state())
+
+    def get_node_parameters(self):
+        return self.left_chain.get_parameters() + self.right_chain.get_parameters()
 
 class Data(Node):
 

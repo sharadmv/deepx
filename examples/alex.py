@@ -32,10 +32,7 @@ if __name__ == "__main__":
 
     tower1 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
     tower2 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
-
-    conv_net = (tower1 + tower2) >> Tanh(128) >> Softmax(10) | (predict, rmsprop, cross_entropy)
-
-    conv_net.load_parameters('alex.pkl')
+    conv_net = (tower1 + tower2) >> Relu(256) >> Softmax(10) | (predict, rmsprop, cross_entropy)
 
     def train(n_iter, lr):
         for i in xrange(n_iter):
@@ -43,7 +40,8 @@ if __name__ == "__main__":
             loss = conv_net.train(X[u:u+50], y[u:u+50], lr)
             print "Loss[%u]: %f" % (i, loss)
         benchmark()
+        conv_net.save_parameters('alex.pkl')
 
-    def benchmark(model):
-        preds = model.predict(Xtest).argmax(axis=1)
+    def benchmark():
+        preds = conv_net.predict(Xtest).argmax(axis=1)
         print "Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split)
