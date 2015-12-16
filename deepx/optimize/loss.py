@@ -8,14 +8,14 @@ class Loss(Mixin):
     name = 'loss'
 
     def setup(self, model):
-        self.y = create_tensor(model.arch.get_activation().ndim, name='y')
         super(Loss, self).setup(model)
+        self.y = create_tensor(self.get_activation().ndim, 'y')
 
     def get_inputs(self):
         return super(Loss, self).get_inputs() + [self.y]
 
     def get_result(self):
-        ypred = self.arch.get_activation().get_data()
+        ypred = self.get_activation().get_data()
         y = self.y
         if ypred.ndim == 3:
             S, N, V = ypred.shape

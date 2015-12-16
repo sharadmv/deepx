@@ -13,7 +13,7 @@ class Model(object):
 
         for mixin, priority in sorted(self.mixins.values(), key=lambda x: x[1]):
             mixin.setup(self)
-            setattr(self, mixin.name, mixin.func)
+            setattr(self, mixin.name, mixin.get_function())
 
     def has_mixin(self, name):
         return name in self.mixins

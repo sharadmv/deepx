@@ -109,9 +109,6 @@ class Node(object):
         # No parameters for default node
         return
 
-    def get_activation(self):
-        raise Exception("Cannot get activation from single node.")
-
     def is_data(self):
         return False
 
@@ -178,9 +175,6 @@ class CompositeNode(Node):
     def get_input(self):
         return self.left.get_input()
 
-    def get_activation(self):
-        return self.right.forward(self.left.get_activation())
-
     def __str__(self):
         return "{left} >> {right}".format(
             left=self.left,
@@ -197,18 +191,18 @@ class ConcatenatedNode(Node):
         self.right.infer_shape()
 
     def get_shape_in(self):
-        return [self.left.get_shape_in(), self.right.get_shape_out()]
+        return [self.left.get_shape_in(), self.right.get_shape_in()]
 
     def get_shape_out(self):
+        if self.left.get_shape_out() is None:
+            return None
+        if self.right.get_shape_out() is None:
+            return None
         return self.left.get_shape_out() + self.right.get_shape_out()
 
     def forward(self, X):
         X1, X2 = X
         Y1, Y2 = self.left.forward(X1), self.right.forward(X2)
-        return Y1.concat(Y2)
-
-    def get_activation(self):
-        Y1, Y2 = self.left.get_activation(), self.right.get_activation()
         return Y1.concat(Y2)
 
     def get_input(self):
@@ -224,6 +218,15 @@ class ConcatenatedNode(Node):
         else:
             inputs.append(input)
         return inputs
+
+    def get_state(self):
+        return (self.left.get_state(),
+                self.right.get_state())
+
+    def set_state(self, state):
+        left_state, right_state = state
+        self.left.set_state(left_state)
+        self.right.set_state(right_state)
 
     def get_parameters(self):
         return self.left.get_parameters() + self.right.get_parameters()
@@ -245,6 +248,9 @@ class Data(Node):
     def _infer(self, shape_in):
         return self.shape_out
 
+    def forward(self, X):
+        return X
+
     @property
     def ndim(self):
         return self.data.ndim
@@ -252,9 +258,6 @@ class Data(Node):
     def concat(self, data):
         my_data, other_data = self.get_data(), data.get_data()
         return Data(T.concatenate([my_data, other_data], axis=-1), self.shape_out + data.shape_out)
-
-    def get_activation(self):
-        return self
 
     def get_input(self):
         return self
@@ -270,3 +273,6 @@ class Data(Node):
 
     def __str__(self):
         return "Data(%s, %s)" % (self.data, self.get_shape_out())
+
+    def is_sequence(self):
+        return False

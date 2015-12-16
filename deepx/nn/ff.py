@@ -65,4 +65,4 @@ class Tanh(Linear):
 class Relu(Linear):
 
     def activate(self, X):
-        return T.nnet.relu(X)
+        return X * (X > 0)

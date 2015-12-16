@@ -1,3 +1,4 @@
+import theano
 import theano.tensor as T
 
 def create_tensor(ndim, name=None):
@@ -7,3 +8,5 @@ def create_tensor(ndim, name=None):
         return T.matrix(name)
     elif ndim == 3:
         return T.tensor3(name)
+    else:
+        return T.TensorType(theano.config.floatX, (False,)*ndim)(name)
