@@ -48,7 +48,7 @@ class Conv(Node):
         return channels_out, h_out, w_out
 
     def rectify(self, X):
-        return T.nnet.relu(X)
+        return X * (X > 0)
 
     def _forward(self, X):
         lin     = conv2d(X, self.W, border_mode='full') + self.b.dimshuffle('x', 0, 'x', 'x')
