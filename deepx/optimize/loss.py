@@ -12,7 +12,7 @@ class Loss(Mixin):
         super(Loss, self).setup(model)
 
     def get_inputs(self):
-        return [i.get_data() for i in self.arch.get_input()] + [self.y]
+        return super(Loss, self).get_inputs() + [self.y]
 
     def get_result(self):
         ypred = self.arch.get_activation().get_data()
@@ -30,3 +30,8 @@ class cross_entropy(Loss):
 
     def loss(self, ypred, y):
         return T.nnet.categorical_crossentropy(ypred, y).mean()
+
+class mse(Loss):
+
+    def loss(self, ypred, y):
+        return T.mean((ypred - y) ** 2)

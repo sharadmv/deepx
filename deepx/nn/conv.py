@@ -21,7 +21,7 @@ class Conv(Node):
         self.pool_factor = pool_factor
 
 
-    def init_parameters(self):
+    def initialize(self):
         channels_out, kernel_height, kernel_width = self.shape_weights
         self.W = self.init_parameter('W', (channels_out, self.channels_in, kernel_height, kernel_width))
         self.b = self.init_parameter('b', self.channels_out)

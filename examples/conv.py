@@ -31,8 +31,8 @@ if __name__ == "__main__":
 
     def train(n_iter, lr):
         for i in xrange(n_iter):
-            u = np.random.choice(np.arange(N))
-            loss = conv_net.train(X[u:u+50], y[u:u+50], lr)
+            u = np.random.choice(np.arange(split))
+            loss = conv_net.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print "Loss:", loss
 
         preds = conv_net.predict(Xtest).argmax(axis=1)

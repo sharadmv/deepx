@@ -32,16 +32,16 @@ if __name__ == "__main__":
 
     tower1 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
     tower2 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
-    conv_net = (tower1 + tower2) >> Relu(256) >> Softmax(10) | (predict, rmsprop, cross_entropy)
+    conv_net = (tower1 + tower2) >> Relu(256) >> Softmax(10)
+    model = conv_net | (predict, rmsprop, cross_entropy)
 
     def train(n_iter, lr):
         for i in xrange(n_iter):
-            u = np.random.choice(np.arange(N))
-            loss = conv_net.train(X[u:u+50], y[u:u+50], lr)
+            u = np.random.choice(np.arange(split))
+            loss = model.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print "Loss[%u]: %f" % (i, loss)
         benchmark()
-        conv_net.save_parameters('alex.pkl')
 
     def benchmark():
-        preds = conv_net.predict(Xtest).argmax(axis=1)
+        preds = model.predict(Xtest).argmax(axis=1)
         print "Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split)

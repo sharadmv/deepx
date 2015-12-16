@@ -10,22 +10,21 @@ class Node(object):
         self.shape_in  = None
         self.shape_out = None
 
-        self.node_chain = [self]
         self.parameters = {}
-        self.input = None
         self.frozen = False
 
     @property
-    def _initialized(self):
-        return not (None in self.shape)
+    def shape(self):
+        return (self.get_shape_in(), self.get_shape_out())
 
     # Node operations
 
-    def infer(self, *inputs):
-        shape_out = [a.shape_out for a in inputs]
-        if None in shape_out:
-            return self.shape_out
-        return self._infer(*shape_out)
+    def infer_shape(self):
+        shape_in = self.get_shape_in()
+        if shape_in is not None:
+            shape_out = self._infer(shape_in)
+            self.set_shape_out(shape_out)
+            self.initialize()
 
     def init_parameter(self, name, shape):
         param = theano.shared((np.random.normal(size=shape) * 0.01).astype(theano.config.floatX))
@@ -35,50 +34,24 @@ class Node(object):
     # Graph operations
 
     def chain(self, node):
-        if node.is_data():
-            raise Exception("Cannot chain to a data node.")
-        new_node = Node()
-        new_node.node_chain = self.node_chain + node.node_chain
-        new_node.infer_shape()
-        return new_node
+        composite = CompositeNode(self, node)
+        composite.infer_shape()
+        return composite
 
     def concatenate(self, node):
-        new_node = ConcatenatedNode(self, node)
-        new_node.infer_shape()
-        return new_node
+        concatenated = ConcatenatedNode(self, node)
+        concatenated.infer_shape()
+        return concatenated
 
     def create_model(self, mixins):
         if isinstance(mixins, tuple) or isinstance(mixins, list):
             return Model(self, mixins)
         return Model(self, [mixins])
 
-    def infer_shape(self):
-        inputs = self.get_input()
-        shape_out =  [a.shape_out for a in inputs]
-        if len(shape_out) == 1:
-            shape_out = shape_out[0]
-        for node in self.node_chain:
-            if node.shape_in is None:
-                node.shape_in = shape_out
-            shape_out = node.infer(*inputs)
-            node.shape_out = shape_out
-            inputs = [node]
-            if node._initialized:
-                node.init_parameters()
-
-    def get_node_parameters(self):
-        params = []
-        for node in self:
-            params.extend(node.parameters.values())
-        return params
-
     def get_parameters(self):
-        params = []
         if self.frozen:
-            return params
-        for node in self:
-            params.extend(node.get_node_parameters())
-        return params
+            return []
+        return self.parameters.values()
 
     def copy(self):
         pass
@@ -96,118 +69,170 @@ class Node(object):
 
     # Getters and setters
 
-    def get_input(self):
-        return self.node_chain[0].get_input()
+    def is_initialized(self):
+        return not (None in self.shape)
+
+    def set_shape_in(self, shape_in):
+        if self.shape_in is None:
+            self.shape_in = shape_in
+        if self.shape_in != shape_in:
+            raise Exception("Error inferring shape.")
+
+    def set_shape_out(self, shape_out):
+        if self.shape_out is None:
+            self.shape_out = shape_out
+        if self.shape_out != shape_out:
+            raise Exception("Error inferring shape.")
 
     def get_shape_in(self):
-        return self.node_chain[0].shape_out
+        return self.shape_in
 
     def get_shape_out(self):
-        return self.node_chain[-1].shape_out
+        return self.shape_out
 
-    def __iter__(self):
-        for node in self.node_chain:
-            yield node
-
-    def is_initialized(self):
-        for node in self:
-            if not node._initialized:
-                return False
-        return True
-
-    def init_parameters(self):
-        # No parameters for default node
-        return
-
-    def get_activation(self):
-        X = self.get_input()
-        for node in self.node_chain:
-            X = node.forward(*X)
-            X = [X]
-        return X[0]
-
-    def is_data(self):
-        return False
-
-    @property
-    def shape(self):
-        return (self.shape_in, self.shape_out)
-
-    def __getitem__(self, idx):
-        return self.node_chain[idx]
-
-    def __str__(self):
-        return " >> ".join(n.to_str() for n in self)
-
-    def __repr__(self):
-        return str(self)
-
-    def to_str(self):
-        return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.shape_in, self.shape_out)
-
-    # Abstract node methods
-
-    def _infer(self, shape_in):
-        return None
-
-    def forward(self, *args):
-        return Data(self._forward(*[x.get_data() for x in args]), self.shape_out)
-
-    def _forward(self, X):
-        raise NotImplementedError
-
-    def load_state(self, state):
-        assert len(state) == len(self.node_chain), "Incorrect state format"
-        for node, s in zip(self.node_chain, state):
-            node.set_node_state(s)
+    def set_state(self, state):
+        assert self.is_initialized(), "Cannot set state of uninitialized node."
+        for name, val in state.iteritems():
+            self.parameters[name].set_value(val)
 
     def get_state(self):
-        state = []
-        for node in self.node_chain:
-            state.append(node.get_node_state())
+        assert self.is_initialized(), "Cannot get state of uninitialized node."
+        state = {}
+        for name, val in self.parameters.iteritems():
+            state[name] = val.get_value()
         return state
-
-    def get_node_state(self):
-        params = {}
-        for name, param in self.parameters.iteritems():
-            params[name] = param.get_value()
-        return params
 
     def freeze_parameters(self):
         self.frozen = True
 
-    def set_node_state(self, state):
-        for name, param in self.parameters.iteritems():
-            self.parameters[name].set_value(state[name])
+    def initialize(self):
+        # No parameters for default node
+        return
+
+    def get_activation(self):
+        raise Exception("Cannot get activation from single node.")
+
+    def is_data(self):
+        return False
+
+    def __str__(self):
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self.get_shape_in(), self.get_shape_out())
+
+    def __repr__(self):
+        return str(self)
+
+    # Abstract node methods
+
+    def _infer(self, shape_in):
+        raise NotImplementedError
+
+    def forward(self, X):
+        return Data(self._forward(X.get_data()), self.shape_out)
+
+    def _forward(self, X):
+        raise NotImplementedError
+
+class CompositeNode(Node):
+
+    def __init__(self, left, right):
+        super(CompositeNode, self).__init__()
+        self.left = left
+        self.right = right
+
+    def forward(self, X):
+        return self.right.forward(self.left.forward(X))
+
+    def infer_shape(self):
+        self.left.infer_shape()
+        if self.left.get_shape_out() is not None:
+            self.right.set_shape_in(self.left.get_shape_out())
+        self.right.infer_shape()
+
+    def set_shape_in(self, shape_in):
+        self.left.set_shape_in(shape_in)
+
+    def set_shape_out(self, shape_out):
+        self.right.set_shape_out(shape_out)
+
+    def get_shape_in(self):
+        return self.left.get_shape_in()
+
+    def get_shape_out(self):
+        return self.right.get_shape_out()
+
+    def get_state(self):
+        return (self.left.get_state(),
+                self.right.get_state())
+
+    def set_state(self, state):
+        left_state, right_state = state
+        self.left.set_state(left_state)
+        self.right.set_state(right_state)
+
+    def get_parameters(self):
+        if self.frozen:
+            return []
+        return self.left.get_parameters() + self.right.get_parameters()
+
+    def get_input(self):
+        return self.left.get_input()
+
+    def get_activation(self):
+        return self.right.forward(self.left.get_activation())
+
+    def __str__(self):
+        return "{left} >> {right}".format(
+            left=self.left,
+            right=self.right
+        )
 
 class ConcatenatedNode(Node):
 
-    def __init__(self, left_chain, right_chain):
-        super(ConcatenatedNode, self).__init__()
-        self.left_chain, self.right_chain = left_chain, right_chain
+    def __init__(self, left, right):
+        self.left, self.right = left, right
 
-    def _infer(self, *shapes):
-        return self.left_chain.get_shape_out() + self.right_chain.get_shape_out()
+    def infer_shape(self):
+        self.left.infer_shape()
+        self.right.infer_shape()
 
-    def forward(self, *inputs):
-        X = self.left_chain.get_activation()
-        Y = self.right_chain.get_activation()
-        return X.concat(Y)
+    def get_shape_in(self):
+        return [self.left.get_shape_in(), self.right.get_shape_out()]
+
+    def get_shape_out(self):
+        return self.left.get_shape_out() + self.right.get_shape_out()
+
+    def forward(self, X):
+        X1, X2 = X
+        Y1, Y2 = self.left.forward(X1), self.right.forward(X2)
+        return Y1.concat(Y2)
+
+    def get_activation(self):
+        Y1, Y2 = self.left.get_activation(), self.right.get_activation()
+        return Y1.concat(Y2)
 
     def get_input(self):
-        return self.left_chain.get_input() + self.right_chain.get_input()
+        inputs = []
+        input = self.left.get_input()
+        if isinstance(input, list):
+            inputs.extend(input)
+        else:
+            inputs.append(input)
+        input = self.right.get_input()
+        if isinstance(input, list):
+            inputs.extend(input)
+        else:
+            inputs.append(input)
+        return inputs
 
-    def load_node_state(self, state):
-        assert len(state) == 2, "Incorrect state format"
-        self.left_chain.set_state(state[0])
-        self.right_chain.set_state(state[1])
+    def get_parameters(self):
+        return self.left.get_parameters() + self.right.get_parameters()
 
-    def get_node_state(self):
-        return (self.left_chain.get_state(), self.right_chain.get_state())
-
-    def get_node_parameters(self):
-        return self.left_chain.get_parameters() + self.right_chain.get_parameters()
+    def __str__(self):
+        return "[{left}; {right}]".format(
+            left=self.left,
+            right=self.right
+        )
 
 class Data(Node):
 
@@ -217,11 +242,8 @@ class Data(Node):
         self.shape_in = shape
         self.shape_out = shape
 
-    def _infer(self, args):
-        return args
-
-    def forward(self, X):
-        return X
+    def _infer(self, shape_in):
+        return self.shape_out
 
     @property
     def ndim(self):
@@ -231,8 +253,11 @@ class Data(Node):
         my_data, other_data = self.get_data(), data.get_data()
         return Data(T.concatenate([my_data, other_data], axis=-1), self.shape_out + data.shape_out)
 
+    def get_activation(self):
+        return self
+
     def get_input(self):
-        return [self]
+        return self
 
     def get_data(self):
         return self.data
@@ -240,12 +265,8 @@ class Data(Node):
     def is_data(self):
         return True
 
-    def __str__(self):
-        return self.to_str()
-
     def __repr__(self):
         return str(self)
 
-    def to_str(self):
-        return "%s(%s)" % (self.__class__.__name__,
-                               self.shape_out)
+    def __str__(self):
+        return "Data(%s, %s)" % (self.data, self.get_shape_out())

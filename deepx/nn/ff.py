@@ -16,7 +16,7 @@ class Linear(Node):
             else:
                 self.shape_out = n_in
 
-    def init_parameters(self):
+    def initialize(self):
         if not self.is_elementwise():
             self.W = self.init_parameter('W', (self.shape_in, self.shape_out))
             self.b = self.init_parameter('b', self.shape_out)

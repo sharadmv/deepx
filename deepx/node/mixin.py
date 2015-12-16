@@ -19,14 +19,16 @@ class Mixin(object):
 
         self.func = self.create_function()
 
-    def get_result(self):
-        raise NotImplementedError
-
     def get_inputs(self):
-        raise NotImplementedError
+        input = self.arch.get_input()
+        if not isinstance(input, list):
+            input = [input]
+        return [i.get_data() for i in input]
 
-    def create_function(self):
+    def get_result(self):
+        return self.arch.get_activation().get_data()
+
+    def create_function(self, **kwargs):
         return theano.function(self.inputs, self.result,
-                               allow_input_downcast=True)
-
-
+                               allow_input_downcast=True,
+                               **kwargs)
