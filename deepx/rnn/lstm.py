@@ -30,7 +30,7 @@ class LSTM(Node):
     def _infer(self, shape_in):
         return self.shape_out
 
-    def init_parameters(self):
+    def initialize(self):
 
         self.Wi = self.init_parameter('W_ix', (self.shape_in, self.shape_out))
         self.Ui = self.init_parameter('U_ih', (self.shape_out, self.shape_out))
@@ -56,28 +56,28 @@ class LSTM(Node):
         if self.use_forget_peep:
             self.Pf = self.init_parameter('P_f', (self.shape_out, self.shape_out))
 
-    def _forward(self, X):
-        S, N, D = X.shape
+    # def _forward(self, X):
+        # S, N, D = X.shape
 
-        H = self.shape_out
+        # H = self.shape_out
 
-        def step(input, previous_hidden, previous_state):
-            lstm_hidden, state = self.step(input, previous_hidden, previous_state)
-            return lstm_hidden, state
+        # def step(input, previous_hidden, previous_state):
+            # lstm_hidden, state = self.step(input, previous_hidden, previous_state)
+            # return lstm_hidden, state
 
-        hidden = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
-        state = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
+        # hidden = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
+        # state = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
 
-        (lstm_out, _), updates = theano.scan(step,
-                              sequences=[X],
-                              outputs_info=[
-                                            hidden,
-                                            state,
-                                           ],
-                              n_steps=S)
-        return lstm_out
+        # (lstm_out, _), updates = theano.scan(step,
+                              # sequences=[X],
+                              # outputs_info=[
+                                            # hidden,
+                                            # state,
+                                           # ],
+                              # n_steps=S)
+        # return lstm_out
 
-    def step(self, X, previous_hidden, previous_state):
+    def _forward(self, X, previous_hidden, previous_state):
         if self.use_input_peep:
             input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:

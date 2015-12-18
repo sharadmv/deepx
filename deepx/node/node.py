@@ -3,6 +3,7 @@ import theano.tensor as T
 import numpy as np
 
 from model import Model
+from ..util import create_tensor
 
 class Node(object):
 
@@ -31,6 +32,7 @@ class Node(object):
         self.parameters[name] = param
         return param
 
+
     # Graph operations
 
     def chain(self, node):
@@ -42,6 +44,9 @@ class Node(object):
         concatenated = ConcatenatedNode(self, node)
         concatenated.infer_shape()
         return concatenated
+
+    def unroll(self, max_length=None):
+        return RecurrentNode(self, max_length=max_length)
 
     def create_model(self, mixins):
         if isinstance(mixins, tuple) or isinstance(mixins, list):
@@ -58,6 +63,11 @@ class Node(object):
 
     # Infix
 
+    def __getitem__(self, idx):
+        index_node = IndexNode(self, idx)
+        index_node.infer_shape()
+        return index_node
+
     def __rshift__(self, node):
         return self.chain(node)
 
@@ -66,6 +76,9 @@ class Node(object):
 
     def __or__(self, mixins):
         return self.create_model(mixins)
+
+    def __call__(self, *args, **kwargs):
+        return self.unroll(*args, **kwargs)
 
     # Getters and setters
 
@@ -124,8 +137,15 @@ class Node(object):
     def _infer(self, shape_in):
         raise NotImplementedError
 
+    def recurrent_forward(self, X, output):
+        out = self._recurrent_forward(X)
+        return out, out
+
+    def get_previous_zeros(self, N):
+        return T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out())
+
     def forward(self, X):
-        return Data(self._forward(X.get_data()), self.shape_out)
+        return Data(self._forward(X.get_data()), self.get_shape_out())
 
     def _forward(self, X):
         raise NotImplementedError
@@ -136,6 +156,12 @@ class CompositeNode(Node):
         super(CompositeNode, self).__init__()
         self.left = left
         self.right = right
+
+    def recurrent_forward(self, X, output):
+        previous_left, previous_right = output
+        left_out = self.left.recurrent_forward(X, previous_left)
+        right_out = self.right.recurrent_forward(X, previous_right)
+        return right_out, (left_out, right_out)
 
     def forward(self, X):
         return self.right.forward(self.left.forward(X))
@@ -175,11 +201,46 @@ class CompositeNode(Node):
     def get_input(self):
         return self.left.get_input()
 
+    def is_recurrent(self):
+        return False
+
+    def get_previous_zeros(self, N):
+        return (self.left.get_previous_zeros(N), self.right.get_previous_zeros(N))
+
     def __str__(self):
         return "{left} >> {right}".format(
             left=self.left,
             right=self.right
         )
+
+class RecurrentNode(Node):
+
+    def __init__(self, node, max_length=None):
+        self.node = node
+        self.max_length = max_length
+
+    def forward(self, X):
+        S, N, D = X.shape
+        previous = self.get_previous_zeros(N)
+        wat = self.node.recurrent_forward(X, previous)
+
+    def get_input(self):
+        return Sequence(self.node.get_input())
+
+    def get_shape_in(self):
+        return self.node.get_shape_in()
+
+    def get_shape_out(self):
+        return self.node.get_shape_out()
+
+    def is_recurrent(self):
+        return True
+
+    def get_previous_zeros(self, N):
+        return self.node.get_previous_zeros(N)
+
+    def __str__(self):
+        return "Recurrent(%s)" % self.node
 
 class ConcatenatedNode(Node):
 
@@ -200,8 +261,11 @@ class ConcatenatedNode(Node):
             return None
         return self.left.get_shape_out() + self.right.get_shape_out()
 
-    def forward(self, X):
+    def forward(self, X, collect_outputs=False):
         X1, X2 = X
+        if collect_outputs:
+            (left, left_out), (right, right_out) = self.left.forward(X1, True), self.right.forward(X2, True)
+            return left.concat(right), (left_out, right_out)
         Y1, Y2 = self.left.forward(X1), self.right.forward(X2)
         return Y1.concat(Y2)
 
@@ -237,6 +301,43 @@ class ConcatenatedNode(Node):
             right=self.right
         )
 
+class IndexNode(Node):
+
+    def __init__(self, node, index):
+        super(IndexNode, self).__init__()
+        self.node = node
+        self.index = index
+
+    def infer_shape(self):
+        self.node.infer_shape()
+
+    def get_shape_in(self):
+        return self.node.get_shape_in()
+
+    def get_shape_out(self):
+        return self.node.get_shape_out()
+
+    def forward(self, X):
+        return X[self.index]
+
+    def get_input(self):
+        return self.node.get_input()
+
+    def get_state(self):
+        return self.node.get_state()
+
+    def set_state(self, state):
+        self.node.set_state(state)
+
+    def get_parameters(self):
+        return self.node.get_parameters()
+
+    def __str__(self):
+        return "({node})[{index}]".format(
+            node=self.node,
+            index=self.index
+        )
+
 class Data(Node):
 
     def __init__(self, data, shape):
@@ -245,11 +346,24 @@ class Data(Node):
         self.shape_in = shape
         self.shape_out = shape
 
+    @property
+    def shape(self):
+        return self.data.shape
+
     def _infer(self, shape_in):
         return self.shape_out
 
-    def forward(self, X):
+    def forward(self, X, collect_outputs=False):
+        if collect_outputs:
+            return X, X
         return X
+
+    def __getitem__(self, idx):
+        return self.index(idx)
+
+    def index(self, idx):
+        assert self.is_sequence()
+        return Data(self.data[idx], self.shape_out)
 
     @property
     def ndim(self):
@@ -276,3 +390,19 @@ class Data(Node):
 
     def is_sequence(self):
         return False
+
+class Sequence(Data):
+
+    def __init__(self, data_var):
+        self.data_var = data_var
+        self.sequence_dim = data_var.ndim
+
+        self.data = create_tensor(self.sequence_dim + 1)
+        self.shape_in = self.data_var.shape_in
+        self.shape_out = self.data_var.shape_out
+
+    def __str__(self):
+        return "Sequence(%s)" % self.data_var
+
+    def is_sequence(self):
+        return True
