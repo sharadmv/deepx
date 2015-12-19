@@ -2,9 +2,9 @@ import theano
 import theano.tensor as T
 import numpy as np
 
-from ..node import Node
+from ..node import RecurrentNode, Data
 
-class LSTM(Node):
+class LSTM(RecurrentNode):
 
     def __init__(self, shape_in, shape_out=None,
                  use_forget_gate=True,
@@ -29,6 +29,15 @@ class LSTM(Node):
 
     def _infer(self, shape_in):
         return self.shape_out
+
+    def recurrent_forward(self, X, previous):
+        out, state = self.forward(X, previous)
+        return out, (out, state)
+
+    def forward(self, X, previous):
+        output, state = self._forward(X.get_data(), previous)
+        return Data(output, self.get_shape_out()), Data(state, self.get_shape_out())
+
 
     def initialize(self):
 
@@ -77,7 +86,8 @@ class LSTM(Node):
                               # n_steps=S)
         # return lstm_out
 
-    def _forward(self, X, previous_hidden, previous_state):
+    def _forward(self, X, previous):
+        previous_hidden, previous_state = previous
         if self.use_input_peep:
             input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:
@@ -102,3 +112,8 @@ class LSTM(Node):
         else:
             output = output_gate * state
         return output, state
+
+    def get_previous_zeros(self, N):
+        return (T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out()),
+                T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out()))
+
