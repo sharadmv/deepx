@@ -35,5 +35,3 @@ batch of vectors and a batch of one-hot encoded labels and computes the cross-en
 `train` takes in the same parameters as `loss` and performs an `rmsprop` gradient update.
 
 That's it, we're done!
-a gradient update on the weights of the network using the `rmsprop` algorithm.
-
