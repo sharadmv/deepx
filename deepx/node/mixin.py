@@ -1,4 +1,4 @@
-import theano
+from .. import backend as T
 
 class Mixin(object):
 
@@ -41,7 +41,10 @@ class Mixin(object):
     def get_result(self):
         return self.get_activation().get_data()
 
+    def get_updates(self):
+        return []
+
     def create_function(self, **kwargs):
-        return theano.function(self.inputs, self.result,
-                               allow_input_downcast=True,
+        return T.function(self.inputs, [self.result],
+                          updates=self.get_updates(),
                                **kwargs)
