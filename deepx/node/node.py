@@ -1,5 +1,4 @@
-import theano
-import theano.tensor as T
+from .. import backend as T
 import numpy as np
 
 from model import Model
@@ -28,7 +27,7 @@ class Node(object):
             self.initialize()
 
     def init_parameter(self, name, shape):
-        param = theano.shared((np.random.normal(size=shape) * 0.01).astype(theano.config.floatX))
+        param = T.variable(np.random.normal(size=shape) * 0.01)
         self.parameters[name] = param
         return param
 
@@ -228,25 +227,21 @@ class SequenceNode(Node):
         return self.node.shape_out
 
     def forward(self, X):
-        S = X.shape[0]
-        N = X.shape[1]
+        if self.max_length is not None:
+            T.set_shape(X.get_data(), 0, self.max_length)
+        N = T.shape(X.get_data())[1]
 
         previous = self.get_previous_zeros(N)
         previous, shape = unpack_tuple(previous)
 
-        def step(input, *previous):
+        def step(input, previous):
             previous = pack_tuple(previous, shape)
             input = Data(input)
             output, previous = self.node.recurrent_forward(input, previous)
-            return (output.get_data(),) + tuple(p.get_data() for p in unpack_tuple(previous)[0])
+            return output.get_data(), list(p.get_data() for p in unpack_tuple(previous)[0])
 
-        output, updates = theano.scan(
-            step,
-            sequences=[X.get_data()],
-            non_sequences=previous,
-            n_steps=S,
-        )
-        return Data(output[0], self.get_shape_out())
+        last_output, outputs, states = T.rnn(step, X.get_data(), list(previous))
+        return Data(outputs, self.get_shape_out())
 
     def get_input(self):
         return self.input
@@ -345,7 +340,11 @@ class IndexNode(Node):
         return self.node.get_shape_out()
 
     def forward(self, X):
-        return self.node.forward(X)[self.index]
+        index = self.index
+        out = self.node.forward(X)
+        if index == -1:
+            index = T.shape(out.get_data())[0] - 1
+        return out[index]
 
     def get_input(self):
         return self.node.get_input()
@@ -375,7 +374,7 @@ class Data(Node):
 
     @property
     def shape(self):
-        return self.data.shape
+        return T.shape(self.data)
 
     def _infer(self, shape_in):
         return self.shape_out
@@ -391,7 +390,7 @@ class Data(Node):
 
     @property
     def ndim(self):
-        return self.data.ndim
+        return T.ndim(self.data)
 
     def concat(self, data):
         my_data, other_data = self.get_data(), data.get_data()

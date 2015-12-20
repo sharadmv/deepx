@@ -1,13 +1,12 @@
-import theano.tensor as T
+from .. import backend as T
 
 from ..node import Data
-from ..util import create_tensor
 
 class Primitive(Data):
 
     def __init__(self, name, shape):
         self.name = name
-        super(Primitive, self).__init__(self.get_var(name), shape)
+        super(Primitive, self).__init__(self.get_var(name, shape), shape)
 
     def __str__(self):
         return "%s<%s, %s>" % (self.__class__.__name__,
@@ -15,16 +14,10 @@ class Primitive(Data):
 
 class Vector(Primitive):
 
-    def get_var(self, name):
-        return T.matrix(name)
-
-class Matrix(Primitive):
-
-    def get_var(self, name):
-        return T.tensor3(name)
+    def get_var(self, name, shape):
+        return T.placeholder((None, shape), name=name)
 
 class Image(Primitive):
 
-    def get_var(self, name):
-        return T.tensor4(name)
-
+    def get_var(self, name, shape):
+        return T.placeholder((None,) + shape, name=name)

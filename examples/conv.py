@@ -27,7 +27,7 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    conv_net = Image('X', (1, 28, 28)) >> Conv((10, 2, 2)) >> Tanh() >> Conv((20, 2, 2)) >> Flatten() >> Tanh(128) >> Softmax(10) | (predict, rmsprop, cross_entropy)
+    conv_net = Image('X', (1, 28, 28)) >> Conv((10, 2, 2)) >> Tanh() >> Conv((20, 2, 2)) >> Flatten() >> Tanh(128) >> Softmax(10) | (predict, cross_entropy, rmsprop)
 
     def train(n_iter, lr):
         for i in xrange(n_iter):

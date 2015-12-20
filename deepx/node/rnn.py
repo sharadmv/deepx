@@ -14,6 +14,3 @@ class RecurrentNode(Node):
 
     def is_recurrent(self):
         return True
-
-    def get_previous_zeros(self, N):
-        return T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out())

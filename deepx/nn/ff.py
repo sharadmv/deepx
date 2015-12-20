@@ -1,4 +1,4 @@
-import theano.tensor as T
+from .. import backend as T
 
 from ..node import Node
 
@@ -46,16 +46,12 @@ class Linear(Node):
 class Softmax(Linear):
 
     def activate(self, X):
-        if X.ndim <= 2:
-            e_x = T.exp((X - X.max(axis=1)[:, None]))
-            return e_x / e_x.sum(axis=1)[:, None]
-        e_x = T.exp((X - X.max(axis=2)[:, :, None]))
-        return e_x / e_x.sum(axis=2)[:, :, None]
+        return T.softmax(X)
 
 class Sigmoid(Linear):
 
     def activate(self, X):
-        return T.nnet.sigmoid(X)
+        return T.sigmoid(X)
 
 class Tanh(Linear):
 
@@ -65,4 +61,4 @@ class Tanh(Linear):
 class Relu(Linear):
 
     def activate(self, X):
-        return X * (X > 0)
+        return T.relu(X)

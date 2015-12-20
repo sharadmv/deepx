@@ -1,5 +1,4 @@
-import theano
-import theano.tensor as T
+from .. import backend as T
 import numpy as np
 
 from ..node import RecurrentNode, Data
@@ -89,24 +88,24 @@ class LSTM(RecurrentNode):
     def _forward(self, X, previous):
         previous_hidden, previous_state = previous
         if self.use_input_peep:
-            input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
+            input_gate = T.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:
-            input_gate = T.nnet.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + self.bi)
+            input_gate = T.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + self.bi)
         candidate_state = T.tanh(T.dot(X, self.Wg) + T.dot(previous_hidden, self.Ug) + self.bg)
 
         if self.use_forget_gate:
             if self.use_forget_peep:
-                forget_gate = T.nnet.sigmoid(T.dot(X, self.Wf) + T.dot(previous_hidden, self.Uf) + T.dot(previous_state, self.Pf) + self.bf)
+                forget_gate = T.sigmoid(T.dot(X, self.Wf) + T.dot(previous_hidden, self.Uf) + T.dot(previous_state, self.Pf) + self.bf)
             else:
-                forget_gate = T.nnet.sigmoid(T.dot(X, self.Wf) + T.dot(previous_hidden, self.Uf) + self.bf)
+                forget_gate = T.sigmoid(T.dot(X, self.Wf) + T.dot(previous_hidden, self.Uf) + self.bf)
             state = candidate_state * input_gate + previous_state * forget_gate
         else:
             state = candidate_state * input_gate + previous_state * 0
 
         if self.use_output_peep:
-            output_gate = T.nnet.sigmoid(T.dot(X, self.Wo) + T.dot(previous_hidden, self.Uo) + T.dot(previous_state, self.Po) + self.bo)
+            output_gate = T.sigmoid(T.dot(X, self.Wo) + T.dot(previous_hidden, self.Uo) + T.dot(previous_state, self.Po) + self.bo)
         else:
-            output_gate = T.nnet.sigmoid(T.dot(X, self.Wo) + T.dot(previous_hidden, self.Uo) + self.bo)
+            output_gate = T.sigmoid(T.dot(X, self.Wo) + T.dot(previous_hidden, self.Uo) + self.bo)
         if self.use_tanh_output:
             output = output_gate * T.tanh(state)
         else:
@@ -114,6 +113,4 @@ class LSTM(RecurrentNode):
         return output, state
 
     def get_previous_zeros(self, N):
-        return (T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out()),
-                T.alloc(np.array(0).astype(theano.config.floatX), N, self.get_shape_out()))
-
+        return T.alloc(0, (N, self.get_shape_out())), T.alloc(0, (N, self.get_shape_out()))
