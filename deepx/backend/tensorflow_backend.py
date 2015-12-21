@@ -82,6 +82,9 @@ def count_params(x):
 def cast(x, dtype):
     return tf.cast(x, dtype)
 
+def make_sequence(var, max_length):
+    s = shape(var)
+    return placeholder(shape=[max_length] + s)
 
 # LINEAR ALGEBRA
 

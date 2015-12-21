@@ -57,6 +57,9 @@ def placeholder(shape=None, ndim=None, dtype=_FLOATX, name=None):
     else:
         return T.TensorType(dtype, (False,)*ndim)(name=name)
 
+def make_sequence(var, max_length):
+    return placeholder(ndim=var.ndim + 1)
+
 def set_shape(*args):
     pass
 

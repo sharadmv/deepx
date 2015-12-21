@@ -419,13 +419,7 @@ class Sequence(Data):
         self.sequence_dim = data_var.ndim
         self.max_length = max_length
 
-        data_shape = self.data_var.shape
-        if isinstance(data_shape, list) or isinstance(data_shape, tuple):
-            new_shape = (self.max_length,) + tuple(data_shape)
-        else:
-            new_shape = (self.max_length,) + tuple([data_shape])
-
-        self.data = T.placeholder(new_shape)
+        self.data = T.make_sequence(self.data_var.get_data(), self.max_length)
         self.shape_in = self.data_var.shape_in
         self.shape_out = self.data_var.shape_out
 
