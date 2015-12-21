@@ -221,14 +221,12 @@ class SequenceNode(Node):
         self.node = node
         self.max_length = max_length
 
-        self.input = Sequence(self.node.get_input())
+        self.input = Sequence(self.node.get_input(), self.max_length)
 
     def _infer(self, shape_in):
         return self.node.shape_out
 
     def forward(self, X):
-        if self.max_length is not None:
-            T.set_shape(X.get_data(), 0, self.max_length)
         N = T.shape(X.get_data())[1]
 
         previous = self.get_previous_zeros(N)
@@ -344,7 +342,7 @@ class IndexNode(Node):
         out = self.node.forward(X)
         if index == -1:
             index = T.shape(out.get_data())[0] - 1
-        return out[index]
+        return out[index, :, :]
 
     def get_input(self):
         return self.node.get_input()
@@ -416,11 +414,18 @@ class Data(Node):
 
 class Sequence(Data):
 
-    def __init__(self, data_var):
+    def __init__(self, data_var, max_length=None):
         self.data_var = data_var
         self.sequence_dim = data_var.ndim
+        self.max_length = max_length
 
-        self.data = create_tensor(self.sequence_dim + 1)
+        data_shape = self.data_var.shape
+        if isinstance(data_shape, list) or isinstance(data_shape, tuple):
+            new_shape = (self.max_length,) + tuple(data_shape)
+        else:
+            new_shape = (self.max_length,) + tuple([data_shape])
+
+        self.data = T.placeholder(new_shape)
         self.shape_in = self.data_var.shape_in
         self.shape_out = self.data_var.shape_out
 

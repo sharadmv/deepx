@@ -24,7 +24,7 @@ def _set_session(session):
 def alloc(value, shape):
     if None in shape:
         raise NotImplementedError("Cannot handle dynamic allocation just yet.")
-    return tf.constant(value, shape=shape)
+    return tf.constant(value, shape=shape, dtype=_FLOATX)
 
 def variable(value, dtype=_FLOATX, name=None):
     v = tf.Variable(np.asarray(value, dtype=dtype), name=name)

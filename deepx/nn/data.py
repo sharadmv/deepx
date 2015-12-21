@@ -4,8 +4,9 @@ from ..node import Data
 
 class Primitive(Data):
 
-    def __init__(self, name, shape):
+    def __init__(self, name, shape, batch_size=None):
         self.name = name
+        self.batch_size = batch_size
         super(Primitive, self).__init__(self.get_var(name, shape), shape)
 
     def __str__(self):
@@ -15,9 +16,9 @@ class Primitive(Data):
 class Vector(Primitive):
 
     def get_var(self, name, shape):
-        return T.placeholder((None, shape), name=name)
+        return T.placeholder((self.batch_size, shape), name=name)
 
 class Image(Primitive):
 
     def get_var(self, name, shape):
-        return T.placeholder((None,) + shape, name=name)
+        return T.placeholder((self.batch_size,) + shape, name=name)
