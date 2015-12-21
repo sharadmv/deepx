@@ -1,6 +1,3 @@
-import theano
-import numpy as np
-import theano.tensor as T
 from node import Node, Data
 
 class RecurrentNode(Node):

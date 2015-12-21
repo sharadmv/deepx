@@ -1,16 +1,15 @@
-import theano
-import theano.tensor as T
+from .. import backend as T
 from optimizer import Optimizer
 
 class momentum(Optimizer):
 
-    def init_parameters(self):
-        self.caches = [theano.shared(p.get_value() * 0) for p in self.parameters]
+    def initialize(self):
+        self.caches = [T.variable(T.get_value(p) * 0) for p in self.parameters]
 
     def get_aux_inputs(self):
         return [
-            T.fscalar('rho'),
-            T.fscalar('eta'),
+            T.placeholder(ndim=0, name='rho'),
+            T.placeholder(ndim=0, name='eta')
         ]
 
     def updates(self, rho, eta):
