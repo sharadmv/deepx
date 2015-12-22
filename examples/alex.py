@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ytrain, ytest = y[train_idx], y[test_idx]
 
 
-    input = Image('X', (1, 28, 28))
+    input = Image((1, 28, 28))
 
     tower1 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
     tower2 = input >> Conv((10, 2, 2)) >> Relu() >> Conv((20, 2, 2)) >> Flatten()
