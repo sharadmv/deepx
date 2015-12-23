@@ -21,9 +21,8 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pandas pytest h5py
-  - source activate test-environment
-  - pip install pytest-cov python-coveralls pytest-xdist coverage==3.7.1 #we need this version of coverage for coveralls.io to work
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose
+  - pip install pytest-cov coveralls pytest-xdist coverage==3.7.1 #we need this version of coverage for coveralls.io to work
   - pip install Theano
 
   # install PIL for preprocessing tests
@@ -31,14 +30,13 @@ install:
       conda install pil;
     fi
 
-  - python setup.py install
-
   # install TensorFlow
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.6.0-cp27-none-linux_x86_64.whl;
     elif [[ "$TRAVIS_PYTHON_VERSION" == "3.4" ]]; then
       pip install https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.6.0-cp34-none-linux_x86_64.whl;
     fi
+  - python setup.py install
 # command to run tests
 script:
   # run deepx backend init to initialize backend config
