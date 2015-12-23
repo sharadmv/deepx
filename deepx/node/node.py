@@ -107,13 +107,13 @@ class Node(object):
     def set_state(self, state):
         assert self.is_initialized(), "Cannot set state of uninitialized node."
         for name, val in state.iteritems():
-            self.parameters[name].set_value(val)
+            T.set_value(self.parameters[name], val)
 
     def get_state(self):
         assert self.is_initialized(), "Cannot get state of uninitialized node."
         state = {}
         for name, val in self.parameters.iteritems():
-            state[name] = val.get_value()
+            state[name] = T.get_value(val).tolist()
         return state
 
     def freeze_parameters(self):
@@ -153,6 +153,15 @@ class Node(object):
 
     def _forward(self, X):
         raise NotImplementedError
+
+    def __eq__(self, node):
+        if self.__class__ != node.__class__:
+            return False
+        if self.shape != node.shape:
+            return False
+        if self.get_state() != node.get_state():
+            return False
+        return True
 
 class CompositeNode(Node):
 
@@ -370,9 +379,6 @@ class Data(Node):
         self.shape_in = shape
         self.shape_out = shape
 
-    @property
-    def shape(self):
-        return T.shape(self.data)
 
     def _infer(self, shape_in):
         return self.shape_out
