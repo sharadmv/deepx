@@ -2,6 +2,7 @@ from .. import backend as T
 import numpy as np
 
 from model import Model
+from exceptions import ShapeException
 from ..util import create_tensor, pack_tuple, unpack_tuple
 
 class Node(object):
@@ -90,7 +91,7 @@ class Node(object):
         if self.shape_in is None:
             self.shape_in = shape_in
         if self.shape_in != shape_in:
-            raise Exception("Error inferring shape.")
+            raise ShapeException(self, shape_in)
 
     def set_shape_out(self, shape_out):
         if self.shape_out is None:
