@@ -41,5 +41,5 @@ after_success:
   coveralls
 
 script:
-  - DEEPX_BACKED='theano' nosetests --with-coverage --cover-package=deepx --logging-level=INFO tests/
-  - DEEPX_BACKED='tensorflow' nosetests --with-coverage --cover-package=deepx --logging-level=INFO tests/
+  - DEEPX_BACKEND='theano' nosetests --with-coverage --cover-package=deepx --logging-level=INFO tests/
+  - DEEPX_BACKEND='tensorflow' nosetests --with-coverage --cover-package=deepx --logging-level=INFO tests/
