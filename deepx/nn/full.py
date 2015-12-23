@@ -2,9 +2,9 @@ from .. import backend as T
 
 from ..node import Node
 
-class Linear(Node):
+class Full(Node):
     def __init__(self, n_in=None, n_out=None):
-        super(Linear, self).__init__()
+        super(Full, self).__init__()
 
         self._elementwise = False
         if n_in is None:
@@ -16,7 +16,11 @@ class Linear(Node):
             else:
                 self.shape_out = n_in
 
+        self.infer_shape()
+
     def initialize(self):
+        if self._initialized:
+            return
         if not self.is_elementwise():
             self.W = self.init_parameter('W', (self.shape_in, self.shape_out))
             self.b = self.init_parameter('b', self.shape_out)
@@ -30,6 +34,8 @@ class Linear(Node):
         return self.shape_out
 
     def activate(self, X):
+        if self.is_elementwise():
+            raise Exception("No identity nodes allowed.")
         return X
 
     def _forward(self, X):
@@ -43,22 +49,22 @@ class Linear(Node):
         return "%s(%s, %s)" % (self.__class__.__name__,
                                self.shape_in, self.shape_out)
 
-class Softmax(Linear):
+class Softmax(Full):
 
     def activate(self, X):
         return T.softmax(X)
 
-class Sigmoid(Linear):
+class Sigmoid(Full):
 
     def activate(self, X):
         return T.sigmoid(X)
 
-class Tanh(Linear):
+class Tanh(Full):
 
     def activate(self, X):
         return T.tanh(X)
 
-class Relu(Linear):
+class Relu(Full):
 
     def activate(self, X):
         return T.relu(X)

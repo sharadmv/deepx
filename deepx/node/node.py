@@ -15,6 +15,8 @@ class Node(object):
         self.parameters = {}
         self.frozen = False
 
+        self._initialized = False
+
     @property
     def shape(self):
         return (self.get_shape_in(), self.get_shape_out())
@@ -27,6 +29,7 @@ class Node(object):
             shape_out = self._infer(shape_in)
             self.set_shape_out(shape_out)
             self.initialize()
+            self._initialized = True
 
     def init_parameter(self, name, shape):
         param = T.variable(np.random.normal(size=shape) * 0.01)

@@ -18,6 +18,11 @@ class Vector(Primitive):
     def get_var(self, name, shape):
         return T.placeholder((self.batch_size, shape), name=name)
 
+class Matrix(Primitive):
+
+    def get_var(self, name, shape):
+        return T.placeholder((self.batch_size,) + shape, name=name)
+
 class Image(Primitive):
 
     def get_var(self, name, shape):
