@@ -1,4 +1,4 @@
-# DeepX
+# DeepX [![Build Status](https://travis-ci.org/sharadmv/deepx.svg)](https://travis-ci.org/sharadmv/deepx)
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
