@@ -1,4 +1,4 @@
-from node import Node, Data
+from .node import Node, Data
 
 class RecurrentNode(Node):
 

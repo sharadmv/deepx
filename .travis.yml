@@ -7,6 +7,10 @@ matrix:
           env: DEEPX_BACKEND=theano
         - python: 2.7
           env: DEEPX_BACKEND=tensorflow
+        - python: 3.4
+          env: DEEPX_BACKEND=theano
+        - python: 3.4
+          env: DEEPX_BACKEND=tensorflow
 install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -28,6 +32,8 @@ install:
   # install PIL for preprocessing tests
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       conda install pil;
+    elif [[ "$TRAVIS_PYTHON_VERSION" == "3.4" ]]; then
+      conda install Pillow;
     fi
 
   # install TensorFlow

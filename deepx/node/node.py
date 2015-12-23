@@ -1,9 +1,10 @@
-from .. import backend as T
 import numpy as np
 
-from model import Model
-from exceptions import ShapeException
-from ..util import create_tensor, pack_tuple, unpack_tuple
+from .. import backend as T
+
+from .model import Model
+from .exceptions import ShapeException
+from ..util import pack_tuple, unpack_tuple
 
 class Node(object):
 
@@ -107,13 +108,13 @@ class Node(object):
 
     def set_state(self, state):
         assert self.is_initialized(), "Cannot set state of uninitialized node."
-        for name, val in state.iteritems():
+        for name, val in state.items():
             T.set_value(self.parameters[name], val)
 
     def get_state(self):
         assert self.is_initialized(), "Cannot get state of uninitialized node."
         state = {}
-        for name, val in self.parameters.iteritems():
+        for name, val in self.parameters.items():
             state[name] = T.get_value(val).tolist()
         return state
 
