@@ -1,5 +1,5 @@
 from .. import backend as T
-from optimizer import Optimizer
+from .optimizer import Optimizer
 
 class sgd(Optimizer):
 

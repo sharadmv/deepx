@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 from sklearn.datasets import fetch_mldata
 from deepx.nn import Image, Softmax, Tanh, Relu, Flatten, Conv, predict
@@ -17,7 +19,7 @@ if __name__ == "__main__":
     labels = labels[idx].astype(np.int32)
 
     y = np.zeros((N, 10))
-    for i in xrange(N):
+    for i in range(N):
         y[i, labels[i]] = 1
 
     split = int(0.9 * N)
@@ -36,12 +38,12 @@ if __name__ == "__main__":
     model = conv_net | (predict, rmsprop, cross_entropy)
 
     def train(n_iter, lr):
-        for i in xrange(n_iter):
+        for i in range(n_iter):
             u = np.random.choice(np.arange(split))
             loss = model.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
-            print "Loss[%u]: %f" % (i, loss)
+            print("Loss[%u]: %f" % (i, loss))
         benchmark()
 
     def benchmark():
         preds = model.predict(Xtest).argmax(axis=1)
-        print "Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split)
+        print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))

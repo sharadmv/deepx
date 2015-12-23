@@ -56,7 +56,7 @@ class Node(object):
     def get_parameters(self):
         if self.frozen:
             return []
-        return self.parameters.values()
+        return list(self.parameters.values())
 
     def copy(self):
         pass
