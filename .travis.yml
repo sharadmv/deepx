@@ -41,6 +41,6 @@ install:
 script:
   # run deepx backend init to initialize backend config
   - python -c "import deepx.backend"
-  - nosetests tests/
+  - nosetests --with-coverage --cover-package=deepx --logging-level=INFO tests/
 after_success:
   - coveralls
