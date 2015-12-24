@@ -235,7 +235,6 @@ def concatenate(tensors, axis=-1):
 
 
 def reshape(x, shape):
-    print(x, shape)
     return tf.reshape(x, shape)
 
 
