@@ -1,22 +1,10 @@
-import unittest
+from base import BaseTest
 
 import numpy as np
 from deepx.nn import Vector, Full, Tanh, Relu, Sigmoid, Softmax
 import deepx.backend as T
 
-class TestFull(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def create_function(self, net):
-        self.assertTrue(net.is_initialized())
-        input = net.get_input()
-        output = net.forward(input)
-        return T.function([input.get_data()], [output.get_data()])
+class TestFull(BaseTest):
 
     def run_simple_full(self, type, activation, in_size=2, out_size=3, batch_size=5):
         np.random.seed(0)

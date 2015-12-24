@@ -1,15 +1,10 @@
 import numpy as np
-import unittest
+from base import BaseTest
+
 from deepx.nn import Vector, Full
 from deepx.node import ShapeException
 
-class TestGraph(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class TestGraph(BaseTest):
 
     def test_graph_basic(self):
         np.random.seed(0)

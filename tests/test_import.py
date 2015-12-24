@@ -1,12 +1,6 @@
-import unittest
+from base import BaseTest
 
-class ImportTest(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class TestImport(BaseTest):
 
     def test_import(self):
         import deepx

@@ -1,16 +1,10 @@
-import unittest
+from base import BaseTest
 
 import numpy as np
-from deepx.nn import Vector, Full, Tanh, Relu, Sigmoid, Softmax, Flatten, Reshape, Matrix
+from deepx.nn import Vector, Flatten, Reshape, Matrix
 import deepx.backend as T
 
-class TestFull(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+class TestReshape(BaseTest):
 
     def create_function(self, net):
         self.assertTrue(net.is_initialized())
