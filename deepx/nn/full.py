@@ -68,3 +68,8 @@ class Relu(Full):
 
     def activate(self, X):
         return T.relu(X)
+
+class Elu(Full):
+
+    def activate(self, X):
+        return T.elu(X)

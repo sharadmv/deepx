@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 from sklearn.datasets import fetch_mldata
-from deepx.nn import Image, Softmax, Tanh, Flatten, Conv, predict
+from deepx.nn import Image, Softmax, Tanh, Flatten, Conv, predict, Elu
 from deepx.optimize import rmsprop, cross_entropy
 
 if __name__ == "__main__":
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2)) >> Tanh() >> Conv((20, 2, 2)) >> Flatten() >> Tanh(128) >> Softmax(10) | (predict, cross_entropy, rmsprop)
+    conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2)) >> Elu() >> Conv((20, 2, 2)) >> Flatten() >> Elu(128) >> Softmax(10) | (predict, cross_entropy, rmsprop)
 
     def train(n_iter, lr):
         for i in range(n_iter):

@@ -1,7 +1,7 @@
 from base import BaseTest
 
 import numpy as np
-from deepx.nn import Vector, Full, Tanh, Relu, Sigmoid, Softmax
+from deepx.nn import Vector, Full, Tanh, Relu, Sigmoid, Softmax, Elu
 import deepx.backend as T
 
 class TestFull(BaseTest):
@@ -53,6 +53,12 @@ class TestFull(BaseTest):
         self.run_simple_full(Relu, lambda x: x * (x > 0))
         self.run_simple_full(Relu, lambda x: x * (x > 0), 5, 10)
 
+    def test_elu(self):
+        def elu(x):
+            return x * (x > 0) + (np.exp(x) - 1) * (x <= 0)
+        self.run_simple_full(Elu, elu)
+        self.run_simple_full(Elu, elu, 5, 10)
+
     def test_sigmoid(self):
         self.run_simple_full(Sigmoid, lambda x: 1.0 / (1 + np.exp(-x)))
         self.run_simple_full(Sigmoid, lambda x: 1.0 / (1 + np.exp(-x)), 5, 10)
@@ -68,6 +74,12 @@ class TestFull(BaseTest):
     def test_relu_element(self):
         self.run_simple_elementwise(Relu, lambda x: x * (x > 0))
         self.run_simple_elementwise(Relu, lambda x: x * (x > 0), 5, 10)
+
+    def test_elu_element(self):
+        def elu(x):
+            return x * (x > 0) + (np.exp(x) - 1) * (x <= 0)
+        self.run_simple_elementwise(Elu, elu)
+        self.run_simple_elementwise(Elu, elu, 5, 10)
 
     def test_sigmoid_element(self):
         self.run_simple_elementwise(Sigmoid, lambda x: 1.0 / (1 + np.exp(-x)))
