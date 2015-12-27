@@ -74,7 +74,7 @@ class Elu(Full):
     def activate(self, X):
         return T.elu(X)
 
-class SigLu(Full):
+class TanLu(Full):
     def __init__(self):
         super(ChildB, self).__init__()
         self.alpha = self.init_parameter('alpha', self.shape_out)
