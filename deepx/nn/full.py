@@ -73,3 +73,15 @@ class Elu(Full):
 
     def activate(self, X):
         return T.elu(X)
+
+class SigLu(Full):
+    def __init__(self):
+        super(ChildB, self).__init__()
+        self.alpha = self.init_parameter('alpha', self.shape_out)
+
+    def activate(self, X):
+        constrained_alpha = T.min(T.max(self.alpha,0), 1)
+        return constrained_alpha * T.tanh(X) + (1-constrained_alpha) * T.relu(X)
+
+
+
