@@ -31,9 +31,9 @@ class Node(object):
             self.initialize()
             self._initialized = True
 
-    def init_parameter(self, name, shape, zeros=False):
-        if zeros:
-            param = T.variable(np.zeros(shape))
+    def init_parameter(self, name, shape, value=False):
+        if value:
+            param = T.variable(np.zeros(shape)+value)
             self.parameters[name] = param
         else:
             param = T.variable(np.random.normal(size=shape) * 0.01)
