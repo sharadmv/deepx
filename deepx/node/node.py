@@ -31,9 +31,13 @@ class Node(object):
             self.initialize()
             self._initialized = True
 
-    def init_parameter(self, name, shape):
-        param = T.variable(np.random.normal(size=shape) * 0.01)
-        self.parameters[name] = param
+    def init_parameter(self, name, shape, zeros=False):
+        if zeros:
+            param = T.variable(np.zeros(shape))
+            self.parameters[name] = param
+        else:
+            param = T.variable(np.random.normal(size=shape) * 0.01)
+            self.parameters[name] = param
         return param
 
     # Graph operations
