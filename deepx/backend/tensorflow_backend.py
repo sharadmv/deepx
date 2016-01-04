@@ -464,11 +464,6 @@ def softmax(x):
 def softplus(x):
     return tf.nn.softplus(x)
 
-
-def elu(x):
-    return tf.nn.elu(x)
-
-
 def categorical_crossentropy(output, target, from_logits=False):
     '''Note: tf.nn.softmax_cross_entropy_with_logits
     expects logits, Keras expects probabilities.

@@ -47,7 +47,7 @@ class Full(Node):
         if self.is_elementwise():
             return "%s()" % self.__class__.__name__
         return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.shape_in, self.shape_out)
+                               self.get_shape_in(), self.get_shape_out())
 
 class Softmax(Full):
 
@@ -71,17 +71,28 @@ class Relu(Full):
 
 class Elu(Full):
 
-    def activate(self, X):
-        return T.elu(X)
+    def __init__(self, *args, **kwargs):
+        self.alpha = kwargs.pop('alpha', 1.0)
+        super(Elu, self).__init__(*args, **kwargs)
 
-class TanLu(Full):
+    def activate(self, X):
+        return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
+
+class LeakyRelu(Full):
+
+    def __init__(self, *args, **kwargs):
+        self.alpha = kwargs.pop('alpha', 0.1)
+        super(LeakyRelu, self).__init__(*args, **kwargs)
+
+    def activate(self, X):
+        return T.relu(X, alpha=self.alpha)
+
+class Tanlu(Full):
+
     def __init__(self):
-        super(ChildB, self).__init__()
-        self.alpha = self.init_parameter('alpha', self.shape_out)
+        super(Tanlu, self).__init__()
+        self.alpha = self.init_parameter('alpha', self.get_shape_out())
 
     def activate(self, X):
-        constrained_alpha = T.min(T.max(self.alpha,0), 1)
-        return constrained_alpha * T.tanh(X) + (1-constrained_alpha) * T.relu(X)
-
-
-
+        constrained_alpha = T.min(T.max(self.alpha, 0), 1)
+        return constrained_alpha * T.tanh(X) + (1 - constrained_alpha) * T.relu(X)

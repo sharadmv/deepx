@@ -475,10 +475,6 @@ def softmax(x):
 def softplus(x):
     return T.nnet.softplus(x)
 
-def elu(x):
-    return T.switch(x > 0, x, T.exp(x) - 1)
-
-
 def categorical_crossentropy(output, target, from_logits=False):
     if from_logits:
         output = T.nnet.softmax(output)
