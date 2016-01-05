@@ -89,10 +89,10 @@ class LeakyRelu(Full):
 
 class Tanlu(Full):
 
-    def __init__(self):
-        super(Tanlu, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(Tanlu, self).__init__(*args, **kwargs)
         self.alpha = self.init_parameter('alpha', self.get_shape_out())
 
     def activate(self, X):
-        constrained_alpha = T.min(T.max(self.alpha, 0), 1)
+        constrained_alpha = T.clip(self.alpha, 0, 1)
         return constrained_alpha * T.tanh(X) + (1 - constrained_alpha) * T.relu(X)
