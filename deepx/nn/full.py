@@ -7,7 +7,7 @@ class Full(Node):
         super(Full, self).__init__()
 
         self._elementwise = False
-        if n_in is None:
+        if n_in is None and n_out is None:
             self._elementwise = True
         else:
             if n_out is not None:
@@ -43,7 +43,10 @@ class Full(Node):
             return self.activate(X)
         return self.activate(T.dot(X, self.W) + self.b)
 
-    def to_str(self):
+    def copy(self):
+        return self.__class__(self.get_shape_in(), self.get_shape_out())
+
+    def __str__(self):
         if self.is_elementwise():
             return "%s()" % self.__class__.__name__
         return "%s(%s, %s)" % (self.__class__.__name__,
@@ -78,6 +81,9 @@ class Elu(Full):
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
 
+    def copy(self):
+        return self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
+
 class LeakyRelu(Full):
 
     def __init__(self, *args, **kwargs):
@@ -86,6 +92,9 @@ class LeakyRelu(Full):
 
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
+
+    def copy(self):
+        return self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
 
 class Tanlu(Full):
 

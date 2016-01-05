@@ -66,7 +66,7 @@ class Node(object):
         return list(self.parameters.values())
 
     def copy(self):
-        pass
+        raise NotImplementedError
 
     # Infix
 
@@ -225,6 +225,11 @@ class CompositeNode(Node):
 
     def get_previous_zeros(self, N):
         return (self.left.get_previous_zeros(N), self.right.get_previous_zeros(N))
+
+    def copy(self):
+        node = CompositeNode(self.left.copy(), self.right.copy())
+        node.infer_shape()
+        return node
 
     def __str__(self):
         return "{left} >> {right}".format(

@@ -4,3 +4,4 @@ from .conv import *
 from .predict import *
 from .reshape import *
 from .utility import *
+from .ops import *
