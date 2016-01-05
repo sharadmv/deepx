@@ -18,6 +18,7 @@ Let's consider the task of classifying MNIST with a multilayer perceptron (MLP).
 
 ```python
 $ from deepx.nn import *
+$ from deepx.optimize import *
 $ mlp = Vector(784) >> Tanh(200) >> Tanh(200) >> Softmax(10)
 ```
 
