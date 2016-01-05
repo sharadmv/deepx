@@ -31,6 +31,11 @@ class cross_entropy(Loss):
     def loss(self, ypred, y):
         return T.mean(T.categorical_crossentropy(ypred, y))
 
+class log_loss(Loss):
+
+    def loss(self, ypred, y):
+        return - T.mean(y * T.log(ypred) + (1 - y) * T.log(1 - ypred))
+
 class mse(Loss):
 
     def loss(self, ypred, y):
