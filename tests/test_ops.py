@@ -26,3 +26,11 @@ class TestOps(BaseTest):
         self.run_net(Scalar() >> double,            np.array([1]), np.array([2]))
         self.run_net(Scalar() >> Repeat(double, 2), np.array([1]), np.array([4]))
         self.run_net(Scalar() >> Repeat(double, 4), np.array([1]), np.array([16]))
+
+    def test_repeat3(self):
+        double = Lambda(lambda x: x * 2)
+
+        with self.assertRaises(AssertionError):
+            self.run_net(Scalar() >> Repeat(double, 0), np.array([1]), np.array([0]))
+        with self.assertRaises(AssertionError):
+            self.run_net(Scalar() >> Repeat(double, -1), np.array([1]), np.array([0]))
