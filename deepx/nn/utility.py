@@ -16,3 +16,6 @@ class Lambda(Node):
 
     def _forward(self, X):
         return self.func(X)
+
+    def copy(self):
+        return Lambda(self.func, shape_func=self.shape_func)
