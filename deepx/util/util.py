@@ -36,3 +36,17 @@ def unpack_tuple(data):
         if data is None:
             return data, None
         return data, 1
+
+def is_iterable(d):
+    try:
+        _ = (e for e in d)
+        return True
+    except:
+        return False
+
+def rzip(l1, l2):
+    for a, b in zip(l1, l2):
+        if is_iterable(a) and is_iterable(b):
+            yield type(a)(rzip(a, b))
+        else:
+            yield a, b

@@ -52,9 +52,6 @@ class Node(object):
         concatenated.infer_shape()
         return concatenated
 
-    def unroll(self, max_length=None):
-        return SequenceNode(self, max_length=max_length)
-
     def create_model(self, mixins):
         if isinstance(mixins, tuple) or isinstance(mixins, list):
             return Model(self, mixins)
@@ -147,17 +144,19 @@ class Node(object):
     def _infer(self, shape_in):
         raise NotImplementedError
 
-    def recurrent_forward(self, X, output):
-        if self.is_recurrent():
-            out = self.forward(X, output)
-            return out, out
-        out = self.forward(X)
-        return out, None
+    def recurrent_forward(self, X):
+        def step(input, _):
+            return self._forward(input), []
+
+        _, output, _ = T.rnn(step, X.get_data(), [])
+        return Data(output, self.get_shape_out(), sequence=True)
 
     def get_previous_zeros(self, N):
         return None
 
     def forward(self, X):
+        if X.is_sequence():
+            return self.recurrent_forward(X)
         return Data(self._forward(X.get_data()), self.get_shape_out())
 
     def _forward(self, X):
@@ -387,11 +386,13 @@ class IndexNode(Node):
 
 class Data(Node):
 
-    def __init__(self, data, shape=None):
+    def __init__(self, data, shape=None, sequence=False):
         super(Data, self).__init__()
         self.data = data
         self.shape_in = shape
         self.shape_out = shape
+
+        self._is_sequence = sequence
 
 
     def _infer(self, shape_in):
@@ -430,21 +431,4 @@ class Data(Node):
         return "Data(%s, %s)" % (self.data, self.get_shape_out())
 
     def is_sequence(self):
-        return False
-
-class Sequence(Data):
-
-    def __init__(self, data_var, max_length=None):
-        self.data_var = data_var
-        self.sequence_dim = data_var.ndim
-        self.max_length = max_length
-
-        self.data = T.make_sequence(self.data_var.get_data(), self.max_length)
-        self.shape_in = self.data_var.shape_in
-        self.shape_out = self.data_var.shape_out
-
-    def __str__(self):
-        return "Sequence(%s)" % self.data_var
-
-    def is_sequence(self):
-        return True
+        return self._is_sequence

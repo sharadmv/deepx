@@ -29,15 +29,6 @@ class LSTM(RecurrentNode):
     def _infer(self, shape_in):
         return self.shape_out
 
-    def recurrent_forward(self, X, previous):
-        out, state = self.forward(X, previous)
-        return out, (out, state)
-
-    def forward(self, X, previous):
-        output, state = self._forward(X.get_data(), previous)
-        return Data(output, self.get_shape_out()), Data(state, self.get_shape_out())
-
-
     def initialize(self):
 
         self.Wi = self.init_parameter('W_ix', (self.shape_in, self.shape_out))
@@ -64,29 +55,25 @@ class LSTM(RecurrentNode):
         if self.use_forget_peep:
             self.Pf = self.init_parameter('P_f', (self.shape_out, self.shape_out))
 
-    # def _forward(self, X):
-        # S, N, D = X.shape
+    def _forward(self, X):
+        S, N, D = T.shape(X)
 
-        # H = self.shape_out
+        H = self.get_shape_out()
 
-        # def step(input, previous_hidden, previous_state):
-            # lstm_hidden, state = self.step(input, previous_hidden, previous_state)
-            # return lstm_hidden, state
+        def step(input, previous):
+            previous_hidden, previous_state = previous
+            lstm_hidden, state = self.step(input, previous_hidden, previous_state)
+            return lstm_hidden, [lstm_hidden, state]
 
-        # hidden = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
-        # state = T.alloc(np.array(0).astype(theano.config.floatX), N, H)
+        hidden = T.alloc(0, (N, H))
+        state = T.alloc(0, (N, H))
 
-        # (lstm_out, _), updates = theano.scan(step,
-                              # sequences=[X],
-                              # outputs_info=[
-                                            # hidden,
-                                            # state,
-                                           # ],
-                              # n_steps=S)
-        # return lstm_out
+        last_output, output, new_state = T.rnn(step,
+                              X,
+                              [hidden, state])
+        return output
 
-    def _forward(self, X, previous):
-        previous_hidden, previous_state = previous
+    def step(self, X, previous_hidden, previous_state):
         if self.use_input_peep:
             input_gate = T.sigmoid(T.dot(X, self.Wi) + T.dot(previous_hidden, self.Ui) + T.dot(previous_state, self.Pi) + self.bi)
         else:

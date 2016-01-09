@@ -10,8 +10,8 @@ class Primitive(Data):
         super(Primitive, self).__init__(self.get_var(name, shape), shape)
 
     def __str__(self):
-        return "%s<%s, %s>" % (self.__class__.__name__,
-                               self.name, self.shape_out)
+        return "%s<%s>" % (self.__class__.__name__,
+                           self.shape_out)
 
 class Scalar(Primitive):
 

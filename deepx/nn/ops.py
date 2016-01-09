@@ -6,3 +6,9 @@ def Repeat(node, n_repeats):
     return new_node
 
 MLP = Repeat
+
+def Last(node):
+    return node[-1]
+
+def First(node):
+    return node[0]
