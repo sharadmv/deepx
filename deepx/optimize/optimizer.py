@@ -11,8 +11,8 @@ class Optimizer(object):
 
         aux_inputs = self.get_aux_inputs()
         inputs = self.model.get_formatted_input()
-        ypred = self.model.get_activation(use_dropout=True).get_data()
-        y = T.placeholder(ndim=T.ndim(ypred))
+        ypred = self.model.get_activation(use_dropout=True)
+        y = T.placeholder(shape=ypred.get_data())
 
         opt_inputs = inputs + [y] + aux_inputs
         opt_output = self.loss.loss(ypred, y)
