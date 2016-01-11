@@ -42,7 +42,9 @@ def placeholder(shape=None, ndim=None, dtype=_FLOATX, name=None):
     '''
     if shape is None and ndim is None:
         raise Exception('Specify either a shape or ndim value.')
-    if shape is not None:
+    if isinstance(shape, T.TensorVariable):
+        ndim = shape.ndim
+    elif shape is not None:
         ndim = len(shape)
     if ndim == 0:
         return T.scalar(name=name, dtype=dtype)
@@ -138,6 +140,9 @@ def gather(reference, indices):
     '''
     return reference[indices]
 
+
+def interpolate(num_steps):
+    return T.arange(num_steps) / (num_steps - 1.0)
 
 # ELEMENT-WISE OPERATIONS
 
@@ -387,6 +392,13 @@ def gradients(loss, variables):
 
 
 # CONTROL FLOW
+
+def scan(step_function, inputs):
+    inputs = [
+        dict(input=input) for input in inputs
+    ]
+    return theano.scan(step_function, sequences=inputs,
+                       outputs_info=[None])[0]
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):

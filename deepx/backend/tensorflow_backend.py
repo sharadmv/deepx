@@ -36,6 +36,8 @@ def placeholder(shape=None, ndim=None, dtype=_FLOATX, name=None):
     if not shape:
         if ndim:
             shape = [None for _ in range(ndim)]
+    elif isinstance(shape, tf.Tensor):
+        shape = shape.get_shape().as_list()
     return tf.placeholder(dtype, shape=shape, name=name)
 
 def set_shape(x, dim, value):
@@ -104,6 +106,8 @@ def gather(reference, indices):
     '''
     return tf.gather(reference, indices)
 
+def interpolate(num_steps):
+    return tf.cast(tf.range(num_steps), _FLOATX) / (num_steps - 1.0)
 
 # ELEMENT-WISE OPERATIONS
 
@@ -355,8 +359,18 @@ def function(inputs, outputs, updates=[]):
 def gradients(loss, variables):
     return tf.gradients(loss, variables)
 
-
 # CONTROL FLOW
+
+def scan(step_function, inputs):
+    input_list = [tf.unpack(i) for i in inputs]
+
+    successive_outputs = []
+    for input in zip(*input_list):
+        output = step_function(*input)
+        successive_outputs.append(output)
+
+    outputs = tf.pack(successive_outputs)
+    return outputs
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):
