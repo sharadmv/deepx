@@ -26,6 +26,16 @@ class LSTM(RecurrentNode):
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
 
+    def copy(self):
+        return LSTM(self.get_shape_in(),
+                    self.get_shape_out(),
+                    use_forget_gate=self.use_forget_gate,
+                    use_input_peep=self.use_input_peep,
+                    use_output_peep=self.use_output_peep,
+                    use_forget_peep=self.use_forget_peep,
+                    use_tanh_output=self.use_tanh_output,
+                    )
+
     def _infer(self, shape_in):
         return self.shape_out
 

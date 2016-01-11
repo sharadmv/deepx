@@ -1,4 +1,3 @@
 from .optimizer import Optimizer
-from .rmsprop import rmsprop
+from .rmsprop import RMSProp
 from .sgd import sgd
-from .loss import *

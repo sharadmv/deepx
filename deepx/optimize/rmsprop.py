@@ -1,7 +1,7 @@
 from .. import backend as T
 from .optimizer import Optimizer
 
-class rmsprop(Optimizer):
+class RMSProp(Optimizer):
 
     def initialize(self):
         self.average_gradient = [T.variable(T.get_value(p) * 0) for p in self.parameters]

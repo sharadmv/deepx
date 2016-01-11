@@ -18,6 +18,7 @@ class Node(object):
         self._initialized = False
 
         self._predict = None
+        self._predict_dropout = None
 
     @property
     def shape(self):
@@ -27,16 +28,24 @@ class Node(object):
 
     def predict(self, *args, **kwargs):
         if self._predict is None:
-            input = self.get_input()
-            if not isinstance(input, list):
-                input = [input]
-            inputs = [i.get_data() for i in input]
-            result = self.get_activation().get_data()
-            self._predict = T.function(inputs, [result])
+            result = self.get_activation(use_dropout=False).get_data()
+            self._predict = T.function(self.get_formatted_input(), [result])
         return self._predict(*args, **kwargs)
 
-    def get_activation(self):
-        return self.forward(self.get_input())
+    def predict_with_dropout(self, *args, **kwargs):
+        if self._predict_dropout is None:
+            result = self.get_activation(use_dropout=True).get_data()
+            self._predict_dropout = T.function(self.get_formatted_input(), [result])
+        return self._predict_dropout(*args, **kwargs)
+
+    def get_formatted_input(self):
+        input = self.get_input()
+        if not isinstance(input, list):
+            input = [input]
+        return [i.get_data() for i in input]
+
+    def get_activation(self, use_dropout=True):
+        return self.forward(self.get_input(), use_dropout=use_dropout)
 
     # Node operations
 
@@ -163,7 +172,7 @@ class Node(object):
     def get_previous_zeros(self, N):
         return None
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         if X.is_sequence():
             return self.recurrent_forward(X)
         return Data(self._forward(X.get_data()), self.get_shape_out())
@@ -193,8 +202,8 @@ class CompositeNode(Node):
         right, right_out = self.right.recurrent_forward(left, previous_right)
         return right, (left_out, right_out)
 
-    def forward(self, X):
-        return self.right.forward(self.left.forward(X))
+    def forward(self, X, **kwargs):
+        return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
     def infer_shape(self):
         self.left.infer_shape()
@@ -320,9 +329,9 @@ class IndexNode(Node):
     def get_shape_out(self):
         return self.node.get_shape_out()
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         index = self.index
-        out = self.node.forward(X)
+        out = self.node.forward(X, **kwargs)
         if index == -1:
             index = T.shape(out.get_data())[0] - 1
         return out[index, :, :]
@@ -359,7 +368,7 @@ class Data(Node):
     def _infer(self, shape_in):
         return self.shape_out
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         return X
 
     def __getitem__(self, idx):

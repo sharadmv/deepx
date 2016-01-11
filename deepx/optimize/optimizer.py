@@ -1,30 +1,28 @@
 from .. import backend as T
 
-from ..node import Mixin
+class Optimizer(object):
 
-class Optimizer(Mixin):
+    def __init__(self, model, loss):
+        self.model = model
+        self.loss = loss
 
-    name = 'train'
-    priority = 1
+        self.parameters = self.model.get_parameters()
+        self.initialize()
 
-    def initialize(self):
-        pass
+        aux_inputs = self.get_aux_inputs()
+        inputs = self.model.get_formatted_input()
+        ypred = self.model.get_activation(use_dropout=True).get_data()
+        y = T.placeholder(shape=T.shape(ypred))
+
+        opt_inputs = inputs + [y] + aux_inputs
+        opt_output = self.loss.loss(ypred, y)
+
+        self.grads = T.gradients(opt_output, self.parameters)
+        self.train = T.function(opt_inputs, [opt_output], updates=self.updates(*aux_inputs))
 
     def init_parameter(self, value):
         param = T.variable(value)
         return param
-
-    def setup(self, model):
-        super(Optimizer, self).setup(model)
-        assert model.has_mixin('loss')
-
-        self.parameters = self.arch.get_parameters()
-        self.initialize()
-
-        self.loss = self.model.get_mixin('loss')
-        self.grads = T.gradients(self.loss.result, self.parameters)
-
-        self.aux_inputs = self.get_aux_inputs()
 
     def get_inputs(self):
         return self.loss.inputs + self.aux_inputs
