@@ -14,7 +14,7 @@ class Sequence(Data):
         self._is_sequence = True
 
     def __str__(self):
-        return "Sequence(%s)" % self.data_var
+        return "Sequence(%s)" % str(self.get_shape_out())
 
     def is_sequence(self):
         return self._is_sequence

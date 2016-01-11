@@ -3,6 +3,8 @@ from __future__ import print_function
 import logging
 logging.basicConfig(level=logging.INFO)
 from deepx.nn import *
+from deepx.rnn import *
+from deepx.loss import *
 from deepx.optimize import *
 from sklearn.datasets import fetch_mldata
 
@@ -29,12 +31,13 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Tanh(200), 4) >> Softmax(10) | (predict, cross_entropy, rmsprop)
+    mlp = Vector(784) >> MLP(Tanh(200), 4) >> Softmax(10)
+    rmsprop = RMSProp(mlp, CrossEntropy())
 
     def train(n_iter, lr):
         for i in range(n_iter):
             u = np.random.choice(np.arange(split))
-            loss = mlp.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
+            loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print("Loss:", loss)
 
         preds = mlp.predict(Xtest).argmax(axis=1)

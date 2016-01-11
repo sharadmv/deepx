@@ -17,9 +17,35 @@ class Node(object):
 
         self._initialized = False
 
+        self._predict = None
+        self._predict_dropout = None
+
     @property
     def shape(self):
         return (self.get_shape_in(), self.get_shape_out())
+
+    # Passing forward through network
+
+    def predict(self, *args, **kwargs):
+        if self._predict is None:
+            result = self.get_activation(use_dropout=False).get_data()
+            self._predict = T.function(self.get_formatted_input(), [result])
+        return self._predict(*args, **kwargs)
+
+    def predict_with_dropout(self, *args, **kwargs):
+        if self._predict_dropout is None:
+            result = self.get_activation(use_dropout=True).get_data()
+            self._predict_dropout = T.function(self.get_formatted_input(), [result])
+        return self._predict_dropout(*args, **kwargs)
+
+    def get_formatted_input(self):
+        input = self.get_input()
+        if not isinstance(input, list):
+            input = [input]
+        return [i.get_data() for i in input]
+
+    def get_activation(self, use_dropout=True):
+        return self.forward(self.get_input(), use_dropout=use_dropout)
 
     # Node operations
 
@@ -52,11 +78,6 @@ class Node(object):
         concatenated.infer_shape()
         return concatenated
 
-    def create_model(self, mixins):
-        if isinstance(mixins, tuple) or isinstance(mixins, list):
-            return Model(self, mixins)
-        return Model(self, [mixins])
-
     def get_parameters(self):
         if self.frozen:
             return []
@@ -77,9 +98,6 @@ class Node(object):
 
     def __add__(self, node):
         return self.concatenate(node)
-
-    def __or__(self, mixins):
-        return self.create_model(mixins)
 
     def __call__(self, *args, **kwargs):
         return self.unroll(*args, **kwargs)
@@ -154,7 +172,7 @@ class Node(object):
     def get_previous_zeros(self, N):
         return None
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         if X.is_sequence():
             return self.recurrent_forward(X)
         return Data(self._forward(X.get_data()), self.get_shape_out())
@@ -184,8 +202,8 @@ class CompositeNode(Node):
         right, right_out = self.right.recurrent_forward(left, previous_right)
         return right, (left_out, right_out)
 
-    def forward(self, X):
-        return self.right.forward(self.left.forward(X))
+    def forward(self, X, **kwargs):
+        return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
     def infer_shape(self):
         self.left.infer_shape()
@@ -235,54 +253,6 @@ class CompositeNode(Node):
             left=self.left,
             right=self.right
         )
-
-class SequenceNode(Node):
-
-    def __init__(self, node, max_length=None):
-        super(SequenceNode, self).__init__()
-        self.node = node
-        self.max_length = max_length
-
-        self.input = Sequence(self.node.get_input(), self.max_length)
-
-    def _infer(self, shape_in):
-        return self.node.shape_out
-
-    def forward(self, X):
-        N = T.shape(X.get_data())[1]
-
-        previous = self.get_previous_zeros(N)
-        previous, shape = unpack_tuple(previous)
-
-        def step(input, previous):
-            previous = pack_tuple(previous, shape)
-            input = Data(input)
-            output, previous = self.node.recurrent_forward(input, previous)
-            return output.get_data(), list(p.get_data() for p in unpack_tuple(previous)[0])
-
-        last_output, outputs, states = T.rnn(step, X.get_data(), list(previous))
-        return Data(outputs, self.get_shape_out())
-
-    def get_input(self):
-        return self.input
-
-    def get_shape_in(self):
-        return self.node.get_shape_in()
-
-    def get_shape_out(self):
-        return self.node.get_shape_out()
-
-    def get_previous_zeros(self, N):
-        return self.node.get_previous_zeros(N)
-
-    def get_state(self):
-        return self.node.get_state()
-
-    def set_state(self, state):
-        return self.node.set_state(state)
-
-    def __str__(self):
-        return "Sequence(%s)" % self.node
 
 class ConcatenatedNode(Node):
 
@@ -359,9 +329,9 @@ class IndexNode(Node):
     def get_shape_out(self):
         return self.node.get_shape_out()
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         index = self.index
-        out = self.node.forward(X)
+        out = self.node.forward(X, **kwargs)
         if index == -1:
             index = T.shape(out.get_data())[0] - 1
         return out[index, :, :]
@@ -398,7 +368,7 @@ class Data(Node):
     def _infer(self, shape_in):
         return self.shape_out
 
-    def forward(self, X):
+    def forward(self, X, **kwargs):
         return X
 
     def __getitem__(self, idx):
