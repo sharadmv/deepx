@@ -29,7 +29,7 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Tanh(200), 4) >> Softmax(10) | (predict, cross_entropy, rmsprop)
+    mlp = Vector(784) >> MLP(Tanh(200), 4) >> Softmax(10)
 
     def train(n_iter, lr):
         for i in range(n_iter):
