@@ -10,3 +10,4 @@ if __name__ == "__main__":
     model = lstm >> Softmax(10)
 
     rmsprop = RMSProp(model, LinearSequentialLoss(CrossEntropy()))
+    rmsprop2 = RMSProp(model, ConvexSequentialLoss(CrossEntropy(), 0.5))
