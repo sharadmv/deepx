@@ -7,7 +7,7 @@ setup(
     author_email = "sharad.vikram@gmail.com",
     description = "A basic deep learning library.",
     license = "MIT",
-    keywords = "theano",
+    keywords = "theano, tensorflow",
     install_requires = ['theano'],
     packages=find_packages(
         '.'
