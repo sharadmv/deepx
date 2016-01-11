@@ -1,7 +1,7 @@
 from .. import backend as T
 from .optimizer import Optimizer
 
-class sgd(Optimizer):
+class SGD(Optimizer):
 
     def get_aux_inputs(self):
         return [T.placeholder(ndim=0, name='training_rate')]

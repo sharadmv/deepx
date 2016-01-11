@@ -20,6 +20,9 @@ class Optimizer(object):
         self.grads = T.gradients(opt_output, self.parameters)
         self.train = T.function(opt_inputs, [opt_output], updates=self.updates(*aux_inputs))
 
+    def initialize(self):
+        pass
+
     def init_parameter(self, value):
         param = T.variable(value)
         return param
