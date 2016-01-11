@@ -5,5 +5,3 @@ if __name__ == "__main__":
 
     layer = Tanh(200) >> Dropout(0.5)
     mlp = Vector(784) >> Repeat(layer, 2) >> Softmax(10)
-
-    lstm = Last(Sequence(Vector(784, 10), 10) >> Repeat(LSTM(200) >> Dropout(0.5), 2))
