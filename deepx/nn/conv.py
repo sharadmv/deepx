@@ -20,12 +20,11 @@ class Convolution(Node):
     def initialize(self):
         channels_out, kernel_height, kernel_width = self.shape_weights
         self.W = self.init_parameter('W', (channels_out, self.channels_in, kernel_height, kernel_width))
-        self.b = self.init_parameter('b', self.channels_out)
+        self.b = self.init_parameter('b', channels_out)
 
     def _infer(self, shape_in):
         self.channels_in = shape_in[0]
         channels_out, kernel_height, kernel_width = self.shape_weights
-        self.channels_out = channels_out
         d_in, h_in, w_in = shape_in
         if self.border_mode == "same":
             h_out = h_in
