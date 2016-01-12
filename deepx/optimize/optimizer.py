@@ -2,7 +2,7 @@ from .. import backend as T
 
 class Optimizer(object):
 
-    def __init__(self, model, loss):
+    def __init__(self, model, loss, clip_gradients=None):
         self.model = model
         self.loss = loss
 
@@ -18,7 +18,11 @@ class Optimizer(object):
         opt_output = self.loss.loss(ypred, y)
 
         self.grads = T.gradients(opt_output, self.parameters)
-        self.train = T.function(opt_inputs, [opt_output], updates=self.updates(*aux_inputs))
+        if clip_gradients is not None:
+            c = abs(clip_gradients)
+            self.grads = [T.clip(g, -c, c) for g in self.grads]
+        updates=self.updates(*aux_inputs)
+        self.train = T.function(opt_inputs, [opt_output], updates=updates)
 
     def initialize(self):
         pass
