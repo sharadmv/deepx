@@ -1,2 +1,2 @@
-from .data import Sequence
-from .lstm import LSTM
+from .data import *
+from .lstm import *

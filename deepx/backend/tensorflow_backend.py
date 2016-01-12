@@ -274,6 +274,9 @@ def repeat(x, n):
     stacked = tf.pack(tensors)
     return tf.transpose(stacked, (1, 0, 2))
 
+def stack(xs):
+    return tf.pack(xs)
+
 
 def tile(x, n):
     return tf.tile(x, n)

@@ -274,6 +274,9 @@ def repeat(x, n):
     stacked = T.stack(*tensors)
     return stacked.dimshuffle((1, 0, 2))
 
+def stack(xs):
+    return T.stack(*xs)
+
 
 def tile(x, n):
     return T.tile(x, n)

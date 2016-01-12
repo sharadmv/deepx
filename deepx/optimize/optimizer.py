@@ -21,7 +21,7 @@ class Optimizer(object):
         if clip_gradients is not None:
             c = abs(clip_gradients)
             self.grads = [T.clip(g, -c, c) for g in self.grads]
-        updates=self.updates(*aux_inputs)
+        updates = self.updates(*aux_inputs)
         self.train = T.function(opt_inputs, [opt_output], updates=updates)
 
     def initialize(self):
