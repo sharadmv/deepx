@@ -51,11 +51,11 @@ class LSTM(RecurrentNode):
 
         if self.use_forget_gate:
             params['Wf'] = self.init_parameter('W_fx-%u' % layer, (shape_in, shape_out))
-            params['Uf'] = self.init_parameter('U_fx-%u' % layer, (shape_out, shape_out))
+            params['Uf'] = self.init_parameter('U_fh-%u' % layer, (shape_out, shape_out))
             params['bf'] = self.init_parameter('b_f-%u' % layer, shape_out)
 
         params['Wg'] = self.init_parameter('W_gx-%u' % layer, (shape_in, shape_out))
-        params['Ug'] = self.init_parameter('U_gx-%u' % layer, (shape_out, shape_out))
+        params['Ug'] = self.init_parameter('U_gh-%u' % layer, (shape_out, shape_out))
         params['bg'] = self.init_parameter('b_g-%u' % layer, shape_out)
 
         if self.use_input_peep:
