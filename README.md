@@ -2,6 +2,8 @@
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
+DeepX supports both [Theano](http://deeplearning.net/software/theano/) and [Tensorflow](http://www.tensorflow.org).
+
 Installation
 ====================================
 
