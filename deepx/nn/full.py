@@ -100,7 +100,7 @@ class Tanlu(Full):
 
     def __init__(self, *args, **kwargs):
         super(Tanlu, self).__init__(*args, **kwargs)
-        self.alpha = self.init_parameter('alpha', self.get_shape_out())
+        self.alpha = self.init_parameter('alpha', self.get_shape_out(), value=0.5)
 
     def activate(self, X):
         constrained_alpha = T.clip(self.alpha, 0, 1)
