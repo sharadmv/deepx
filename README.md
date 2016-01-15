@@ -1,4 +1,4 @@
-# DeepX [![Build Status](https://travis-ci.org/sharadmv/deepx.svg)](https://travis-ci.org/sharadmv/deepx) [![Coverage Status](https://coveralls.io/repos/sharadmv/deepx/badge.svg?branch=master&service=github)](https://coveralls.io/github/sharadmv/deepx?branch=master) [![PyPI](https://img.shields.io/pypi/v/deepx.svg)]()
+# DeepX [![Build Status](https://travis-ci.org/sharadmv/deepx/master.svg)](https://travis-ci.org/sharadmv/deepx) [![Coverage Status](https://coveralls.io/repos/sharadmv/deepx/badge.svg?branch=master&service=github)](https://coveralls.io/github/sharadmv/deepx?branch=master) [![PyPI](https://img.shields.io/pypi/v/deepx.svg)]()
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
