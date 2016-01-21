@@ -174,7 +174,7 @@ class Node(object):
             return self._forward(input), []
 
         _, output, _ = T.rnn(step, X.get_data(), [])
-        return Data(output, self.get_shape_out(), sequence=True)
+        return Data(output, self.get_shape_out(), sequence=True, batch_size=X.batch_size)
 
     def get_previous_zeros(self, N):
         return None
@@ -182,7 +182,7 @@ class Node(object):
     def forward(self, X, **kwargs):
         if X.is_sequence():
             return self.recurrent_forward(X)
-        return Data(self._forward(X.get_data()), self.get_shape_out())
+        return Data(self._forward(X.get_data()), self.get_shape_out(), batch_size=X.batch_size)
 
     def _forward(self, X):
         raise NotImplementedError
@@ -366,11 +366,13 @@ class IndexNode(Node):
 
 class Data(Node):
 
-    def __init__(self, data, shape=None, sequence=False):
+    def __init__(self, data, shape=None, sequence=False, batch_size=None):
         super(Data, self).__init__()
         self.data = data
         self.shape_in = shape
         self.shape_out = shape
+
+        self.batch_size = batch_size
 
         self._is_sequence = sequence
 
@@ -385,7 +387,7 @@ class Data(Node):
         return self.index(idx)
 
     def index(self, idx):
-        return Data(self.data[idx], self.shape_out)
+        return Data(self.data[idx], self.shape_out, batch_size=self.batch_size)
 
     @property
     def ndim(self):

@@ -5,9 +5,9 @@ from ..node import Data
 class Primitive(Data):
 
     def __init__(self, shape=0, batch_size=None, name=None):
-        self.batch_size = batch_size
         self.name = name
-        super(Primitive, self).__init__(self.get_var(name, shape), shape)
+        self.batch_size = batch_size
+        super(Primitive, self).__init__(self.get_var(name, shape), shape, batch_size=batch_size)
 
     def __str__(self):
         return "%s<%s>" % (self.__class__.__name__,

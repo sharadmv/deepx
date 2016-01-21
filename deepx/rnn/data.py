@@ -11,6 +11,7 @@ class Sequence(Data):
         super(Sequence, self).__init__(data)
         self.shape_in = data_var.shape_in
         self.shape_out = data_var.shape_out
+        self.batch_size = data_var.batch_size
         self._is_sequence = True
 
     def __str__(self):

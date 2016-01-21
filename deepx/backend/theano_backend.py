@@ -459,11 +459,9 @@ def rnn(step_function, inputs, initial_states,
         outputs = results
         states = []
 
-    #outputs = T.squeeze(outputs)
     last_output = outputs[-1]
 
-    #outputs = outputs.dimshuffle((1, 0, 2))
-    #states = [T.squeeze(state[-1]) for state in states]
+    states = [T.squeeze(state[-1]) for state in states]
     return last_output, outputs, states
 
 

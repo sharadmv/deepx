@@ -32,16 +32,12 @@ class LSTM(RecurrentNode):
 
     def get_initial_states(self, X):
         # build an all-zero tensor of shape (samples, output_dim)
-        initial_state = T.zeros_like(X)  # (samples, timesteps, input_dim)
-        initial_state = T.sum(initial_state, axis=1)  # (samples, input_dim)
-        reducer = T.zeros((self.input_dim, self.output_dim))
-        initial_state = T.dot(initial_state, reducer)  # (samples, output_dim)
-        initial_states = [initial_state for _ in range(len(self.states))]
-        return initial_states
+        N = T.shape(X)[1]
+        return T.alloc(0, (N, self.get_shape_out()))
 
     def reset_states(self, X):
         assert self.stateful, 'Layer must be stateful.'
-        batch_size = T.shape(X)[1]
+        batch_size = self.batch_size
         output_shape = self.get_shape_out()
         if not batch_size:
             raise Exception()
@@ -157,44 +153,3 @@ class LSTM(RecurrentNode):
 
     def get_previous_zeros(self, N):
         return T.alloc(0, (N, self.get_shape_out())), T.alloc(0, (N, self.get_shape_out()))
-
-class MultilayerLSTM(LSTM):
-
-    def __init__(self, shape_in, shape_out=None,
-                 **kwargs):
-        num_layers = kwargs.pop('num_layers', 2)
-        super(MultilayerLSTM, self).__init__(shape_in,
-                                   shape_out=shape_out,
-                                   **kwargs)
-        self.num_layers = num_layers
-        assert self.num_layers >= 1, "Invalid number of layers"
-
-    def initialize(self):
-        shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
-        self.params = []
-        self.params.append(self.create_lstm_parameters(shape_in, shape_out, 0))
-        for i in xrange(1, self.num_layers):
-            self.params.append(self.create_lstm_parameters(shape_out, shape_out, i))
-
-    def _forward(self, X):
-        S, N, D = T.shape(X)
-
-        H = self.get_shape_out()
-
-        def step(input, previous):
-            previous_hidden, previous_state = previous
-            hiddens, states = [], []
-            lstm_hidden = input
-            for i in xrange(self.num_layers):
-                lstm_hidden, state = self.step(lstm_hidden, previous_hidden[i, :, :], previous_state[i, :, :], self.params[i])
-                hiddens.append(lstm_hidden)
-                states.append(state)
-            return lstm_hidden, [T.stack(hiddens), T.stack(states)]
-
-        hidden = T.alloc(0, (self.num_layers, N, H))
-        state = T.alloc(0, (self.num_layers, N, H))
-
-        last_output, output, new_state = T.rnn(step,
-                              X,
-                              [hidden, state])
-        return output
