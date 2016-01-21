@@ -447,7 +447,7 @@ def rnn(step_function, inputs, initial_states,
     outputs = tf.pack(successive_outputs)
     new_states = successive_states[-1]
 
-    return last_output, outputs, states
+    return last_output, outputs, new_states
 
 
 def switch(condition, then_expression, else_expression):

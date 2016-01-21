@@ -277,7 +277,6 @@ def repeat(x, n):
 def stack(xs):
     return T.stack(*xs)
 
-
 def tile(x, n):
     return T.tile(x, n)
 

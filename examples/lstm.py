@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # lstm = Sequence(Image((1, 28, 28), 10), 10) >> Conv((10, 2, 2)) >> Conv((20, 2, 2)) >> Flatten() >> LSTM(100)
     # model = lstm >> Softmax(10)
 
-    lstm = Sequence(Vector(784, 10), 10) >> MultilayerLSTM(100, num_layers=2) >> Softmax(10)
+    lstm = Sequence(Vector(101, 10), 10) >> Repeat(LSTM(1024, stateful=True), 2) >> Softmax(10)
 
     # rmsprop = RMSProp(model, LinearSequentialLoss(CrossEntropy()))
-    # rmsprop2 = RMSProp(model, ConvexSequentialLoss(CrossEntropy(), 0.5))
+    rmsprop = RMSProp(lstm, CrossEntropy())

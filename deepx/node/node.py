@@ -19,6 +19,7 @@ class Node(object):
 
         self._predict = None
         self._predict_dropout = None
+        self.updates = []
 
     @property
     def shape(self):
@@ -29,7 +30,7 @@ class Node(object):
     def predict(self, *args, **kwargs):
         if self._predict is None:
             result = self.get_activation(use_dropout=False).get_data()
-            self._predict = T.function(self.get_formatted_input(), [result])
+            self._predict = T.function(self.get_formatted_input(), [result], updates=self.get_updates())
         return self._predict(*args, **kwargs)
 
     def predict_with_dropout(self, *args, **kwargs):
@@ -103,6 +104,12 @@ class Node(object):
         return self.unroll(*args, **kwargs)
 
     # Getters and setters
+
+    def get_updates(self):
+        return self.updates
+
+    def add_update(self, fro, to):
+        self.updates.append((fro, to))
 
     def is_recurrent(self):
         return False
@@ -231,6 +238,9 @@ class CompositeNode(Node):
         left_state, right_state = state
         self.left.set_state(left_state)
         self.right.set_state(right_state)
+
+    def get_updates(self):
+        return self.left.get_updates() + self.right.get_updates()
 
     def get_parameters(self):
         if self.frozen:
