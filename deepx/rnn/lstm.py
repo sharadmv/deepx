@@ -11,9 +11,9 @@ class LSTM(RecurrentNode):
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True,
-                 stateful=True):
+                 **kwargs):
 
-        super(LSTM, self).__init__()
+        super(LSTM, self).__init__(**kwargs)
         if shape_out is None:
             self.shape_in = None
             self.shape_out = shape_in
@@ -26,26 +26,6 @@ class LSTM(RecurrentNode):
         self.use_output_peep = use_output_peep
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
-
-        self.stateful = stateful
-        self.states = None
-
-    def get_initial_states(self, X):
-        # build an all-zero tensor of shape (samples, output_dim)
-        N = T.shape(X)[1]
-        return T.alloc(0, (N, self.get_shape_out()))
-
-    def reset_states(self, X):
-        assert self.stateful, 'Layer must be stateful.'
-        batch_size = self.batch_size
-        output_shape = self.get_shape_out()
-        if not batch_size:
-            raise Exception()
-        if self.states is not None:
-            T.set_value(self.states,
-                        np.zeros((batch_size, output_shape)))
-        else:
-            self.states = T.zeros((batch_size, output_shape))
 
     def copy(self):
         return LSTM(self.get_shape_in(),
@@ -92,32 +72,28 @@ class LSTM(RecurrentNode):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
         self.params = self.create_lstm_parameters(shape_in, shape_out, 0)
 
+    def step(self, X, state):
+        out, state = self._step(X.get_data(), state)
+        return X.next(out, self.get_shape_out()), state
+
+    def _step(self, X, previous):
+        previous_hidden, previous_state = previous
+        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
+        return lstm_hidden, [lstm_hidden, state]
+
     def _forward(self, X):
         S, N, D = T.shape(X)
 
-        H = self.get_shape_out()
-
-        def step(input, previous):
-            previous_hidden, previous_state = previous
-            lstm_hidden, state = self.step(input, previous_hidden, previous_state, self.params)
-            return lstm_hidden, [lstm_hidden, state]
-
-        hidden = T.alloc(0, (N, H))
-        if self.stateful:
-            if self.states is None:
-                self.reset_states(X)
-            state = self.states
-        else:
-            state = self.get_initial_states(X)
-
-        last_output, output, new_state = T.rnn(step,
+        hidden, state = self.get_initial(N)
+        last_output, output, new_state = T.rnn(self._step,
                               X,
                               [hidden, state])
         if self.stateful:
             self.add_update(self.states, new_state[1])
         return output
 
-    def step(self, X, previous_hidden, previous_state, params):
+    def lstm_step(self, X, previous_hidden, previous_state):
+        params = self.params
         Wi, Ui, bi = params['Wi'], params['Ui'], params['bi']
         if self.use_input_peep:
             Pi = params['Pi']

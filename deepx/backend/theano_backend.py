@@ -395,12 +395,21 @@ def gradients(loss, variables):
 
 # CONTROL FLOW
 
+def sample(p, seed=None):
+    if seed is None:
+        seed = np.random.randint(10e6)
+    rng = RandomStreams(seed=seed)
+    return rng.multinomial(n=1, pvals=p, dtype=theano.config.floatX)
+
 def scan(step_function, inputs):
     inputs = [
         dict(input=input) for input in inputs
     ]
     return theano.scan(step_function, sequences=inputs,
                        outputs_info=[None])[0]
+
+def generate(step_function, input, n_steps):
+    return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):

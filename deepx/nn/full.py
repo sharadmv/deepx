@@ -41,7 +41,8 @@ class Full(Node):
     def _forward(self, X):
         if self.is_elementwise():
             return self.activate(X)
-        return self.activate(T.dot(X, self.W) + self.b)
+        out = self.activate(T.dot(X, self.W) + self.b)
+        return out
 
     def copy(self):
         return self.__class__(self.get_shape_in(), self.get_shape_out())

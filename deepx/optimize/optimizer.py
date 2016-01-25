@@ -23,6 +23,7 @@ class Optimizer(object):
             self.grads = [T.clip(g, -c, c) for g in self.grads]
         updates = self.updates(*aux_inputs) + self.model.get_updates()
         self.train = T.function(opt_inputs, [opt_output], updates=updates)
+        self.gradient = T.function(opt_inputs, self.grads, updates=self.model.get_updates())
 
     def initialize(self):
         pass

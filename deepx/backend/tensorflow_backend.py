@@ -375,6 +375,13 @@ def scan(step_function, inputs):
     outputs = tf.pack(successive_outputs)
     return outputs
 
+def generate(step_function, input, n_steps):
+    outputs = []
+    for i in xrange(n_steps):
+        input = step_function(input)
+        outputs.append(input)
+    return tf.pack(outputs), []
+
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
