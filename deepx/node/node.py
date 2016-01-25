@@ -2,9 +2,7 @@ import numpy as np
 
 from .. import backend as T
 
-from .model import Model
 from .exceptions import ShapeException
-from ..util import pack_tuple, unpack_tuple
 
 class Node(object):
 

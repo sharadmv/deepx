@@ -385,10 +385,9 @@ def sample(a, temperature=1.0):
     batch_size = shape(a)[0]
     exponent_raised = tf.exp(tf.div(a, temperature)) #start by reduction of temperature, and get rid of negative numbers with exponent
     matrix_X = tf.div(exponent_raised, tf.reduce_sum(exponent_raised, reduction_indices = 1)) #this will yield probabilities!
-    matrix_U = tf.random_uniform([batch_size, tf.shape(a)[1]], minval = 0, maxval = 1)
-    final_number = tf.argmax(tf.sub(matrix_X - matrix_U), dimension = 1) #you want dimension = 1 because you are argmaxing across rows.
-
-    return final_number
+    matrix_U = tf.random_uniform([batch_size, shape(a)[1]], minval = 0, maxval = 1)
+    final_number = tf.argmax(tf.sub(matrix_X, matrix_U), dimension = 1)
+    return tf.cast(final_number, _FLOATX)
 
 def scan(step_function, inputs):
     input_list = [tf.unpack(i) for i in inputs]
@@ -404,10 +403,8 @@ def scan(step_function, inputs):
 def generate(step_function, inputs, n_steps):
     outputs = []
     for i in xrange(n_steps):
-        print inputs
         inputs = step_function(*inputs)
         outputs.append(inputs)
-    print outputs
     return [tf.pack(a) for a in zip(*outputs)], []
 
 def rnn(step_function, inputs, initial_states,

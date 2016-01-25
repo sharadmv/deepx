@@ -14,7 +14,7 @@ class Optimizer(object):
         ypred = self.model.get_activation(use_dropout=True)
         y = T.placeholder(shape=ypred.get_data())
 
-        opt_inputs = inputs + [y] + aux_inputs
+        opt_inputs = inputs + [y]
         opt_output = self.loss.loss(ypred, y)
 
         self.grads = T.gradients(opt_output, self.parameters)
@@ -22,8 +22,15 @@ class Optimizer(object):
             c = abs(clip_gradients)
             self.grads = [T.clip(g, -c, c) for g in self.grads]
         updates = self.updates(*aux_inputs) + self.model.get_updates()
-        self.train = T.function(opt_inputs, [opt_output], updates=updates)
-        self.gradient = T.function(opt_inputs, self.grads, updates=self.model.get_updates())
+        self.train = T.function(opt_inputs + aux_inputs, [opt_output], updates=updates)
+        self.opt_inputs = opt_inputs
+        self._gradient = None
+
+    def gradient(self, *args):
+        if self._gradient is None:
+            self._gradient = T.function(self.opt_inputs, self.grads, updates=self.model.get_updates())
+        return self._gradient(*args)
+
 
     def initialize(self):
         pass
