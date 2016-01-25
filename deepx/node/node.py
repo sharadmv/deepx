@@ -206,6 +206,11 @@ class Node(object):
 
 class CompositeNode(Node):
 
+    def freeze(self):
+        node = CompositeNode(self.left.freeze(), self.right.freeze())
+        node.infer_shape()
+        return node
+
     def __init__(self, left, right):
         super(CompositeNode, self).__init__()
         self.left = left
@@ -272,7 +277,7 @@ class CompositeNode(Node):
     def get_input(self):
         return self.left.get_input()
 
-    def copy(self):
+    def copy(self, keep_parameters=False):
         node = CompositeNode(self.left.copy(), self.right.copy())
         node.infer_shape()
         return node

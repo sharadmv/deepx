@@ -364,6 +364,32 @@ def gradients(loss, variables):
 
 # CONTROL FLOW
 
+def sample(a, temperature=1.0):
+    '''this function is like sample_with_temperature except it can handle batch input a of [batch_size x logits]
+        this function takes logits input, and produces a specific number from the array. This is all done on the gpu
+        because this function uses tensorflow
+        As you increase the temperature, you will get more diversified output but with more errors (usually gramatical if you're
+            doing text)
+    args:
+        Logits -- this must be a 2d array [batch_size x logits]
+        Temperature -- how much variance you want in output
+    returns:
+        Selected number from distribution
+    '''
+
+    '''
+    Equation can be found here: https://en.wikipedia.org/wiki/Softmax_function (under reinforcement learning)
+        Karpathy did it here as well: https://github.com/karpathy/char-rnn/blob/4297a9bf69726823d944ad971555e91204f12ca8/sample.lua'''
+    '''a is [batch_size x logits]'''
+
+    batch_size = shape(a)[0]
+    exponent_raised = tf.exp(tf.div(a, temperature)) #start by reduction of temperature, and get rid of negative numbers with exponent
+    matrix_X = tf.div(exponent_raised, tf.reduce_sum(exponent_raised, reduction_indices = 1)) #this will yield probabilities!
+    matrix_U = tf.random_uniform([batch_size, tf.shape(a)[1]], minval = 0, maxval = 1)
+    final_number = tf.argmax(tf.sub(matrix_X - matrix_U), dimension = 1) #you want dimension = 1 because you are argmaxing across rows.
+
+    return final_number
+
 def scan(step_function, inputs):
     input_list = [tf.unpack(i) for i in inputs]
 
@@ -375,12 +401,14 @@ def scan(step_function, inputs):
     outputs = tf.pack(successive_outputs)
     return outputs
 
-def generate(step_function, input, n_steps):
+def generate(step_function, inputs, n_steps):
     outputs = []
     for i in xrange(n_steps):
-        input = step_function(input)
-        outputs.append(input)
-    return tf.pack(outputs), []
+        print inputs
+        inputs = step_function(*inputs)
+        outputs.append(inputs)
+    print outputs
+    return [tf.pack(a) for a in zip(*outputs)], []
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):
