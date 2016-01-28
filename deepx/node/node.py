@@ -150,6 +150,11 @@ class Node(object):
         node.frozen = True
         return node
 
+    def unfreeze(self):
+        node = self.copy()
+        node.frozen = False
+        return node
+
     def initialize(self):
         # No parameters for default node
         return
@@ -203,11 +208,6 @@ class Node(object):
         return True
 
 class CompositeNode(Node):
-
-    def freeze(self):
-        node = CompositeNode(self.left.freeze(), self.right.freeze())
-        node.infer_shape()
-        return node
 
     def __init__(self, left, right):
         super(CompositeNode, self).__init__()

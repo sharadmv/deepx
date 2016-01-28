@@ -19,3 +19,9 @@ class Lambda(Node):
 
     def copy(self):
         return Lambda(self.func, shape_func=self.shape_func)
+
+def Freeze(node):
+    return node.freeze()
+
+def Unfreeze(node):
+    return node.unfreeze()
