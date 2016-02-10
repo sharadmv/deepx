@@ -145,6 +145,12 @@ class Node(object):
     def get_shape_out(self):
         return self.shape_out
 
+    def get_batch_size(self):
+        return self.batch_size
+
+    def set_batch_size(self, batch_size):
+        self.batch_size = batch_size
+
     def set_state(self, state):
         assert self.is_initialized(), "Cannot set state of uninitialized node."
         for name, val in state.items():
@@ -223,11 +229,11 @@ class CompositeNode(Node):
         return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
     def infer_shape(self):
+        self.set_batch_size(self.left.get_batch_size())
         self.left.infer_shape()
         if self.left.get_shape_out() is not None:
             self.right.set_shape_in(self.left.get_shape_out())
         self.right.infer_shape()
-        self.right.batch_size = self.left.batch_size
 
     def set_shape_in(self, shape_in):
         self.left.set_shape_in(shape_in)
@@ -245,6 +251,12 @@ class CompositeNode(Node):
         return (self.left.get_state(),
                 self.right.get_state())
 
+    def get_batch_size(self):
+        return self.left.get_batch_size()
+
+    def set_batch_size(self, batch_size):
+        self.left.set_batch_size(batch_size)
+        self.right.set_batch_size(batch_size)
 
     def reset_states(self):
         self.left.reset_states()
@@ -298,6 +310,7 @@ class ConcatenatedNode(Node):
         if self.right.get_shape_out() is None:
             return None
         return self.left.get_shape_out() + self.right.get_shape_out()
+
 
     def forward(self, X, collect_outputs=False):
         X1, X2 = X

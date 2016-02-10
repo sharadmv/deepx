@@ -103,7 +103,7 @@ class LSTM(RecurrentNode):
 
         if self.stateful:
             if self.states is None:
-                self.reset_states(X)
+                self.reset_states()
             hidden, state = self.states
         else:
             hidden, state = self.get_initial_states(X)
