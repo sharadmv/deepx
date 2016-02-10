@@ -21,7 +21,8 @@ def _set_session(session):
 
 # VARIABLE MANIPULATION
 
-def alloc(value, shape):
+
+def alloc(value, shape, unbroadcast=None):
     if None in shape:
         raise NotImplementedError("Cannot handle dynamic allocation just yet.")
     return tf.constant(value, shape=shape, dtype=_FLOATX)

@@ -1,7 +1,7 @@
 import theano
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.tensor.signal import downsample
+from theano.tensor.signal import pool
 import numpy as np
 from .common import _FLOATX, _EPSILON
 
@@ -27,8 +27,11 @@ if _on_gpu():
 
 # VARIABLE MANIPULATION
 
-def alloc(value, shape):
-    return T.alloc(np.array(value).astype(_FLOATX), *shape)
+def alloc(value, shape, unbroadcast=None):
+    a = T.alloc(np.array(value).astype(_FLOATX), *shape)
+    if unbroadcast is not None:
+        return T.unbroadcast(a, unbroadcast)
+    return a
 
 def variable(value, dtype=_FLOATX, name=None):
     '''Instantiate a tensor variable.
@@ -615,7 +618,7 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
         x = x.dimshuffle((0, 3, 1, 2))
 
     if pool_mode == 'max':
-        pool_out = downsample.max_pool_2d(x, ds=pool_size,
+        pool_out = pool.max_pool_2d(x, ds=pool_size,
                                           ignore_border=ignore_border,
                                           padding=padding,
                                           )

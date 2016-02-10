@@ -3,8 +3,6 @@ from .node import Node, Data
 class RecurrentNode(Node):
 
     def forward(self, X, **kwargs):
-        if self.stateful:
-            self.batch_size = X.batch_size
         return super(RecurrentNode, self).forward(X, **kwargs)
 
     def recurrent_forward(self, X):
