@@ -49,9 +49,6 @@ class Node(object):
     def get_activation(self, use_dropout=True):
         return self.forward(self.get_input(), use_dropout=use_dropout)
 
-    def reset_states(self):
-        pass
-
     # Node operations
 
     def infer_shape(self):
@@ -194,7 +191,7 @@ class Node(object):
         return None
 
     def reset_states(self):
-        return
+        pass
 
     def step(self, X, *args, **kwargs):
         return self.forward(X), None
