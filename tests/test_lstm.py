@@ -148,7 +148,7 @@ class TestStatefulLSTM(LSTMBase):
         state = np.zeros((1, self.lstm.get_shape_out()))
         out = np.zeros((1, self.lstm.get_shape_out()))
 
-        for i in xrange(1000):
+        for i in range(1000):
             out, state = self.lstm_forward(X, out, state, weights)
 
             lstm_out = self.lstm.predict(X)
@@ -160,13 +160,13 @@ class TestStatefulLSTM(LSTMBase):
 
     def test_stateful_lstm2(self):
         weights = np.ones((self.lstm.get_shape_in(), self.lstm.get_shape_out()))
-        for _ in xrange(10):
+        for _ in range(10):
             X = np.random.normal(size=(10, 1, 1))
 
-            for s in xrange(1, 3):
+            for s in range(1, 3):
                 state = np.zeros((1, self.lstm.get_shape_out()))
                 out = np.zeros((1, self.lstm.get_shape_out()))
-                for i in xrange(s):
+                for i in range(s):
                     out, state = self.lstm_forward(X[i], out, state, weights)
 
                 lstm = Sequence(Vector(1, 1), s) >> LSTM(1, 1, stateful=True)
