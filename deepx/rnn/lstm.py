@@ -11,6 +11,7 @@ class LSTM(RecurrentNode):
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True,
+                 stateful=False,
                  **kwargs):
 
         super(LSTM, self).__init__(**kwargs)
@@ -27,6 +28,9 @@ class LSTM(RecurrentNode):
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
 
+        self.stateful = stateful
+        self.states = None
+
     def copy(self):
         return LSTM(self.get_shape_in(),
                     self.get_shape_out(),
@@ -41,36 +45,34 @@ class LSTM(RecurrentNode):
     def _infer(self, shape_in):
         return self.shape_out
 
-    def create_lstm_parameters(self, shape_in, shape_out, layer):
-        params = {}
-        params['Wi'] = self.init_parameter('W_ix-%u' % layer, (shape_in, shape_out))
-        params['Ui'] = self.init_parameter('U_ih-%u' % layer, (shape_out, shape_out))
-        params['bi'] = self.init_parameter('b_i-%u' % layer, shape_out)
+    def create_lstm_parameters(self, shape_in, shape_out):
+        self.init_parameter('W_ix', (shape_in, shape_out))
+        self.init_parameter('U_ih', (shape_out, shape_out))
+        self.init_parameter('b_i', shape_out)
 
-        params['Wo'] = self.init_parameter('W_ox-%u' % layer, (shape_in, shape_out))
-        params['Uo'] = self.init_parameter('U_oh-%u' % layer, (shape_out, shape_out))
-        params['bo'] = self.init_parameter('b_o-%u' % layer, shape_out)
+        self.init_parameter('W_ox', (shape_in, shape_out))
+        self.init_parameter('U_oh', (shape_out, shape_out))
+        self.init_parameter('b_o', shape_out)
 
         if self.use_forget_gate:
-            params['Wf'] = self.init_parameter('W_fx-%u' % layer, (shape_in, shape_out))
-            params['Uf'] = self.init_parameter('U_fh-%u' % layer, (shape_out, shape_out))
-            params['bf'] = self.init_parameter('b_f-%u' % layer, shape_out)
+            self.init_parameter('W_fx', (shape_in, shape_out))
+            self.init_parameter('U_fh', (shape_out, shape_out))
+            self.init_parameter('b_f', shape_out)
 
-        params['Wg'] = self.init_parameter('W_gx-%u' % layer, (shape_in, shape_out))
-        params['Ug'] = self.init_parameter('U_gh-%u' % layer, (shape_out, shape_out))
-        params['bg'] = self.init_parameter('b_g-%u' % layer, shape_out)
+        self.init_parameter('W_gx', (shape_in, shape_out))
+        self.init_parameter('U_gh', (shape_out, shape_out))
+        self.init_parameter('b_g', shape_out)
 
         if self.use_input_peep:
-            params['Pi'] = self.init_parameter('P_i-%u' % layer, (shape_out, shape_out))
+            self.init_parameter('P_i', (shape_out, shape_out))
         if self.use_output_peep:
-            params['Po'] = self.init_parameter('P_o-%u' % layer, (shape_out, shape_out))
+            self.init_parameter('P_o', (shape_out, shape_out))
         if self.use_forget_peep:
-            params['Pf'] = self.init_parameter('P_f-%u' % layer, (shape_out, shape_out))
-        return params
+            self.init_parameter('P_f', (shape_out, shape_out))
 
     def initialize(self):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
-        self.params = self.create_lstm_parameters(shape_in, shape_out, 0)
+        self.create_lstm_parameters(shape_in, shape_out)
 
     def step(self, X, state):
         out, state = self._step(X.get_data(), state)
@@ -84,30 +86,42 @@ class LSTM(RecurrentNode):
     def _forward(self, X):
         S, N, D = T.shape(X)
 
-        hidden, state = self.get_initial(N)
-        last_output, output, new_state = T.rnn(self._step,
+        def step(input, previous):
+            previous_hidden, previous_state = previous
+            lstm_hidden, state = self._step(input, previous_hidden, previous_state)
+            return lstm_hidden, [lstm_hidden, state]
+
+        if self.stateful:
+            if self.states is None:
+                self.reset_states()
+            hidden, state = self.states
+        else:
+            hidden, state = self.get_initial_states(X)
+
+        _, output, new_state = T.rnn(self._step,
                               X,
                               [hidden, state])
         if self.stateful:
-            self.add_update(self.states, new_state[1])
+            for state, ns in zip(self.states, new_state):
+                self.add_update(state, ns)
         return output
 
     def lstm_step(self, X, previous_hidden, previous_state):
-        params = self.params
-        Wi, Ui, bi = params['Wi'], params['Ui'], params['bi']
+        params = self.parameters
+        Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
-            Pi = params['Pi']
+            Pi = params['P_i']
             input_gate = T.sigmoid(T.dot(X, Wi) + T.dot(previous_hidden, Ui) + T.dot(previous_state, Pi) + bi)
         else:
             input_gate = T.sigmoid(T.dot(X, Wi) + T.dot(previous_hidden, Ui) + bi)
 
-        Wg, Ug, bg = params['Wg'], params['Ug'], params['bg']
+        Wg, Ug, bg = params['W_gx'], params['U_gh'], params['b_g']
         candidate_state = T.tanh(T.dot(X, Wg) + T.dot(previous_hidden, Ug) + bg)
 
         if self.use_forget_gate:
-            Wf, Uf, bf = params['Wf'], params['Uf'], params['bf']
+            Wf, Uf, bf = params['W_fx'], params['U_fh'], params['b_f']
             if self.use_forget_peep:
-                Pf = params['Pf']
+                Pf = params['P_f']
                 forget_gate = T.sigmoid(T.dot(X, Wf) + T.dot(previous_hidden, Uf) + T.dot(previous_state, Pf) + bf)
             else:
                 forget_gate = T.sigmoid(T.dot(X, Wf) + T.dot(previous_hidden, Uf) + bf)
@@ -115,9 +129,9 @@ class LSTM(RecurrentNode):
         else:
             state = candidate_state * input_gate + previous_state * 0
 
-        Wo, Uo, bo = params['Wo'], params['Uo'], params['bo']
+        Wo, Uo, bo = params['W_ox'], params['U_oh'], params['b_o']
         if self.use_output_peep:
-            Po = params['Po']
+            Po = params['P_o']
             output_gate = T.sigmoid(T.dot(X, Wo) + T.dot(previous_hidden, Uo) + T.dot(previous_state, Po) + bo)
         else:
             output_gate = T.sigmoid(T.dot(X, Wo) + T.dot(previous_hidden, Uo) + bo)
@@ -126,6 +140,3 @@ class LSTM(RecurrentNode):
         else:
             output = output_gate * state
         return output, state
-
-    def get_previous_zeros(self, N):
-        return T.alloc(0, (N, self.get_shape_out())), T.alloc(0, (N, self.get_shape_out()))

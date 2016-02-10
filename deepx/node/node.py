@@ -18,6 +18,7 @@ class Node(object):
         self._predict = None
         self._predict_dropout = None
         self.updates = []
+        self.batch_size = None
 
         self.batch_size = None
 
@@ -48,6 +49,9 @@ class Node(object):
     def get_activation(self, use_dropout=True):
         return self.forward(self.get_input(), use_dropout=use_dropout)
 
+    def reset_states(self):
+        pass
+
     # Node operations
 
     def infer_shape(self):
@@ -60,10 +64,10 @@ class Node(object):
 
     def init_parameter(self, name, shape, value=None):
         if value:
-            param = T.variable(np.zeros(shape)+value)
+            param = T.variable(np.zeros(shape)+value, name=name)
             self.parameters[name] = param
         else:
-            param = T.variable(np.random.normal(size=shape) * 0.01)
+            param = T.variable(np.random.normal(size=shape) * 0.01, name=name)
             self.parameters[name] = param
         return param
 
@@ -73,6 +77,12 @@ class Node(object):
         composite = CompositeNode(self, node)
         composite.infer_shape()
         return composite
+
+    def get_parameter_value(self, name):
+        return T.get_value(self.parameters[name])
+
+    def set_parameter_value(self, name, value):
+        T.set_value(self.parameters[name], value)
 
     def get_parameters(self):
         if self.frozen:
@@ -180,7 +190,7 @@ class Node(object):
         _, output, _ = T.rnn(step, X.get_data(), [])
         return X.next(output, self.get_shape_out())
 
-    def get_initial(self, N):
+    def get_initial_states(self, X):
         return None
 
     def reset_states(self):
@@ -230,6 +240,7 @@ class CompositeNode(Node):
         return right, (left_state, right_state)
 
     def infer_shape(self):
+        self.set_batch_size(self.left.get_batch_size())
         self.left.infer_shape()
         if self.left.get_shape_out() is not None:
             self.right.set_shape_in(self.left.get_shape_out())
@@ -259,6 +270,17 @@ class CompositeNode(Node):
         return (self.left.get_state(),
                 self.right.get_state())
 
+    def get_batch_size(self):
+        return self.left.get_batch_size()
+
+    def set_batch_size(self, batch_size):
+        self.left.set_batch_size(batch_size)
+        self.right.set_batch_size(batch_size)
+
+    def reset_states(self):
+        self.left.reset_states()
+        self.right.reset_states()
+
     def set_state(self, state):
         left_state, right_state = state
         self.left.set_state(left_state)
@@ -280,8 +302,9 @@ class CompositeNode(Node):
         node.infer_shape()
         return node
 
-    def get_initial(self, N):
-        return (self.left.get_initial(N), self.right.get_initial(N))
+    def get_initial_states(self, X):
+        return (self.left.get_initial_states(X),
+                self.right.get_initial_states(X))
 
     def reset_states(self):
         self.left.reset_states()

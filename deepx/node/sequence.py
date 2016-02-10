@@ -18,8 +18,7 @@ class Generate(Node):
         assert self.node.get_shape_out() == self.node.get_shape_in()
 
     def forward(self, X, **kwargs):
-        N = T.shape(X.get_data())[0]
-        states = [self.node.get_initial(N)]
+        states = [self.node.get_initial_states(X)]
         def step(input, softmax):
             state = states[0]
             out, state = self.node.step(X.next(input, self.get_shape_in()), state)
@@ -66,22 +65,11 @@ class RecurrentNode(Node):
         self.stateful = stateful
         self.states = None
 
-    def step(self, X, state, **kwargs):
-        output, state = self._step(X.get_data(), *state)
-        return X.next(output, self.get_shape_out()), state
-
-    def get_initial(self, N):
-        return T.alloc(0, (N, self.get_shape_out())), self.get_initial_states(N)
-
-    def get_initial_states(self, N):
-        batch_size = self.batch_size
-        if batch_size is None:
-            batch_size = N
-        if self.stateful:
-            if self.states is None:
-                self.reset_states()
-            return self.states
-        return T.alloc(0, (batch_size, self.get_shape_out()))
+    def get_initial_states(self, X):
+        # build an all-zero tensor of shape (samples, output_dim)
+        N = T.shape(X)[1]
+        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=1),
+                T.alloc(0, (N, self.get_shape_out()), unbroadcast=1)]
 
     def reset_states(self):
         assert self.stateful, 'Layer must be stateful.'
@@ -100,6 +88,7 @@ class RecurrentNode(Node):
         return super(RecurrentNode, self).forward(X, **kwargs)
 
     def step(self, *args, **kwargs):
+        print args
         initial = self.get_initial_states()
         args.extend(initial)
         return self._step(*args, **kwargs)
