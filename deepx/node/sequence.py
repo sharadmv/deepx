@@ -67,31 +67,26 @@ class RecurrentNode(Node):
 
     def get_initial_states(self, X):
         # build an all-zero tensor of shape (samples, output_dim)
-        N = T.shape(X)[1]
+        if self.stateful:
+            N = self.get_batch_size()
+        else:
+            N = T.shape(X)[1]
+        if self.stateful:
+            if not N:
+                raise Exception('Must set batch size for input')
+            else:
+                return [T.zeros((N, self.get_shape_out())),
+                        T.zeros((N, self.get_shape_out()))]
         return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=1),
                 T.alloc(0, (N, self.get_shape_out()), unbroadcast=1)]
 
     def reset_states(self):
-        assert self.stateful, 'Layer must be stateful.'
-        batch_size = self.batch_size
-        output_shape = self.get_shape_out()
-        if not batch_size:
-            raise Exception()
-        if self.states is not None:
-            T.set_value(self.states,
-                        np.zeros((batch_size, output_shape)))
-        else:
-            self.states = T.zeros((batch_size, output_shape))
+        for state in self.states:
+            T.set_value(state, T.get_value(state) * 0)
 
 
     def forward(self, X, **kwargs):
         return super(RecurrentNode, self).forward(X, **kwargs)
-
-    def step(self, *args, **kwargs):
-        print args
-        initial = self.get_initial_states()
-        args.extend(initial)
-        return self._step(*args, **kwargs)
 
     def recurrent_forward(self, X):
         output = self._forward(X.get_data())

@@ -73,6 +73,8 @@ class LSTM(RecurrentNode):
     def initialize(self):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
         self.create_lstm_parameters(shape_in, shape_out)
+        if self.stateful:
+            self.states = self.get_initial_states(None)
 
     def step(self, X, state):
         out, state = self._step(X.get_data(), state)
@@ -92,8 +94,6 @@ class LSTM(RecurrentNode):
             return lstm_hidden, [lstm_hidden, state]
 
         if self.stateful:
-            if self.states is None:
-                self.reset_states()
             hidden, state = self.states
         else:
             hidden, state = self.get_initial_states(X)
