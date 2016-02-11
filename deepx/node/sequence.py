@@ -1,6 +1,7 @@
 import numpy as np
 from .. import backend as T
 from .node import Node
+from ..util import pack_tuple, unpack_tuple
 
 def Sequence(data, max_length=None):
     var = T.make_sequence(data.get_data(), max_length)
@@ -18,16 +19,18 @@ class Generate(Node):
         assert self.node.get_shape_out() == self.node.get_shape_in()
 
     def forward(self, X, **kwargs):
-        states = [self.node.get_initial_states(X.get_data(), shape_index=0)]
-        def step(input, softmax):
-            state = states[0]
+        states = self.node.get_initial_states(X.get_data(), shape_index=0)
+        states, shape = unpack_tuple(states)
+
+        def step(input, softmax, *states):
+            state = pack_tuple(states, shape)
             out, state = self.node.step(X.next(input, self.get_shape_in()), state)
             out_softmax = out.get_data()
-            states[0] = state
             out_sample = T.sample(out_softmax)
-            return out_sample, out_softmax
+            state, _ = unpack_tuple(state)
+            return [out_sample, out_softmax] + list(state)
 
-        output, self.updates = T.generate(step, [X.get_data(), X.get_data()], self.length)
+        output, self.updates = T.generate(step, [X.get_data(), X.get_data()] + list(states), self.length)
         output = X.next(output[1], self.get_shape_out())
         output.sequence = True
         output.sequence_length = self.length

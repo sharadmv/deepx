@@ -6,7 +6,7 @@ from deepx.loss import *
 from deepx.optimize import *
 
 if __name__ == "__main__":
-    lstm = Vector(100, 1) >> Repeat(LSTM(1024), 2) >> Softmax(100)
+    lstm = Vector(100) >> Repeat(LSTM(1024), 2) >> Softmax(100)
     gen = Generate(lstm, 100)
 
     # wat = RMSProp(gen, CrossEntropy())
