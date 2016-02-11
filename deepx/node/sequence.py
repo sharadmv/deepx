@@ -18,7 +18,7 @@ class Generate(Node):
         assert self.node.get_shape_out() == self.node.get_shape_in()
 
     def forward(self, X, **kwargs):
-        states = [self.node.get_initial_states(X)]
+        states = [self.node.get_initial_states(X.get_data(), shape_index=0)]
         def step(input, softmax):
             state = states[0]
             out, state = self.node.step(X.next(input, self.get_shape_in()), state)
@@ -65,12 +65,12 @@ class RecurrentNode(Node):
         self.stateful = stateful
         self.states = None
 
-    def get_initial_states(self, X):
+    def get_initial_states(self, X, shape_index=1):
         # build an all-zero tensor of shape (samples, output_dim)
         if self.stateful:
             N = self.get_batch_size()
         else:
-            N = T.shape(X)[1]
+            N = T.shape(X)[shape_index]
         if self.stateful:
             if not N:
                 raise Exception('Must set batch size for input')

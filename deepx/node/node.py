@@ -187,7 +187,7 @@ class Node(object):
         _, output, _ = T.rnn(step, X.get_data(), [])
         return X.next(output, self.get_shape_out())
 
-    def get_initial_states(self, X):
+    def get_initial_states(self, X, shape_index=1):
         return None
 
     def reset_states(self):
@@ -299,9 +299,9 @@ class CompositeNode(Node):
         node.infer_shape()
         return node
 
-    def get_initial_states(self, X):
-        return (self.left.get_initial_states(X),
-                self.right.get_initial_states(X))
+    def get_initial_states(self, X, shape_index=1):
+        return (self.left.get_initial_states(X, shape_index=shape_index),
+                self.right.get_initial_states(X, shape_index=shape_index))
 
     def reset_states(self):
         self.left.reset_states()
