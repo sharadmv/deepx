@@ -181,11 +181,14 @@ class Node(object):
     def _infer(self, shape_in):
         raise NotImplementedError
 
-    def recurrent_forward(self, X):
+    def recurrent_forward(self, X, **kwargs):
+        return X.next(self._recurrent_forward(X.get_data(), **kwargs), self.get_shape_out())
+
+    def _recurrent_forward(self, X, **kwargs):
         def step(input, _):
-            return self._forward(input), []
-        _, output, _ = T.rnn(step, X.get_data(), [])
-        return X.next(output, self.get_shape_out())
+            return self._forward(input, **kwargs), []
+        output = T.rnn(step, X, [])
+        return output[1]
 
     def get_initial_states(self, X, shape_index=1):
         return None
@@ -193,12 +196,15 @@ class Node(object):
     def reset_states(self):
         pass
 
-    def step(self, X, *args, **kwargs):
-        return self.forward(X), None
+    def step(self, X, state):
+        return X.next(self._step(X.get_data(), state), self.get_shape_out()), None
+
+    def _step(self, X, _):
+        return self._forward(X)
 
     def forward(self, X, **kwargs):
         if X.is_sequence():
-            return self.recurrent_forward(X)
+            return self.recurrent_forward(X, **kwargs)
         output = self._forward(X.get_data())
         return X.next(output, self.get_shape_out())
 
@@ -221,19 +227,19 @@ class CompositeNode(Node):
         self.left = left
         self.right = right
 
-    def recurrent_forward(self, X, output):
+    def recurrent_forward(self, X, output, **kwargs):
         previous_left, previous_right = output
-        left, left_out = self.left.recurrent_forward(X, previous_left)
-        right, right_out = self.right.recurrent_forward(left, previous_right)
+        left, left_out = self.left.recurrent_forward(X, previous_left, **kwargs)
+        right, right_out = self.right.recurrent_forward(left, previous_right, **kwargs)
         return right, (left_out, right_out)
 
     def forward(self, X, **kwargs):
         return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
-    def step(self, X, state):
+    def _step(self, X, state):
         left_state, right_state = state
-        left, left_state = self.left.step(X, left_state)
-        right, right_state = self.right.step(left, right_state)
+        left, left_state = self.left._step(X, left_state)
+        right, right_state = self.right._step(left, right_state)
         return right, (left_state, right_state)
 
     def infer_shape(self):
@@ -252,13 +258,6 @@ class CompositeNode(Node):
 
     def get_shape_in(self):
         return self.left.get_shape_in()
-
-    def set_batch_size(self, batch_size):
-        self.left.set_batch_size(batch_size)
-        self.right.set_batch_size(batch_size)
-
-    def get_batch_size(self):
-        return self.left.get_batch_size()
 
     def get_shape_out(self):
         return self.right.get_shape_out()
@@ -302,10 +301,6 @@ class CompositeNode(Node):
     def get_initial_states(self, X, shape_index=1):
         return (self.left.get_initial_states(X, shape_index=shape_index),
                 self.right.get_initial_states(X, shape_index=shape_index))
-
-    def reset_states(self):
-        self.left.reset_states()
-        self.right.reset_states()
 
     def __str__(self):
         return "{left} >> {right}".format(
@@ -353,4 +348,3 @@ class IndexNode(Node):
             node=self.node,
             index=self.index
         )
-
