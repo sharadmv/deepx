@@ -1,14 +1,12 @@
 sudo: required
 dist: trusty
-language: python
-matrix:
-    env: 
-      - DEEPX_BACKEND=tensorflow THEANO_LATEST=false
-      - DEEPX_BACKEND=theano THEANO_LATEST=false
-      - DEEPX_BACKEND=theano THEANO_LATEST=true
-    python:
-      - 2.7
-      - 3.4
+env: 
+  - DEEPX_BACKEND=tensorflow THEANO_LATEST=false
+  - DEEPX_BACKEND=theano THEANO_LATEST=false
+  - DEEPX_BACKEND=theano THEANO_LATEST=true
+python:
+  - 2.7
+  - 3.4
 install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
