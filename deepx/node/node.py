@@ -230,7 +230,7 @@ class CompositeNode(Node):
     def forward(self, X, **kwargs):
         return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
-    def step(self, X, state, **kwargs):
+    def step(self, X, state):
         left_state, right_state = state
         left, left_state = self.left.step(X, left_state)
         right, right_state = self.right.step(left, right_state)

@@ -4,10 +4,12 @@ from .node import Node
 from ..util import pack_tuple, unpack_tuple
 
 def Sequence(data, max_length=None):
+    batch_size = data.batch_size
     var = T.make_sequence(data.get_data(), max_length)
     data = data.next(var, data.get_shape_out())
     data.sequence = True
     data.sequence_length = max_length
+    data.batch_size = batch_size
     return data
 
 class Generate(Node):
@@ -26,15 +28,18 @@ class Generate(Node):
             state = pack_tuple(states, shape)
             out, state = self.node.step(X.next(input, self.get_shape_in()), state)
             out_softmax = out.get_data()
+            out_softmax = T.log(out_softmax)
+            out_softmax /= 0.1
+            out_softmax = T.exp(out_softmax)
             out_sample = T.sample(out_softmax)
-            state, _ = unpack_tuple(state)
-            return [out_sample, out_softmax] + list(state)
+            states, _ = unpack_tuple(state)
+            return [out_sample, out_softmax] + list(states)
 
         output, self.updates = T.generate(step, [X.get_data(), X.get_data()] + list(states), self.length)
-        output = X.next(output[1], self.get_shape_out())
-        output.sequence = True
-        output.sequence_length = self.length
-        return output
+        out = X.next(output[1], self.get_shape_out())
+        out.sequence = True
+        out.sequence_length = self.length
+        return out
 
     def infer_shape(self):
         self.node.infer_shape()
