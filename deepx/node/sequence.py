@@ -89,8 +89,9 @@ class RecurrentNode(Node):
                 T.alloc(0, (N, self.get_shape_out()), unbroadcast=1)]
 
     def reset_states(self):
-        for state in self.states:
-            T.set_value(state, T.get_value(state) * 0)
+        if self.states is not None:
+            for state in self.states:
+                T.set_value(state, T.get_value(state) * 0)
 
 
     def forward(self, X, **kwargs):
