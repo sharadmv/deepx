@@ -492,7 +492,10 @@ def relu(x, alpha=0., max_value=None):
     return x
 
 
-def softmax(x):
+def softmax(x, t=1.0):
+    if t != 1.0:
+        e_x = T.exp(x / t)
+        return e_x  / (e_x.sum(axis=-1).dimshuffle(0, 'x'))
     return T.nnet.softmax(x)
 
 

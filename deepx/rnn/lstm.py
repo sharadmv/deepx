@@ -11,7 +11,6 @@ class LSTM(RecurrentNode):
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True,
-                 stateful=False,
                  **kwargs):
 
         super(LSTM, self).__init__(**kwargs)
@@ -27,9 +26,6 @@ class LSTM(RecurrentNode):
         self.use_output_peep = use_output_peep
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
-
-        self.stateful = stateful
-        self.states = None
 
     def copy(self):
         return LSTM(self.get_shape_in(),
@@ -78,18 +74,13 @@ class LSTM(RecurrentNode):
         out, state = self._step(X.get_data(), state)
         return X.next(out, self.get_shape_out()), state
 
-    def _step(self, X, previous):
-        previous_hidden, previous_state = previous
+    def _step(self, X, state):
+        previous_hidden, previous_state = state
         lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
         return lstm_hidden, [lstm_hidden, state]
 
     def _forward(self, X):
         S, N, D = T.shape(X)
-
-        def step(input, previous):
-            previous_hidden, previous_state = previous
-            lstm_hidden, state = self._step(input, previous_hidden, previous_state)
-            return lstm_hidden, [lstm_hidden, state]
 
         if self.stateful:
             if self.states is None:

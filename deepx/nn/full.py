@@ -41,8 +41,7 @@ class Full(Node):
     def _forward(self, X):
         if self.is_elementwise():
             return self.activate(X)
-        out = self.activate(T.dot(X, self.W) + self.b)
-        return out
+        return self.activate(T.dot(X, self.W) + self.b)
 
     def copy(self):
         return self.__class__(self.get_shape_in(), self.get_shape_out())
@@ -55,8 +54,12 @@ class Full(Node):
 
 class Softmax(Full):
 
+    def __init__(self, *args, **kwargs):
+        self.T = kwargs.pop('T', 1.0)
+        super(Softmax, self).__init__(*args, **kwargs)
+
     def activate(self, X):
-        return T.softmax(X)
+        return T.softmax(X, self.T)
 
 class Sigmoid(Full):
 

@@ -36,7 +36,7 @@ class Generate(Node):
             return [out_sample, out_softmax] + list(states)
 
         output, self.updates = T.generate(step, [X.get_data(), X.get_data()] + list(states), self.length)
-        out = X.next(output[1], self.get_shape_out())
+        out = X.next(output[0], self.get_shape_out())
         out.sequence = True
         out.sequence_length = self.length
         return out
@@ -74,7 +74,6 @@ class RecurrentNode(Node):
         self.states = None
 
     def get_initial_states(self, X, shape_index=1):
-        # build an all-zero tensor of shape (samples, output_dim)
         if self.stateful:
             N = self.get_batch_size()
         else:
@@ -85,21 +84,16 @@ class RecurrentNode(Node):
             else:
                 return [T.zeros((N, self.get_shape_out())),
                         T.zeros((N, self.get_shape_out()))]
-        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=1),
-                T.alloc(0, (N, self.get_shape_out()), unbroadcast=1)]
+        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
+                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
 
     def reset_states(self):
         if self.states is not None:
             for state in self.states:
                 T.set_value(state, T.get_value(state) * 0)
 
-
-    def forward(self, X, **kwargs):
-        return super(RecurrentNode, self).forward(X, **kwargs)
-
     def recurrent_forward(self, X):
-        output = self._forward(X.get_data())
-        return X.next(output, self.get_shape_out())
+        return super(RecurrentNode, self).forward(X)
 
     def is_recurrent(self):
         return True

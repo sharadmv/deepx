@@ -366,29 +366,7 @@ def gradients(loss, variables):
 # CONTROL FLOW
 
 def sample(a, temperature=1.0):
-    '''this function is like sample_with_temperature except it can handle batch input a of [batch_size x logits]
-        this function takes logits input, and produces a specific number from the array. This is all done on the gpu
-        because this function uses tensorflow
-        As you increase the temperature, you will get more diversified output but with more errors (usually gramatical if you're
-            doing text)
-    args:
-        Logits -- this must be a 2d array [batch_size x logits]
-        Temperature -- how much variance you want in output
-    returns:
-        Selected number from distribution
-    '''
-
-    '''
-    Equation can be found here: https://en.wikipedia.org/wiki/Softmax_function (under reinforcement learning)
-        Karpathy did it here as well: https://github.com/karpathy/char-rnn/blob/4297a9bf69726823d944ad971555e91204f12ca8/sample.lua'''
-    '''a is [batch_size x logits]'''
-
-    batch_size = shape(a)[0]
-    exponent_raised = tf.exp(tf.div(a, temperature)) #start by reduction of temperature, and get rid of negative numbers with exponent
-    matrix_X = tf.div(exponent_raised, tf.reduce_sum(exponent_raised, reduction_indices = 1)) #this will yield probabilities!
-    matrix_U = tf.random_uniform([batch_size, shape(a)[1]], minval = 0, maxval = 1)
-    final_number = tf.argmax(tf.sub(matrix_X, matrix_U), dimension = 1)
-    return tf.cast(final_number, _FLOATX)
+    raise NotImplementedError
 
 def scan(step_function, inputs):
     input_list = [tf.unpack(i) for i in inputs]
@@ -507,9 +485,10 @@ def relu(x, alpha=0., max_value=None):
     return x
 
 
-def softmax(x):
+def softmax(x, t=1.0):
+    if t != 1.0:
+        raise NotImplementedError
     return tf.nn.softmax(x)
-
 
 def softplus(x):
     return tf.nn.softplus(x)
