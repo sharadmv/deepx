@@ -2,15 +2,13 @@ sudo: required
 dist: trusty
 language: python
 matrix:
-    include:
-        - python: 2.7
-          env: DEEPX_BACKEND=theano
-        - python: 2.7
-          env: DEEPX_BACKEND=tensorflow
-        - python: 3.4
-          env: DEEPX_BACKEND=theano
-        - python: 3.4
-          env: DEEPX_BACKEND=tensorflow
+    env: 
+      - DEEPX_BACKEND=tensorflow THEANO_LATEST=false
+      - DEEPX_BACKEND=theano THEANO_LATEST=false
+      - DEEPX_BACKEND=theano THEANO_LATEST=true
+    python:
+      - 2.7
+      - 3.4
 install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
@@ -27,7 +25,11 @@ install:
 
   - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose
   - pip install pytest-cov coveralls pytest-xdist coverage==3.7.1 #we need this version of coverage for coveralls.io to work
-  - pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
+  - if [[ "$THEANO_LATEST" == false ]]; then
+      pip install Theano==0.7.0
+    elif [[ "$THEANO_LATEST" == true ]]; then
+      pip install --upgrade --no-deps git+git://github.com/Theano/Theano.git
+    fi
 
   # install PIL for preprocessing tests
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
