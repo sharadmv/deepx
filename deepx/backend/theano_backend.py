@@ -1,7 +1,11 @@
 import theano
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.tensor.signal import pool
+try:
+    from theano.tensor.signal import pool
+except:
+    # backwards compatibility fix
+    from theano.tensor.signal import downsample as pool
 import numpy as np
 from .common import _FLOATX, _EPSILON
 
