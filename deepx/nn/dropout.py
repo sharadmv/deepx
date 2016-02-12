@@ -12,7 +12,7 @@ class Dropout(Node):
         return shape_in
 
     def forward(self, X, use_dropout=True):
-        return Data(self._forward(X.get_data(), use_dropout=use_dropout), self.get_shape_out())
+        return X.next(self._forward(X.get_data(), use_dropout=use_dropout), self.get_shape_out())
 
     def _forward(self, X, use_dropout=True):
         if use_dropout:

@@ -20,10 +20,8 @@ class RecurrentNode(Node):
             if not N:
                 raise Exception('Must set batch size for input')
             else:
-                return [T.zeros((N, self.get_shape_out())),
-                        T.zeros((N, self.get_shape_out()))]
-        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
-                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
+                return [T.zeros((N, self.get_shape_out()))]
+        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
 
     def reset_states(self):
         if self.states is not None:

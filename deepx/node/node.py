@@ -204,7 +204,7 @@ class Node(object):
 
     def forward(self, X, **kwargs):
         if X.is_sequence():
-            return self.recurrent_forward(X, **kwargs)
+            return self.recurrent_forward(X)
         output = self._forward(X.get_data())
         return X.next(output, self.get_shape_out())
 

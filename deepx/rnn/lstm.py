@@ -66,6 +66,20 @@ class LSTM(RecurrentNode):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
+    def get_initial_states(self, X, shape_index=1):
+        if self.stateful:
+            N = self.get_batch_size()
+        else:
+            N = T.shape(X)[shape_index]
+        if self.stateful:
+            if not N:
+                raise Exception('Must set batch size for input')
+            else:
+                return [T.zeros((N, self.get_shape_out())),
+                        T.zeros((N, self.get_shape_out()))]
+        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
+                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
+
     def initialize(self):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
         self.create_lstm_parameters(shape_in, shape_out)
