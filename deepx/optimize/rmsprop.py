@@ -8,6 +8,11 @@ class RMSProp(Optimizer):
         self.average_rms = [T.variable(T.get_value(p) * 0) for p in self.parameters]
         self.parameter_update = [T.variable(T.get_value(p) * 0) for p in self.parameters]
 
+    def reset_parameters(self):
+        for param in [self.average_gradient, self.average_rms, self.parameter_update]:
+            for p in param:
+                T.set_value(p, T.get_value(p) * 0)
+
     def get_aux_inputs(self):
         return [T.placeholder(ndim=0, name='learning_rate')]
 

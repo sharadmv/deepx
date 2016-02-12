@@ -54,8 +54,12 @@ class Full(Node):
 
 class Softmax(Full):
 
+    def __init__(self, *args, **kwargs):
+        self.T = kwargs.pop('T', 1.0)
+        super(Softmax, self).__init__(*args, **kwargs)
+
     def activate(self, X):
-        return T.softmax(X)
+        return T.softmax(X, self.T)
 
 class Sigmoid(Full):
 

@@ -1,7 +1,11 @@
 import theano
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from theano.tensor.signal import pool
+try:
+    from theano.tensor.signal import pool
+except:
+    # backwards compatibility fix
+    from theano.tensor.signal import downsample as pool
 import numpy as np
 from .common import _FLOATX, _EPSILON
 
@@ -398,12 +402,21 @@ def gradients(loss, variables):
 
 # CONTROL FLOW
 
+def sample(p, seed=None):
+    if seed is None:
+        seed = np.random.randint(10e6)
+    rng = RandomStreams(seed=seed)
+    return rng.multinomial(n=1, pvals=p, dtype=theano.config.floatX)
+
 def scan(step_function, inputs):
     inputs = [
         dict(input=input) for input in inputs
     ]
     return theano.scan(step_function, sequences=inputs,
                        outputs_info=[None])[0]
+
+def generate(step_function, input, n_steps):
+    return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):
@@ -483,7 +496,10 @@ def relu(x, alpha=0., max_value=None):
     return x
 
 
-def softmax(x):
+def softmax(x, t=1.0):
+    if t != 1.0:
+        e_x = T.exp(x / t)
+        return e_x  / (e_x.sum(axis=-1).dimshuffle(0, 'x'))
     return T.nnet.softmax(x)
 
 

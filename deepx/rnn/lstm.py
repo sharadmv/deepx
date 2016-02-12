@@ -11,9 +11,9 @@ class LSTM(RecurrentNode):
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True,
-                 stateful=False):
+                 **kwargs):
 
-        super(LSTM, self).__init__()
+        super(LSTM, self).__init__(**kwargs)
         if shape_out is None:
             self.shape_in = None
             self.shape_out = shape_in
@@ -26,29 +26,6 @@ class LSTM(RecurrentNode):
         self.use_output_peep = use_output_peep
         self.use_forget_peep = use_forget_peep
         self.use_tanh_output = use_tanh_output
-
-        self.stateful = stateful
-        self.states = None
-
-    def get_initial_states(self, X):
-        # build an all-zero tensor of shape (samples, output_dim)
-        N = T.shape(X)[1]
-        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=1),
-                T.alloc(0, (N, self.get_shape_out()), unbroadcast=1)]
-
-    def reset_states(self):
-        assert self.stateful, 'Layer must be stateful.'
-        batch_size = self.batch_size
-        output_shape = self.get_shape_out()
-        if not batch_size:
-            raise Exception()
-        if self.states is not None:
-            for state in self.states:
-                T.set_value(state,
-                            np.zeros((batch_size, output_shape)))
-        else:
-            self.states = [T.zeros((batch_size, output_shape)),
-                           T.zeros((batch_size, output_shape))]
 
     def copy(self):
         return LSTM(self.get_shape_in(),
@@ -89,26 +66,44 @@ class LSTM(RecurrentNode):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
+    def get_initial_states(self, X, shape_index=1):
+        if self.stateful:
+            N = self.get_batch_size()
+        else:
+            N = T.shape(X)[shape_index]
+        if self.stateful:
+            if not N:
+                raise Exception('Must set batch size for input')
+            else:
+                return [T.zeros((N, self.get_shape_out())),
+                        T.zeros((N, self.get_shape_out()))]
+        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
+                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
+
     def initialize(self):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
         self.create_lstm_parameters(shape_in, shape_out)
 
+    def step(self, X, state):
+        out, state = self._step(X.get_data(), state)
+        return X.next(out, self.get_shape_out()), state
+
+    def _step(self, X, state):
+        previous_hidden, previous_state = state
+        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
+        return lstm_hidden, [lstm_hidden, state]
+
     def _forward(self, X):
         S, N, D = T.shape(X)
 
-        def step(input, previous):
-            previous_hidden, previous_state = previous
-            lstm_hidden, state = self.step(input, previous_hidden, previous_state)
-            return lstm_hidden, [lstm_hidden, state]
-
         if self.stateful:
             if self.states is None:
-                self.reset_states()
+                self.states = self.get_initial_states(None)
             hidden, state = self.states
         else:
             hidden, state = self.get_initial_states(X)
 
-        last_output, output, new_state = T.rnn(step,
+        _, output, new_state = T.rnn(self._step,
                               X,
                               [hidden, state])
         if self.stateful:
@@ -116,7 +111,7 @@ class LSTM(RecurrentNode):
                 self.add_update(state, ns)
         return output
 
-    def step(self, X, previous_hidden, previous_state):
+    def lstm_step(self, X, previous_hidden, previous_state):
         params = self.parameters
         Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
@@ -150,6 +145,3 @@ class LSTM(RecurrentNode):
         else:
             output = output_gate * state
         return output, state
-
-    def get_previous_zeros(self, N):
-        return T.alloc(0, (N, self.get_shape_out())), T.alloc(0, (N, self.get_shape_out()))

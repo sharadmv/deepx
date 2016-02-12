@@ -1,3 +1,4 @@
-from .node import Node, Data
-from .rnn import RecurrentNode
+from .node import Node
+from .data import Data
 from .exceptions import *
+from .rnn import *

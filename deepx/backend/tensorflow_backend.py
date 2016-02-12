@@ -365,6 +365,9 @@ def gradients(loss, variables):
 
 # CONTROL FLOW
 
+def sample(a, temperature=1.0):
+    raise NotImplementedError
+
 def scan(step_function, inputs):
     input_list = [tf.unpack(i) for i in inputs]
 
@@ -375,6 +378,13 @@ def scan(step_function, inputs):
 
     outputs = tf.pack(successive_outputs)
     return outputs
+
+def generate(step_function, inputs, n_steps):
+    outputs = []
+    for i in xrange(n_steps):
+        inputs = step_function(*inputs)
+        outputs.append(inputs)
+    return [tf.pack(a) for a in zip(*outputs)], []
 
 def rnn(step_function, inputs, initial_states,
         go_backwards=False, masking=False):
@@ -475,9 +485,10 @@ def relu(x, alpha=0., max_value=None):
     return x
 
 
-def softmax(x):
+def softmax(x, t=1.0):
+    if t != 1.0:
+        raise NotImplementedError
     return tf.nn.softmax(x)
-
 
 def softplus(x):
     return tf.nn.softplus(x)

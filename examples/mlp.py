@@ -32,7 +32,7 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Tanlu(100), 2) >> Softmax(10)
+    mlp = Vector(784) >> MLP(Tanlu(100), 2) >> Softmax(10, T=.1)
     rmsprop = RMSProp(mlp, CrossEntropy())
 
     def train(n_iter, lr):

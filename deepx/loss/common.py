@@ -15,4 +15,4 @@ class LogLoss(Loss):
 class MSE(Loss):
 
     def _loss(self, ypred, y):
-        return T.mean((ypred - y) ** 2)
+        return T.mean(T.pow((ypred - y), 2))

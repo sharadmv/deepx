@@ -21,12 +21,12 @@ def pack_tuple(data, shape):
     return pack(list(data), shape)
 
 def unpack_tuple(data):
-    if isinstance(data, tuple):
+    if isinstance(data, tuple) or isinstance(data, list):
         result  = ()
         shape = ()
         for da in data:
             d, s = unpack_tuple(da)
-            if isinstance(d, tuple):
+            if isinstance(d, tuple) or isinstance(d, list):
                 result += d
             elif d is not None:
                 result += (d,)
