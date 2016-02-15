@@ -24,6 +24,38 @@ class TestGraph(BaseTest):
 
         self.assertNotEqual(net1, net2)
 
+    def test_graph_parameters(self):
+        np.random.seed(0)
+        net1 = Vector(10) >> Full(10)
+
+        net2 = net1 >> Full(10)
+
+        self.assertEqual(net1.get_state(), net2.left.get_state())
+
+    def test_freeze_parameters(self):
+        np.random.seed(0)
+        net1 = Vector(10) >> Full(10)
+
+        self.assertEqual(net1.freeze().get_state(), net1.get_state())
+
+    def test_freeze_parameters2(self):
+        np.random.seed(0)
+        gan = (Vector(10) >> Full(20)) >> (Full(10) >> Full(2))
+
+        self.assertEqual(gan.left.freeze().get_state(), gan.left.get_state())
+        self.assertEqual(gan.right.freeze().get_state(), gan.right.get_state())
+
+        self.assertEqual(gan.right.freeze().get_parameters(), [])
+        self.assertNotEqual(gan.right.get_parameters(), [])
+
+        self.assertEqual((Vector(20) >> gan.right).freeze().get_parameters(), [])
+        self.assertNotEqual((Vector(20) >> gan.right).get_parameters(), [])
+
+        self.assertEqual((Vector(20) >> gan.right).freeze().get_state(), (Vector(20) >> gan.right).get_state())
+
+        self.assertEqual(gan.left.freeze().get_parameters(), [])
+        self.assertNotEqual(gan.left.get_parameters(), [])
+
     def test_shape_inference(self):
         part1 = Full(100)
         part2 = Full(20)

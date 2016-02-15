@@ -9,6 +9,8 @@ class Convolution(Node):
     def __init__(self, shape_in, kernel=None, border_mode="same"):
         super(Convolution, self).__init__()
 
+        self.shape_in, self.kernel = shape_in, kernel
+
         if kernel is None:
             self.shape_weights = shape_in
         else:
@@ -16,6 +18,12 @@ class Convolution(Node):
             self.shape_weights = kernel
 
         self.border_mode = border_mode
+
+    def copy(self, keep_parameters=False):
+        node = self.__class__(self.shape_in, kernel=self.kernel, border_mode=self.border_mode)
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
     def initialize(self):
         channels_out, kernel_height, kernel_width = self.shape_weights
@@ -62,6 +70,12 @@ class Pool(Node):
 
     def _forward(self, X):
         return T.pool2d(X, self.kernel, strides=(self.stride, self.stride))
+
+    def copy(self, keep_parameters=False):
+        node = self.__class__(kernel=self.kernel, stride=self.stride, pool_type=self.pool_type)
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
 def Conv(conv_kernel, pool_kernel=(2, 2), pool_stride=2, border_mode='same', pool_type='max', activation=Relu):
     return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> Pool(kernel=pool_kernel, stride=pool_stride)

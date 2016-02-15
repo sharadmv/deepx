@@ -17,7 +17,7 @@ class Lambda(Node):
     def _forward(self, X):
         return self.func(X)
 
-    def copy(self):
+    def copy(self, **kwargs):
         return Lambda(self.func, shape_func=self.shape_func)
 
 def Freeze(node):

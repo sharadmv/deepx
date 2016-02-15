@@ -16,8 +16,6 @@ class Full(Node):
             else:
                 self.shape_out = n_in
 
-        self.infer_shape()
-
     def initialize(self):
         if self._initialized:
             return
@@ -43,8 +41,11 @@ class Full(Node):
             return self.activate(X)
         return self.activate(T.dot(X, self.W) + self.b)
 
-    def copy(self):
-        return self.__class__(self.get_shape_in(), self.get_shape_out())
+    def copy(self, keep_parameters=False):
+        node = self.__class__(self.get_shape_in(), self.get_shape_out())
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
     def __str__(self):
         if self.is_elementwise():
@@ -85,8 +86,11 @@ class Elu(Full):
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
 
-    def copy(self):
-        return self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
+    def copy(self, keep_parameters=False):
+        node = self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
 class LeakyRelu(Full):
 
@@ -97,8 +101,11 @@ class LeakyRelu(Full):
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
 
-    def copy(self):
-        return self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
+    def copy(self, keep_parameters=False):
+        node = self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
 class Tanlu(Full):
 

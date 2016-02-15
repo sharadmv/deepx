@@ -20,5 +20,5 @@ class Dropout(Node):
         else:
             return X
 
-    def copy(self):
+    def copy(self, **kwargs):
         return Dropout(self.p)

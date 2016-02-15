@@ -55,7 +55,7 @@ class Data(Node):
         return Data(data, shape=shape, sequence=self.sequence, batch_size=self.batch_size,
                     sequence_length=self.sequence_length)
 
-    def copy(self):
+    def copy(self, **kwargs):
         return Data(self.data, shape=self.get_shape_out(), sequence=self.sequence, batch_size=self.batch_size,
                     sequence_length=self.sequence_length)
 

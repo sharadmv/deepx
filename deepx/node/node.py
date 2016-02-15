@@ -86,7 +86,7 @@ class Node(object):
             return []
         return list(self.parameters.values())
 
-    def copy(self):
+    def copy(self, **kwargs):
         raise NotImplementedError
 
     # Infix
@@ -153,12 +153,12 @@ class Node(object):
         return state
 
     def freeze(self):
-        node = self.copy()
+        node = self.copy(keep_parameters=True)
         node.frozen = True
         return node
 
     def unfreeze(self):
-        node = self.copy()
+        node = self.copy(keep_parameters=True)
         node.frozen = False
         return node
 
@@ -293,8 +293,8 @@ class CompositeNode(Node):
     def get_input(self):
         return self.left.get_input()
 
-    def copy(self, keep_parameters=False):
-        node = CompositeNode(self.left.copy(), self.right.copy())
+    def copy(self, **kwargs):
+        node = CompositeNode(self.left.copy(**kwargs), self.right.copy(**kwargs))
         node.infer_shape()
         return node
 

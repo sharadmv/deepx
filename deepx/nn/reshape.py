@@ -15,6 +15,12 @@ class Reshape(Node):
             self.shape_in = shape_in
             self.shape_out = shape_out
 
+    def copy(self, **kwargs):
+        if self.shape_in is None:
+            return Reshape(self.shape_out, shape_out=None)
+        else:
+            return Reshape(self.shape_in, self.shape_out)
+
     def _infer(self, shape_in):
         return self.shape_out
 
@@ -28,6 +34,9 @@ class Reshape(Node):
 
 class Flatten(Node):
 
+    def copy(self, **kwargs):
+        return Flatten()
+
     def _infer(self, shape_in):
         return np.product(shape_in)
 
@@ -35,4 +44,4 @@ class Flatten(Node):
         return T.flatten(X)
 
     def to_str(self):
-        return "Flatten(%s, %s)" % (self.shape_in, self.shape_out)
+        return "Flatten(%s, %s)" % (self.get_shape_in(), self.get_shape_out())
