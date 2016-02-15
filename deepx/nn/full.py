@@ -15,6 +15,7 @@ class Full(Node):
                 self.shape_out = n_out
             else:
                 self.shape_out = n_in
+        self.infer_shape()
 
     def initialize(self):
         if self._initialized:
