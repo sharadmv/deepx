@@ -210,7 +210,7 @@ class Node(object):
         return X.next(output, self.get_shape_out())
 
     def _forward(self, X):
-        raise NotImplementedError
+        raise NotImplementedError("_forward not implemented for %s" % str(self))
 
     def __eq__(self, node):
         if self.__class__ != node.__class__:
@@ -228,21 +228,18 @@ class CompositeNode(Node):
         self.left = left
         self.right = right
 
-    def _recurrent_forward(self, X, **kwargs):
-        left = self.left._recurrent_forward(X, **kwargs)
-        right = self.right._recurrent_forward(left, **kwargs)
+    def recurrent_forward(self, X, **kwargs):
+        left = self.left.recurrent_forward(X, **kwargs)
+        right = self.right.recurrent_forward(left, **kwargs)
         return right
 
-    def _forward(self, X, **kwargs):
-        return self.right._forward(self.left._forward(X, **kwargs), **kwargs)
+    def forward(self, X, **kwargs):
+        return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
-    # def forward(self, X, **kwargs):
-        # return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
-
-    def _step(self, X, state):
+    def step(self, X, state):
         left_state, right_state = state
-        left, left_state = self.left._step(X, left_state)
-        right, right_state = self.right._step(left, right_state)
+        left, left_state = self.left.step(X, left_state)
+        right, right_state = self.right.step(left, right_state)
         return right, (left_state, right_state)
 
     def infer_shape(self):
