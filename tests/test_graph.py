@@ -1,7 +1,7 @@
 import numpy as np
 from base import BaseTest
 
-from deepx.nn import Vector, Full
+from deepx.nn import Vector, Full, Freeze
 from deepx.node import ShapeException
 
 class TestGraph(BaseTest):
@@ -31,6 +31,11 @@ class TestGraph(BaseTest):
         net2 = net1 >> Full(10)
 
         self.assertEqual(net1.get_state(), net2.left.get_state())
+
+    def test_freeze(self):
+        net1 = Vector(10) >> Full(10)
+        self.assertEqual(Freeze(net1).get_state(), net1.get_state())
+        self.assertEqual(Freeze(net1).get_parameters(), [])
 
     def test_freeze_parameters(self):
         np.random.seed(0)
