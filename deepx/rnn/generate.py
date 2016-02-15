@@ -16,7 +16,7 @@ class Generate(Node):
 
         def step(input, softmax, *states):
             packed_state = pack_tuple(states, shape)
-            output_softmax, next_state = self.node._step(X, packed_state)
+            output_softmax, next_state = self.node._step(input, packed_state)
             output_sample = T.sample(output_softmax)
             states, _ = unpack_tuple(next_state)
             return [output_sample, output_softmax] + list(states)

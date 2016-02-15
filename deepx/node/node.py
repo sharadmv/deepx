@@ -197,10 +197,11 @@ class Node(object):
         pass
 
     def step(self, X, state):
-        return X.next(self._step(X.get_data(), state), self.get_shape_out()), None
+        out, state = self._step(X.get_data(), state)
+        return X.next(out, self.get_shape_out()), state
 
     def _step(self, X, _):
-        return self._forward(X)
+        return self._forward(X), None
 
     def forward(self, X, **kwargs):
         if X.is_sequence():
@@ -227,14 +228,16 @@ class CompositeNode(Node):
         self.left = left
         self.right = right
 
-    def recurrent_forward(self, X, output, **kwargs):
-        previous_left, previous_right = output
-        left, left_out = self.left.recurrent_forward(X, previous_left, **kwargs)
-        right, right_out = self.right.recurrent_forward(left, previous_right, **kwargs)
-        return right, (left_out, right_out)
+    def _recurrent_forward(self, X, **kwargs):
+        left = self.left._recurrent_forward(X, **kwargs)
+        right = self.right._recurrent_forward(left, **kwargs)
+        return right
 
-    def forward(self, X, **kwargs):
-        return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
+    def _forward(self, X, **kwargs):
+        return self.right._forward(self.left._forward(X, **kwargs), **kwargs)
+
+    # def forward(self, X, **kwargs):
+        # return self.right.forward(self.left.forward(X, **kwargs), **kwargs)
 
     def _step(self, X, state):
         left_state, right_state = state

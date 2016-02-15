@@ -1,7 +1,5 @@
-import numpy as np
 from .. import backend as T
 from .node import Node
-from ..util import pack_tuple, unpack_tuple
 
 class RecurrentNode(Node):
 
@@ -28,8 +26,8 @@ class RecurrentNode(Node):
             for state in self.states:
                 T.set_value(state, T.get_value(state) * 0)
 
-    def recurrent_forward(self, X, **kwargs):
-        return X.next(self._forward(X.get_data()), self.get_shape_out())
+    def _recurrent_forward(self, X, **kwargs):
+        return self._forward(X)
 
     def is_recurrent(self):
         return True
