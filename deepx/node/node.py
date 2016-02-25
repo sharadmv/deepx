@@ -6,25 +6,40 @@ from .exceptions import ShapeException
 
 class Node(object):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+
+        self.args = (args, kwargs)
+
         self.shape_in  = None
         self.shape_out = None
+        self.batch_size = None
 
         self.parameters = {}
         self.frozen = False
 
-        self._initialized = False
+        self.initialized = False
 
         self._predict = None
         self._predict_dropout = None
-        self.updates = []
-        self.batch_size = None
 
-        self.batch_size = None
+        self.updates = []
 
     @property
     def shape(self):
         return (self.get_shape_in(), self.get_shape_out())
+
+    def infer_shape(self):
+        shape_in = self.get_shape_in()
+        shape_out = None
+        if shape_in is not None:
+            shape_out = self._infer(shape_in)
+        self.set_shape_out(shape_out)
+        if not self.is_initialized() and self.can_initialize():
+            self.initialize()
+            self.initialized = True
+
+    def can_initialize(self):
+        raise NotImplementedError
 
     # Passing forward through network
 
@@ -51,14 +66,6 @@ class Node(object):
 
     # Node operations
 
-    def infer_shape(self):
-        shape_in = self.get_shape_in()
-        if shape_in is not None:
-            shape_out = self._infer(shape_in)
-            self.set_shape_out(shape_out)
-            self.initialize()
-            self._initialized = True
-
     def init_parameter(self, name, shape, value=None):
         if value:
             param = T.variable(np.zeros(shape)+value, name=name)
@@ -71,9 +78,7 @@ class Node(object):
     # Graph operations
 
     def chain(self, node):
-        composite = CompositeNode(self, node)
-        composite.infer_shape()
-        return composite
+        return CompositeNode(self, node)
 
     def get_parameter_value(self, name):
         return T.get_value(self.parameters[name])
@@ -86,21 +91,24 @@ class Node(object):
             return []
         return list(self.parameters.values())
 
-    def copy(self, **kwargs):
-        raise NotImplementedError
+    def copy(self, keep_parameters=False):
+        args, kwargs = self.args
+        node = self.__class__(*args, **kwargs)
+        node.set_shape_in(self.shape_in)
+        node.set_shape_out(self.shape_out)
+        node.set_initialized(self.is_initialized())
+        if keep_parameters:
+            node.parameters = self.parameters
+        return node
 
     # Infix
 
     def __getitem__(self, idx):
         index_node = IndexNode(self, idx)
-        index_node.infer_shape()
         return index_node
 
     def __rshift__(self, node):
         return self.chain(node)
-
-    def __call__(self, *args, **kwargs):
-        return self.unroll(*args, **kwargs)
 
     # Getters and setters
 
@@ -114,7 +122,10 @@ class Node(object):
         return False
 
     def is_initialized(self):
-        return not (None in self.shape)
+        return self.initialized
+
+    def set_initialized(self, initialized):
+        self.initialized = initialized
 
     def set_shape_in(self, shape_in):
         if self.shape_in is None:
@@ -123,6 +134,8 @@ class Node(object):
             raise ShapeException(self, shape_in)
 
     def set_shape_out(self, shape_out):
+        if shape_out is None:
+            return
         if self.shape_out is None:
             self.shape_out = shape_out
         if self.shape_out != shape_out:
@@ -146,7 +159,7 @@ class Node(object):
             T.set_value(self.parameters[name], val)
 
     def get_state(self):
-        assert self.is_initialized(), "Cannot get state of uninitialized node."
+        assert self.is_initialized(), "Cannot get state of uninitialized node %s." % self
         state = {}
         for name, val in self.parameters.items():
             state[name] = T.get_value(val).tolist()
@@ -221,12 +234,38 @@ class Node(object):
             return False
         return True
 
+class ShapedNode(Node):
+
+    def __init__(self, *args, **kwargs):
+        super(ShapedNode, self).__init__(*args, **kwargs)
+        assert len(args) <= 2
+        self._elementwise = False
+        if len(args) == 2:
+            shape_in, shape_out = args
+        elif len(args) == 1:
+            shape_in, shape_out = None, args[0]
+        else:
+            shape_in, shape_out = None, None
+            self._elementwise = True
+        self.set_shape_in(shape_in)
+        self.set_shape_out(shape_out)
+        if self.can_initialize():
+            self.initialize()
+            self.initialized = True
+
+    def can_initialize(self):
+        return (self.get_shape_in() is not None) and (self.get_shape_out() is not None)
+
 class CompositeNode(Node):
 
     def __init__(self, left, right):
         super(CompositeNode, self).__init__()
         self.left = left
         self.right = right
+        self.infer_shape()
+
+    def is_initialized(self):
+        return self.left.is_initialized() and self.right.is_initialized()
 
     def recurrent_forward(self, X, **kwargs):
         left = self.left.recurrent_forward(X, **kwargs)
@@ -243,7 +282,6 @@ class CompositeNode(Node):
         return right, (left_state, right_state)
 
     def infer_shape(self):
-        self.set_batch_size(self.left.get_batch_size())
         self.left.infer_shape()
         if self.left.get_shape_out() is not None:
             self.right.set_shape_in(self.left.get_shape_out())
@@ -265,13 +303,6 @@ class CompositeNode(Node):
     def get_state(self):
         return (self.left.get_state(),
                 self.right.get_state())
-
-    def get_batch_size(self):
-        return self.left.get_batch_size()
-
-    def set_batch_size(self, batch_size):
-        self.left.set_batch_size(batch_size)
-        self.right.set_batch_size(batch_size)
 
     def reset_states(self):
         self.left.reset_states()

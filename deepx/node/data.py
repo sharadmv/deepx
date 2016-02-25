@@ -18,8 +18,11 @@ class Data(Node):
     def _infer(self, shape_in):
         return self.get_shape_out()
 
-    # def forward(self, X, **kwargs):
-        # return X
+    def can_initialize(self):
+        return True
+
+    def initialize(self):
+        return
 
     def _forward(self, X, **kwargs):
         return X

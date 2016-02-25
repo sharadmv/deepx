@@ -1,4 +1,4 @@
-from .node import Node
-from .data import Data
+from .node import *
+from .data import *
 from .exceptions import *
 from .rnn import *

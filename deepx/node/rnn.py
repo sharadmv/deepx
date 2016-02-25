@@ -1,12 +1,12 @@
 from .. import backend as T
-from .node import Node
+from .node import ShapedNode
 
-class RecurrentNode(Node):
+class RecurrentNode(ShapedNode):
 
-    def __init__(self, stateful=False):
-        super(RecurrentNode, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(RecurrentNode, self).__init__(*args, **kwargs)
 
-        self.stateful = stateful
+        self.stateful = kwargs.get('stateful', False)
         self.states = None
 
     def get_initial_states(self, X, shape_index=1):

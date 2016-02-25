@@ -5,23 +5,16 @@ def shape_identity(shape_in):
 
 class Lambda(Node):
 
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func, shape_func=shape_identity):
+        super(Lambda, self).__init__(func, shape_func=shape_func)
         self.func = func
-        self.shape_func = kwargs.pop('shape_func', shape_identity)
+        self.shape_func = shape_func
 
-        super(Lambda, self).__init__(*args, **kwargs)
+    def can_initialize(self):
+        return True
 
     def _infer(self, shape_in):
         return self.shape_func(shape_in)
 
     def _forward(self, X):
         return self.func(X)
-
-    def copy(self, **kwargs):
-        return Lambda(self.func, shape_func=self.shape_func)
-
-def Freeze(node):
-    return node.freeze()
-
-def Unfreeze(node):
-    return node.unfreeze()

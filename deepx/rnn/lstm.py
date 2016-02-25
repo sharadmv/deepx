@@ -5,41 +5,16 @@ from ..node import RecurrentNode, Data
 
 class LSTM(RecurrentNode):
 
-    def __init__(self, shape_in, shape_out=None,
-                 use_forget_gate=True,
-                 use_input_peep=False,
-                 use_output_peep=False,
-                 use_forget_peep=False,
-                 use_tanh_output=True,
-                 **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        super(LSTM, self).__init__(**kwargs)
-        if shape_out is None:
-            self.shape_in = None
-            self.shape_out = shape_in
-        else:
-            self.shape_in = shape_in
-            self.shape_out = shape_out
+        self.use_forget_gate = kwargs.get('use_forget_gate', True)
+        self.use_input_peep = kwargs.get('use_input_peep', False)
+        self.use_output_peep = kwargs.get('use_output_peep', False)
+        self.use_forget_peep = kwargs.get('use_forget_peep', False)
+        self.use_tanh_output = kwargs.get('use_tanh_output', True)
 
-        self.use_forget_gate = use_forget_gate
-        self.use_input_peep = use_input_peep
-        self.use_output_peep = use_output_peep
-        self.use_forget_peep = use_forget_peep
-        self.use_tanh_output = use_tanh_output
+        super(LSTM, self).__init__(*args, **kwargs)
 
-    def copy(self, keep_parameters=False):
-        node = LSTM(self.get_shape_in(),
-                    self.get_shape_out(),
-                    use_forget_gate=self.use_forget_gate,
-                    use_input_peep=self.use_input_peep,
-                    use_output_peep=self.use_output_peep,
-                    use_forget_peep=self.use_forget_peep,
-                    use_tanh_output=self.use_tanh_output,
-                    stateful=self.stateful
-                    )
-        if keep_parameters:
-            node.parameters = self.parameters
-        return node
 
     def _infer(self, shape_in):
         return self.shape_out

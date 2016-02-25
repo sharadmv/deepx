@@ -12,3 +12,9 @@ def Last(node):
 
 def First(node):
     return node[0]
+
+def Freeze(node):
+    return node.freeze()
+
+def Unfreeze(node):
+    return node.unfreeze()

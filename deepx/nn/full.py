@@ -1,25 +1,10 @@
 from .. import backend as T
 
-from ..node import Node
+from ..node import ShapedNode
 
-class Full(Node):
-    def __init__(self, n_in=None, n_out=None):
-        super(Full, self).__init__()
-
-        self._elementwise = False
-        if n_in is None and n_out is None:
-            self._elementwise = True
-        else:
-            if n_out is not None:
-                self.shape_in = n_in
-                self.shape_out = n_out
-            else:
-                self.shape_out = n_in
-        self.infer_shape()
+class Full(ShapedNode):
 
     def initialize(self):
-        if self._initialized:
-            return
         if not self.is_elementwise():
             self.W = self.init_parameter('W', (self.shape_in, self.shape_out))
             self.b = self.init_parameter('b', self.shape_out)
@@ -41,12 +26,6 @@ class Full(Node):
         if self.is_elementwise():
             return self.activate(X)
         return self.activate(T.dot(X, self.W) + self.b)
-
-    def copy(self, keep_parameters=False):
-        node = self.__class__(self.get_shape_in(), self.get_shape_out())
-        if keep_parameters:
-            node.parameters = self.parameters
-        return node
 
     def __str__(self):
         if self.is_elementwise():
@@ -87,12 +66,6 @@ class Elu(Full):
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
 
-    def copy(self, keep_parameters=False):
-        node = self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
-        if keep_parameters:
-            node.parameters = self.parameters
-        return node
-
 class LeakyRelu(Full):
 
     def __init__(self, *args, **kwargs):
@@ -102,16 +75,10 @@ class LeakyRelu(Full):
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
 
-    def copy(self, keep_parameters=False):
-        node = self.__class__(self.get_shape_in(), self.get_shape_out(), alpha=self.alpha)
-        if keep_parameters:
-            node.parameters = self.parameters
-        return node
-
 class Tanlu(Full):
 
-    def __init__(self, *args, **kwargs):
-        super(Tanlu, self).__init__(*args, **kwargs)
+    def initialize(self):
+        super(Tanlu, self).initialize()
         self.alpha = self.init_parameter('alpha', self.get_shape_out(), value=0.5)
 
     def activate(self, X):
