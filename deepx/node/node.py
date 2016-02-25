@@ -96,6 +96,7 @@ class Node(object):
         node = self.__class__(*args, **kwargs)
         node.set_shape_in(self.shape_in)
         node.set_shape_out(self.shape_out)
+        node.infer_shape()
         node.set_initialized(self.is_initialized())
         if keep_parameters:
             node.parameters = self.parameters
@@ -283,9 +284,9 @@ class CompositeNode(Node):
 
     def infer_shape(self):
         self.left.infer_shape()
+        self.set_batch_size(self.get_batch_size())
         if self.left.get_shape_out() is not None:
             self.right.set_shape_in(self.left.get_shape_out())
-            self.right.set_batch_size(self.left.get_batch_size())
         self.right.infer_shape()
 
     def set_shape_in(self, shape_in):
@@ -299,6 +300,13 @@ class CompositeNode(Node):
 
     def get_shape_out(self):
         return self.right.get_shape_out()
+
+    def set_batch_size(self, batch_size):
+        self.left.set_batch_size(batch_size)
+        self.right.set_batch_size(batch_size)
+
+    def get_batch_size(self):
+        return self.left.get_batch_size()
 
     def get_state(self):
         return (self.left.get_state(),

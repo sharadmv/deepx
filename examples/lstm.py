@@ -7,5 +7,3 @@ from deepx.optimize import *
 
 if __name__ == "__main__":
     lstm = Sequence(Vector(1, 10), 10) >> Repeat(LSTM(1, stateful=True) >> Dropout(0.1), 2) >> Softmax(10)
-
-    rmsprop = RMSProp(lstm, CrossEntropy())

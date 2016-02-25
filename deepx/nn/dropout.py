@@ -8,6 +8,9 @@ class Dropout(Node):
         self.p = p
         assert 0 <= p < 1, 'Invalid dropout value'
 
+    def can_initialize(self):
+        return True
+
     def _infer(self, shape_in):
         return shape_in
 

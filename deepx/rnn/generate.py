@@ -28,6 +28,9 @@ class Generate(Node):
         out.sequence_length = self.length
         return out
 
+    def can_initialize(self):
+        return True
+
     def infer_shape(self):
         self.node.infer_shape()
 
