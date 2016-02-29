@@ -176,6 +176,11 @@ class Node(object):
         node.frozen = False
         return node
 
+    def tie(self, node):
+        new_node = self.copy(keep_parameters=True)
+        new_node.parameters = node.parameters
+        return new_node
+
     def initialize(self):
         # No parameters for default node
         return
@@ -343,6 +348,12 @@ class CompositeNode(Node):
         node = CompositeNode(self.left.copy(**kwargs), self.right.copy(**kwargs))
         node.infer_shape()
         return node
+
+    def tie(self, node):
+        new_node = CompositeNode(self.left.tie(node.left), self.right.tie(node.right))
+        new_node.infer_shape()
+        return new_node
+
 
     def get_initial_states(self, X, shape_index=1):
         return (self.left.get_initial_states(X, shape_index=shape_index),
