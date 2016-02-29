@@ -71,7 +71,7 @@ class Node(object):
             param = T.variable(np.zeros(shape)+value, name=name)
             self.parameters[name] = param
         else:
-            param = T.variable(np.random.normal(size=shape) * 0.01, name=name)
+            param = T.variable(np.random.normal(size=shape) * 0.1, name=name)
             self.parameters[name] = param
         return param
 
