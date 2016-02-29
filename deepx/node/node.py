@@ -210,6 +210,9 @@ class Node(object):
     def reset_states(self):
         pass
 
+    def reset_state(self, i):
+        pass
+
     def step(self, X, state):
         out, state = self._step(X.get_data(), state)
         return X.next(out, self.get_shape_out()), state
@@ -315,6 +318,10 @@ class CompositeNode(Node):
     def reset_states(self):
         self.left.reset_states()
         self.right.reset_states()
+
+    def reset_state(self, i):
+        self.left.reset_state(i)
+        self.right.reset_state(i)
 
     def set_state(self, state):
         left_state, right_state = state
