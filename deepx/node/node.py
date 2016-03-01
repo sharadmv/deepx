@@ -178,7 +178,8 @@ class Node(object):
 
     def tie(self, node):
         new_node = self.copy(keep_parameters=True)
-        new_node.parameters = node.parameters
+        for key, val in node.parameters.items():
+            new_node.parameters[key] = val
         return new_node
 
     def initialize(self):
