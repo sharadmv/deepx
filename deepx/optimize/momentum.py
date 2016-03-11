@@ -1,20 +1,20 @@
-import theano
-import theano.tensor as T
-from optimizer import Optimizer
+from .. import backend as T
+from .optimizer import Optimizer
 
-class Momentum(Optimizer):
+class momentum(Optimizer):
 
-    def __init__(self, parameter_model):
-        self.caches = [theano.shared(p.get_value() * 0) for p in parameter_model.get_parameters()]
+    def initialize(self):
+        self.caches = [T.variable(T.get_value(p) * 0) for p in self.parameters]
 
-        super(Momentum, self).__init__(parameter_model, optimize_args=[
-            T.fscalar('rho'),
-            T.fscalar('eta'),
-        ])
+    def get_aux_inputs(self):
+        return [
+            T.placeholder(ndim=0, name='rho'),
+            T.placeholder(ndim=0, name='eta')
+        ]
 
-    def updates(self, rho, eta, *args):
+    def updates(self, rho, eta):
         updates = []
-        for p, c, g in zip(self.get_parameters(), self.caches, self.grads):
+        for p, c, g in zip(self.parameters, self.caches, self.grads):
             delta = rho * g + (1 - rho) * c
             updates.append((c, delta))
             updates.append((p, p - eta * delta))

@@ -1,19 +1,18 @@
 from __future__ import print_function
 
-from tqdm import tqdm
-import logging
-logging.basicConfig(level=logging.INFO)
+import numpy as np
+from sklearn.datasets import fetch_mldata
+
 from deepx.nn import *
-from deepx.rnn import *
 from deepx.loss import *
 from deepx.optimize import *
-from sklearn.datasets import fetch_mldata
 
 if __name__ == "__main__":
     mnist = fetch_mldata("MNIST original")
 
     X = mnist['data']
     N = X.shape[0]
+    X = X.reshape((N, 1, 28, 28))
     labels = mnist['target']
 
     np.random.seed(0)
@@ -32,14 +31,15 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10, T=.1)
-    rmsprop = RMSProp(mlp, CrossEntropy())
+    conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2), activation=Elu) >> Conv((20, 2, 2)) >> Flatten() >> Softmax(10)
+
+    rmsprop = RMSProp(conv_net, CrossEntropy())
 
     def train(n_iter, lr):
-        for i in tqdm(range(n_iter)):
+        for i in range(n_iter):
             u = np.random.choice(np.arange(split))
             loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print("Loss:", loss)
 
-        preds = mlp.predict(Xtest).argmax(axis=1)
+        preds = conv_net.predict(Xtest).argmax(axis=1)
         print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))

@@ -1,59 +1,54 @@
-import numpy as np
-import theano.tensor as T
+from .. import backend as T
 
-from theanify import theanify, Theanifiable
+class Optimizer(object):
 
-class Optimizable(Theanifiable):
+    def __init__(self, model, loss, clip_gradients=None):
+        self.model = model
+        self.loss = loss
 
-    def __init__(self):
-        super(Optimizable, self).__init__()
+        self.parameters = self.model.get_parameters()
+        self.initialize()
 
-    def cost(self, *args, **kwargs):
+        aux_inputs = self.get_aux_inputs()
+        inputs = self.model.get_formatted_input()
+        ypred = self.model.get_activation(use_dropout=True)
+        y = T.placeholder(shape=ypred.get_data())
+
+        opt_inputs = inputs + [y]
+        opt_output = self.loss.loss(ypred, y)
+
+        self.grads = T.gradients(opt_output, self.parameters)
+        if clip_gradients is not None:
+            c = abs(clip_gradients)
+            self.grads = [T.clip(g, -c, c) for g in self.grads]
+        updates = self.updates(*aux_inputs) + self.model.get_updates()
+        self.train = T.function(opt_inputs + aux_inputs, [opt_output], updates=updates)
+        self.opt_inputs = opt_inputs
+        self._gradient = None
+
+    def gradient(self, *args):
+        if self._gradient is None:
+            self._gradient = T.function(self.opt_inputs, self.grads, updates=self.model.get_updates())
+        return self._gradient(*args)
+
+    def reset_parameters(self):
+        pass
+
+    def initialize(self):
+        pass
+
+    def init_parameter(self, value):
+        param = T.variable(value)
+        return param
+
+    def get_inputs(self):
+        return self.loss.inputs + self.aux_inputs
+
+    def get_aux_inputs(self):
         raise NotImplementedError
 
+    def get_updates(self):
+        return self.updates(*self.aux_inputs)
 
-class Optimizer(Theanifiable):
-
-    def __init__(self, optimizable, optimize_args=[], clip=5):
-        super(Optimizer, self).__init__()
-        self.model = optimizable
-        self.cost_function = self.model.cost
-        self.cost_updates = []
-
-        if not hasattr(self.cost_function, 'args'):
-            raise Exception('Please annotate cost with @theanify')
-
-        self.cost_args = self.model.cost.args
-        self.optimize_args = optimize_args
-
-        self.cost_result = self.model.cost(*self.cost_args)
-        if self.cost_function.returns_updates:
-            self.cost, cost_updates = self.cost_result
-            self.cost_updates.extend(cost_updates)
-        else:
-            self.cost = self.cost_result
-
-        self.rest = ()
-        if isinstance(self.cost, tuple):
-            self.rest = self.cost[1:]
-            self.cost = self.cost[0]
-        self.grads = T.grad(self.cost, self.get_parameters())
-
-        self.compile_method('optimize', args=self.optimize_args + list(self.cost_args))
-
-    def get_initial_state(self, batch_size):
-        return np.zeros((batch_size, self.model.n_layers, self.model.n_hidden))
-
-    def train(self, *args):
-        cost_args = args[:len(self.cost_args)]
-        training_args = args[len(self.cost_args):]
-        return self.optimize(*(training_args + cost_args))
-
-    @theanify(updates="updates", returns_updates=True)
-    def optimize(self, *args):
-        if len(self.rest):
-            return (self.cost,) + self.rest, self.cost_updates
-        return self.cost, self.cost_updates
-
-    def get_parameters(self):
-        return self.model.get_parameters()
+    def get_result(self):
+        return self.model.get_mixin('loss').result
