@@ -20,7 +20,8 @@ class Optimizer(object):
         self.grads = T.gradients(opt_output, self.parameters)
         if clip_gradients is not None:
             c = abs(clip_gradients)
-            self.grads = [T.clip(g, -c, c) for g in self.grads]
+            self.grads = [self.scale(g, c) for g in self.grads]
+
         updates = self.updates(*aux_inputs) + self.model.get_updates()
         self.train = T.function(opt_inputs + aux_inputs, [opt_output], updates=updates)
         self.opt_inputs = opt_inputs
@@ -30,6 +31,13 @@ class Optimizer(object):
         if self._gradient is None:
             self._gradient = T.function(self.opt_inputs, self.grads)
         return self._gradient(*args)
+
+    def clip(self, X, epsilon):
+        return T.maximum(T.minimum(X, epsilon), -1*epsilon)
+
+    def scale(self, X, max_norm):
+        curr_norm = T.sum(T.abs(X))
+        return T.ifelse(T.lt(curr_norm, max_norm), X, max_norm * (X/curr_norm))
 
     def reset_parameters(self):
         pass

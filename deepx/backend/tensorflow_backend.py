@@ -231,6 +231,27 @@ def minimum(x, y):
     return tf.minimum(x, y)
 
 
+# COMPARISONS
+
+def lt(x, y):
+    return tf.less(x, y)
+
+def gt(x, y):
+    return tf.greater(x, y)
+
+def le(x, y):
+    return tf.less_equal(x, y)
+
+def ge(x, y):
+    return tf.greater_equal(x, y)
+
+def eq(x, y):
+    return tf.equal(x, y)
+
+def neq(x, y):
+    return tf.not_equal(x, y)
+
+
 # SHAPE OPERATIONS
 
 def concatenate(tensors, axis=-1):
@@ -364,6 +385,9 @@ def gradients(loss, variables):
     return tf.gradients(loss, variables)
 
 # CONTROL FLOW
+
+def ifelse(condition, then_branch, else_branch):
+    raise NotImplementedError
 
 def sample(a, temperature=1.0):
     raise NotImplementedError
