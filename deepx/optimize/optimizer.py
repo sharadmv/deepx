@@ -33,11 +33,11 @@ class Optimizer(object):
         return self._gradient(*args)
 
     def clip(self, X, epsilon):
-        return T.maximum(T.minimum(X, epsilon), -1*epsilon)
+        return T.maximum(T.minimum(X, epsilon), -epsilon)
 
     def scale(self, X, max_norm):
         curr_norm = T.sum(T.abs(X))
-        return T.ifelse(T.lt(curr_norm, max_norm), X, max_norm * (X/curr_norm))
+        return T.ifelse(T.lt(curr_norm, max_norm), X, max_norm * (X / curr_norm))
 
     def reset_parameters(self):
         pass
