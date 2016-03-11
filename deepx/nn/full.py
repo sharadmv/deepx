@@ -6,8 +6,8 @@ class Full(ShapedNode):
 
     def initialize(self):
         if not self.is_elementwise():
-            self.W = self.init_parameter('W', (self.shape_in, self.shape_out))
-            self.b = self.init_parameter('b', self.shape_out)
+            self.init_parameter('W', (self.shape_in, self.shape_out))
+            self.init_parameter('b', self.shape_out)
 
     def is_elementwise(self):
         return self._elementwise
@@ -25,7 +25,8 @@ class Full(ShapedNode):
     def _forward(self, X):
         if self.is_elementwise():
             return self.activate(X)
-        return self.activate(T.dot(X, self.W) + self.b)
+        W, b = self.parameters['W'], self.parameters['b']
+        return self.activate(T.dot(X, W) + b)
 
     def __str__(self):
         if self.is_elementwise():
@@ -79,8 +80,9 @@ class Tanlu(Full):
 
     def initialize(self):
         super(Tanlu, self).initialize()
-        self.alpha = self.init_parameter('alpha', self.get_shape_out(), value=0.5)
+        self.init_parameter('alpha', self.get_shape_out(), value=0.5)
 
     def activate(self, X):
-        constrained_alpha = T.clip(self.alpha, 0, 1)
+        alpha = self.parameters['alpha']
+        constrained_alpha = T.clip(alpha, 0, 1)
         return constrained_alpha * T.tanh(X) + (1 - constrained_alpha) * T.relu(X)

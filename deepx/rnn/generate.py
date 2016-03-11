@@ -14,15 +14,15 @@ class Generate(Node):
         states = self.node.get_initial_states(X.get_data(), shape_index=0)
         states, shape = unpack_tuple(states)
 
-        def step(input, softmax, *states):
+        def step(input, *states):
             packed_state = pack_tuple(states, shape)
-            output_softmax, next_state = self.node.step(X, packed_state)
+            output_softmax, next_state = self.node.step(X.next(input), packed_state)
             output_softmax = output_softmax.get_data()
             output_sample = T.sample(output_softmax)
             states, _ = unpack_tuple(next_state)
-            return [output_sample, output_softmax] + list(states)
+            return [output_sample] + list(states)
 
-        output, self.updates = T.generate(step, [X.get_data(), X.get_data()] + list(states), self.length)
+        output, self.updates = T.generate(step, [X.get_data()] + list(states), self.length)
         out = X.next(output[0], self.get_shape_out())
         out.sequence = True
         out.sequence_length = self.length
@@ -42,6 +42,9 @@ class Generate(Node):
 
     def get_shape_out(self):
         return self.node.get_shape_out()
+
+    def tie(self, node):
+        return Generate(self.node.tie(node), length=self.length)
 
     def get_state(self):
         return self.node.get_state()

@@ -26,6 +26,10 @@ class RecurrentNode(ShapedNode):
             for state in self.states:
                 T.set_value(state, T.get_value(state) * 0)
 
+    def reset_state(self, i):
+        if self.states is not None:
+            T.set_value(self.states[i], T.get_value(self.states[i]) * 0)
+
     def _recurrent_forward(self, X, **kwargs):
         return self._forward(X)
 

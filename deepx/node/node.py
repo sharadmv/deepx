@@ -71,7 +71,7 @@ class Node(object):
             param = T.variable(np.zeros(shape)+value, name=name)
             self.parameters[name] = param
         else:
-            param = T.variable(np.random.normal(size=shape) * 0.01, name=name)
+            param = T.variable(np.random.normal(size=shape) * 0.1, name=name)
             self.parameters[name] = param
         return param
 
@@ -176,6 +176,12 @@ class Node(object):
         node.frozen = False
         return node
 
+    def tie(self, node):
+        new_node = self.copy(keep_parameters=True)
+        for key, val in node.parameters.items():
+            new_node.parameters[key] = val
+        return new_node
+
     def initialize(self):
         # No parameters for default node
         return
@@ -208,6 +214,9 @@ class Node(object):
         return None
 
     def reset_states(self):
+        pass
+
+    def reset_state(self, i):
         pass
 
     def step(self, X, state):
@@ -316,6 +325,10 @@ class CompositeNode(Node):
         self.left.reset_states()
         self.right.reset_states()
 
+    def reset_state(self, i):
+        self.left.reset_state(i)
+        self.right.reset_state(i)
+
     def set_state(self, state):
         left_state, right_state = state
         self.left.set_state(left_state)
@@ -336,6 +349,12 @@ class CompositeNode(Node):
         node = CompositeNode(self.left.copy(**kwargs), self.right.copy(**kwargs))
         node.infer_shape()
         return node
+
+    def tie(self, node):
+        new_node = CompositeNode(self.left.tie(node.left), self.right.tie(node.right))
+        new_node.infer_shape()
+        return new_node
+
 
     def get_initial_states(self, X, shape_index=1):
         return (self.left.get_initial_states(X, shape_index=shape_index),
