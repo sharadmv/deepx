@@ -1,4 +1,5 @@
 import theano
+from theano.ifelse import ifelse as theanoifelse
 from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 try:
@@ -245,6 +246,27 @@ def minimum(x, y):
     return T.minimum(x, y)
 
 
+# COMPARISONS
+
+def lt(x, y):
+    return T.lt(x, y)
+
+def gt(x, y):
+    return T.gt(x, y)
+
+def le(x, y):
+    return T.le(x, y)
+
+def ge(x, y):
+    return T.ge(x, y)
+
+def eq(x, y):
+    return T.eq(x, y)
+
+def neq(x, y):
+    return T.neq(x, y)
+
+
 # SHAPE OPERATIONS
 
 def concatenate(tensors, axis=-1):
@@ -403,6 +425,9 @@ def gradients(loss, variables):
 
 
 # CONTROL FLOW
+
+def ifelse(condition, then_branch, else_branch):
+    return theanoifelse(condition, then_branch, else_branch)
 
 def sample(p, seed=None):
     if seed is None:
