@@ -11,11 +11,12 @@ class Convolution(Node):
 
         self.kernel = kernel
         self.border_mode = border_mode
-        self.initialize()
-        self.initialized = True
+        self.channels_in = None
+        # self.initialize()
+        # self.initialized = True
 
     def can_initialize(self):
-        return True
+        return self.channels_in is not None
 
     def initialize(self):
         channels_out, kernel_height, kernel_width = self.kernel

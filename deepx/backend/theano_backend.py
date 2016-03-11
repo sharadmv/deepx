@@ -3,9 +3,11 @@ from theano import tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 try:
     from theano.tensor.signal import pool
+    OLD_THEANO = False
 except:
     # backwards compatibility fix
     from theano.tensor.signal import downsample as pool
+    OLD_THEANO = True
 import numpy as np
 from .common import _FLOATX, _EPSILON
 
@@ -633,19 +635,27 @@ def pool2d(x, pool_size, strides=(1, 1), border_mode='valid',
     if dim_ordering == 'tf':
         x = x.dimshuffle((0, 3, 1, 2))
 
-    if pool_mode == 'max':
-        pool_out = pool.max_pool_2d(x, ds=pool_size,
-                                          ignore_border=ignore_border,
-                                          padding=padding,
-                                          )
-    #elif pool_mode == 'avg':
-        #pool_out = downsample.max_pool_2d(x, ds=pool_size, st=strides,
-                                          #ignore_border=ignore_border,
-                                          #padding=padding,
-                                          #mode='average_exc_pad')
-    else:
-        raise Exception('Invalid pooling mode: ' + str(pool_mode))
+    if not OLD_THEANO:
+        pool_out = pool.pool_2d(x, ds=pool_size,
+                                ignore_border=ignore_border,
+                                padding=padding,
+                                mode=pool_mode
+                                )
 
+    else:
+        if pool_mode == 'max':
+            pool_out = pool.max_pool_2d(x, ds=pool_size,
+                                            ignore_border=ignore_border,
+                                            padding=padding,
+                                            )
+        elif pool_mode == 'avg':
+            pool_out = pool.max_pool_2d(x, ds=pool_size,
+                                            ignore_border=ignore_border,
+                                            padding=padding,
+                                            mode='average_exc_pad',
+                                            )
+        else:
+            raise Exception('Invalid pooling mode: ' + str(pool_mode))
     if dim_ordering == 'tf':
         pool_out = pool_out.dimshuffle((0, 2, 3, 1))
     return pool_out
