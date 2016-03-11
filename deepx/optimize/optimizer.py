@@ -28,7 +28,7 @@ class Optimizer(object):
 
     def gradient(self, *args):
         if self._gradient is None:
-            self._gradient = T.function(self.opt_inputs, self.grads, updates=self.model.get_updates())
+            self._gradient = T.function(self.opt_inputs, self.grads)
         return self._gradient(*args)
 
     def reset_parameters(self):
