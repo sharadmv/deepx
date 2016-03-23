@@ -32,11 +32,12 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10, T=.1)
-    rmsprop = RMSProp(mlp, CrossEntropy())
+    mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10)
+    loss = CrossEntropy(mlp) / 2 + 100
+    rmsprop = RMSProp(loss)
 
     def train(n_iter, lr):
-        for i in tqdm(range(n_iter)):
+        for i in range(n_iter):
             u = np.random.choice(np.arange(split))
             loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print("Loss:", loss)
