@@ -32,7 +32,7 @@ class Optimizer(object):
 
     def batch_loss(self, *args):
         if self._loss is None:
-            self._loss = T.function(self.opt_inputs, [self.opt_output])
+            self._loss = T.function(self.opt_inputs, [self.opt_output], updates=self.loss.get_updates())
         return self._loss(*args)
 
     def train(self, *args):

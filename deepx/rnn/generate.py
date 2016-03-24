@@ -16,7 +16,7 @@ class Generate(Node):
 
     def forward(self, X, **kwargs):
         output = self.generate(X, **kwargs)
-        out = X.next(output[1], self.get_shape_out())
+        out = X.next(output[0], self.get_shape_out())
         out.sequence = True
         out.sequence_length = self.length
         return out
@@ -36,16 +36,16 @@ class Generate(Node):
         states = self.node.get_initial_states(X.get_data(), shape_index=0)
         states, shape = unpack_tuple(states)
 
-        def step(input, _, *states):
+        def step(input, *states):
             packed_state = pack_tuple(states, shape)
             output_softmax, next_state = self.node.step(X.next(input), packed_state)
             output_softmax = output_softmax.get_data()
             output_sample = T.sample(output_softmax)
             output_softmax = self.sharpen(output_softmax, output_sample)
             states, _ = unpack_tuple(next_state)
-            return [output_sample, output_softmax] + list(states)
+            return [output_softmax] + list(states)
 
-        output, updates = T.generate(step, [X.get_data(), X.get_data()] + list(states), self.length)
+        output, updates = T.generate(step, [X.get_data()] + list(states), self.length)
         if self.updates is None:
             self.updates = updates
         return output

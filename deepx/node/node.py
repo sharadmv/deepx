@@ -23,6 +23,7 @@ class Node(object):
         self._predict_dropout = None
 
         self.updates = []
+        self._activation = {}
 
     @property
     def shape(self):
@@ -68,7 +69,9 @@ class Node(object):
         return [i.get_data() for i in input]
 
     def get_activation(self, use_dropout=True):
-        return self.forward(self.get_input(), use_dropout=use_dropout)
+        if use_dropout not in self._activation:
+            self._activation[use_dropout] = self.forward(self.get_input(), use_dropout=use_dropout)
+        return self._activation[use_dropout]
 
     # Node operations
 
