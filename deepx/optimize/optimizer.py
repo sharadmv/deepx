@@ -3,14 +3,13 @@ from .. import backend as T
 class Optimizer(object):
 
     def __init__(self, loss, clip_gradients=None):
-        self.model = loss.get_model()
         self.loss = loss
 
-        self.parameters = self.model.get_parameters()
+        self.parameters = self.loss.get_parameters()
         self.initialize()
 
         aux_inputs = self.get_aux_inputs()
-        opt_inputs = self.loss.get_inputs()
+        opt_inputs = self.loss.get_final_input()
         opt_output = self.loss.get_loss()
 
         self.grads = T.gradients(opt_output, self.parameters)
@@ -18,7 +17,7 @@ class Optimizer(object):
             c = abs(clip_gradients)
             self.grads = [self.scale(g, c) for g in self.grads]
 
-        updates = self.updates(*aux_inputs) + self.model.get_updates()
+        updates = self.updates(*aux_inputs) + self.loss.get_updates()
         self.train = T.function(opt_inputs + aux_inputs, [opt_output], updates=updates)
         self.opt_inputs = opt_inputs
         self._gradient = None
@@ -54,5 +53,3 @@ class Optimizer(object):
     def get_updates(self):
         return self.updates(*self.aux_inputs)
 
-    def get_result(self):
-        return self.model.get_mixin('loss').result

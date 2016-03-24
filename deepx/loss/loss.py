@@ -4,25 +4,34 @@ class Loss(object):
 
     def __init__(self, model):
         self.model = model
-        self.ypred = self.model.get_activation(use_dropout=True)
-        self.y = T.placeholder(shape=self.ypred.get_data())
+        self.y = T.placeholder(shape=self.get_activation().get_data())
 
         self._calc_loss = None
 
     def get_inputs(self):
-        inputs = self.get_model().get_formatted_input()
-        return inputs + [self.y]
+        inputs = self.model.get_formatted_input()
+        return inputs
 
     def batch_loss(self, *args):
         if self._calc_loss is None:
-            self._calc_loss = T.function(self.get_inputs(), [self.get_loss()], updates=self.get_model().get_updates())
+            self._calc_loss = T.function(self.get_final_input(), [self.get_loss()],
+                                         updates=self.get_updates())
         return self._calc_loss(*args)
 
-    def get_loss(self):
-        return self.loss(self.ypred, self.y)
+    def get_updates(self):
+        return self.model.get_updates()
 
-    def get_model(self):
-        return self.model
+    def get_activation(self, use_dropout=True):
+        return self.model.get_activation(use_dropout=use_dropout)
+
+    def get_final_input(self):
+        return self.get_inputs() + [self.y]
+
+    def compute_loss(self, y):
+        return self.loss(self.get_activation(use_dropout=True), y)
+
+    def get_loss(self):
+        return self.compute_loss(self.y)
 
     def loss(self, y_pred, y):
         if y_pred.is_sequence():
@@ -30,10 +39,13 @@ class Loss(object):
         return self._loss(y_pred.get_data(), y)
 
     def sequence_loss(self, y_pred, y):
-        def step(ypred_i, y_i):
-            return self._loss(ypred_i, y_i)
-        output = T.scan(step, [y_pred.get_data(), y])
-        return output
+        def step(y_pred_i, y_i):
+            return self._loss(y_pred_i, y_i)
+        return T.scan(step, [y_pred.get_data(), y])
+
+    def get_parameters(self):
+        return self.model.get_parameters()
+
 
     def __mul__(self, x):
         return MulLoss(self, x)
@@ -64,30 +76,52 @@ class Loss(object):
 
 class ArithmeticLoss(Loss):
 
-
-    def __init__(self, loss, num):
-        self.loss = loss
-        self.num = num
-
+    def __init__(self, left, right):
+        self.left, self.right = left, right
         self._calc_loss = None
 
-    def loss(self, *args):
-        raise NotImplementedError
+        self.y = T.placeholder(shape=self.get_activation().get_data())
 
-    def get_model(self):
-        return self.loss.get_model()
+    def get_activation(self, use_dropout=True):
+        return self.left.get_activation(use_dropout=use_dropout)
+
+    def get_updates(self):
+        updates = self.left.get_updates()
+        if isinstance(self.right, Loss):
+            for update in self.right.get_updates():
+                if update not in updates:
+                    updates.append(update)
+        return updates
 
     def get_inputs(self):
-        return self.loss.get_inputs()
+        inputs = self.left.get_inputs()
+        if isinstance(self.right, Loss):
+            for update in self.right.get_inputs():
+                if update not in inputs:
+                    inputs.append(update)
+        return inputs
 
-    def get_loss(self):
-        return self.op(self.loss.get_loss(), self.num)
+    def get_parameters(self):
+        parameters = self.left.get_parameters()
+        if isinstance(self.right, Loss):
+            for parameter in self.right.get_parameters():
+                if parameter not in parameters:
+                    parameters.append(parameter)
+        return parameters
+
+    def compute_loss(self, y):
+        left = self.left.compute_loss(y)
+        if isinstance(self.right, Loss):
+            right = self.right.compute_loss(y)
+        else:
+            right = self.right
+        return self.op(left, right)
 
     def op(self, x, y):
         raise NotImplementedError
 
     def __str__(self):
-        return "(%s %s %s)" % (self.loss, self.op_str, self.num)
+        return "(%s %s %s)" % (self.left, self.op_str, self.right)
 
 class MulLoss(ArithmeticLoss):
 
