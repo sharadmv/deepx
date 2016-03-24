@@ -439,8 +439,9 @@ def scan(step_function, inputs):
     inputs = [
         dict(input=input) for input in inputs
     ]
-    return theano.scan(step_function, sequences=inputs,
-                       outputs_info=[None])[0]
+    results, updates = theano.scan(step_function, sequences=inputs,
+                       outputs_info=[None])
+    return results, updates
 
 def generate(step_function, input, n_steps):
     return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)

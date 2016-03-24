@@ -4,9 +4,9 @@ class Loss(object):
 
     def __init__(self, model):
         self.model = model
-        self.y = T.placeholder(shape=self.get_activation().get_data())
 
         self._calc_loss = None
+        self.updates = []
 
     def get_inputs(self):
         inputs = self.model.get_formatted_input()
@@ -14,24 +14,22 @@ class Loss(object):
 
     def batch_loss(self, *args):
         if self._calc_loss is None:
-            self._calc_loss = T.function(self.get_final_input(), [self.get_loss()],
+            y = T.placeholder(shape=self.get_activation().get_data())
+            self._calc_loss = T.function(self.get_final_input() + [y], [self.compute_loss(y)],
                                          updates=self.get_updates())
         return self._calc_loss(*args)
 
     def get_updates(self):
-        return self.model.get_updates()
+        return self.model.get_updates() + self.updates
 
     def get_activation(self, use_dropout=True):
         return self.model.get_activation(use_dropout=use_dropout)
 
     def get_final_input(self):
-        return self.get_inputs() + [self.y]
+        return self.get_inputs()
 
     def compute_loss(self, y):
         return self.loss(self.get_activation(use_dropout=True), y)
-
-    def get_loss(self):
-        return self.compute_loss(self.y)
 
     def loss(self, y_pred, y):
         if y_pred.is_sequence():
@@ -41,7 +39,8 @@ class Loss(object):
     def sequence_loss(self, y_pred, y):
         def step(y_pred_i, y_i):
             return self._loss(y_pred_i, y_i)
-        return T.scan(step, [y_pred.get_data(), y])
+        output, self.updates = T.scan(step, [y_pred.get_data(), y])
+        return output
 
     def get_parameters(self):
         return self.model.get_parameters()
@@ -79,8 +78,6 @@ class ArithmeticLoss(Loss):
     def __init__(self, left, right):
         self.left, self.right = left, right
         self._calc_loss = None
-
-        self.y = T.placeholder(shape=self.get_activation().get_data())
 
     def get_activation(self, use_dropout=True):
         return self.left.get_activation(use_dropout=use_dropout)
