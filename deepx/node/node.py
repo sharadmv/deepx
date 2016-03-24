@@ -45,14 +45,20 @@ class Node(object):
 
     def predict(self, *args, **kwargs):
         if self._predict is None:
-            result = self.get_activation(use_dropout=False).get_data()
-            self._predict = T.function(self.get_formatted_input(), [result], updates=self.get_updates())
+            result = self.get_activation(use_dropout=False)
+            if not isinstance(result, list) and not isinstance(result, tuple):
+                result = [result]
+            result = [r.get_data() for r in result]
+            self._predict = T.function(self.get_formatted_input(), result, updates=self.get_updates())
         return self._predict(*args, **kwargs)
 
     def predict_with_dropout(self, *args, **kwargs):
         if self._predict_dropout is None:
-            result = self.get_activation(use_dropout=True).get_data()
-            self._predict_dropout = T.function(self.get_formatted_input(), [result])
+            result = self.get_activation(use_dropout=True)
+            if not isinstance(result, list) and not isinstance(result, tuple):
+                result = [result]
+            result = [r.get_data() for r in result]
+            self._predict_dropout = T.function(self.get_formatted_input(), result)
         return self._predict_dropout(*args, **kwargs)
 
     def get_formatted_input(self):
@@ -71,7 +77,11 @@ class Node(object):
             param = T.variable(np.zeros(shape)+value, name=name)
             self.parameters[name] = param
         else:
-            param = T.variable(np.random.normal(size=shape) * 0.1, name=name)
+            if isinstance(shape, tuple) or isinstance(shape, list):
+                pass
+            else:
+                shape = (shape,)
+            param = T.variable(np.random.normal(size=shape) * 0.01, name=name)
             self.parameters[name] = param
         return param
 
