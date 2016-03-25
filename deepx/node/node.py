@@ -69,9 +69,7 @@ class Node(object):
         return [i.get_data() for i in input]
 
     def get_activation(self, use_dropout=True):
-        if use_dropout not in self._activation:
-            self._activation[use_dropout] = self.forward(self.get_input(), use_dropout=use_dropout)
-        return self._activation[use_dropout]
+        return self.forward(self.get_input(), use_dropout=use_dropout)
 
     # Node operations
 
@@ -84,7 +82,7 @@ class Node(object):
                 pass
             else:
                 shape = (shape,)
-            param = T.variable(np.random.normal(size=shape) * 0.01, name=name)
+            param = T.variable(np.random.normal(size=shape) * 0.1, name=name)
             self.parameters[name] = param
         return param
 
