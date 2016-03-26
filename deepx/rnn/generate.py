@@ -6,7 +6,7 @@ from ..util import pack_tuple, unpack_tuple
 class Generate(Node):
 
     def __init__(self, node, length=None, sharpen=np.array(10000).astype(np.float32)):
-        super(Generate, self).__init__()
+        super(Generate, self).__init__(node, length=length, sharpen=sharpen)
         self.node = node
         self.length = length
         self._sample = None
