@@ -13,7 +13,6 @@ class Node(object):
         self.shape_in  = None
         self.shape_out = None
         self.batch_size = None
-
         self.parameters = {}
         self.frozen = False
 
@@ -28,6 +27,9 @@ class Node(object):
     @property
     def shape(self):
         return (self.get_shape_in(), self.get_shape_out())
+
+    def get_input(self):
+        raise NotImplementedError
 
     def infer_shape(self):
         shape_in = self.get_shape_in()
@@ -116,11 +118,46 @@ class Node(object):
     # Infix
 
     def __getitem__(self, idx):
-        index_node = IndexNode(self, idx)
-        return index_node
+        raise NotImplementedError
 
     def __rshift__(self, node):
         return self.chain(node)
+
+    def add(self, thing):
+        from ops import AddNode, AddScalar
+        if isinstance(thing, Node):
+            return AddNode(self, thing)
+        return AddScalar(self, thing)
+
+    def sub(self, thing):
+        from ops import SubtractNode, SubtractScalar
+        if isinstance(thing, Node):
+            return SubtractNode(self, thing)
+        return SubtractScalar(self, thing)
+
+    def mul(self, thing):
+        from ops import MultiplyScalar
+        if isinstance(thing, Node):
+            raise NotImplementedError
+        return MultiplyScalar(self, thing)
+
+    def __add__(self, thing):
+        return self.add(thing)
+
+    def __radd__(self, thing):
+        return self.add(thing)
+
+    def __sub__(self, thing):
+        return self.sub(thing)
+
+    def __rsub__(self, thing):
+        return self.sub(thing)
+
+    def __mul__(self, thing):
+        return self.mul(thing)
+
+    def __rmul__(self, thing):
+        return self.mul(thing)
 
     # Getters and setters
 
@@ -277,6 +314,79 @@ class ShapedNode(Node):
     def can_initialize(self):
         return (self.get_shape_in() is not None) and (self.get_shape_out() is not None)
 
+class NestedNode(Node):
+
+    def __init__(self, node):
+        super(NestedNode, self).__init__()
+        self.node = node
+        self.infer_shape()
+
+    def infer_shape(self):
+        shape_in = self.node.get_shape_out()
+        shape_out = None
+        if shape_in is not None:
+            shape_out = self._infer(shape_in)
+        self.set_shape_out(shape_out)
+        if not self.is_initialized() and self.can_initialize():
+            self.initialize()
+            self.initialized = True
+
+    def get_input(self):
+        return self.node.get_input()
+
+    def get_formatted_input(self):
+        return self.node.get_formatted_input()
+
+    def can_initialize(self):
+        raise self.node.can_initialize()
+
+    def get_parameters(self):
+        return self.node.get_parameters()
+
+    # Passing forward through network
+
+    def get_activation(self, use_dropout=True):
+        return self.forward(self.get_input(), use_dropout=use_dropout)
+
+    # Getters and setters
+
+    def get_updates(self):
+        return self.updates + self.node.get_updates()
+
+    def is_initialized(self):
+        return self.node.is_initialized()
+
+    def set_initialized(self, initialized):
+        self.node.set_initialized(initialized)
+
+    def set_shape_in(self, shape_in):
+        self.node.set_shape_in(shape_in)
+
+    def get_shape_in(self):
+        return self.node.get_shape_in()
+
+    def get_shape_out(self):
+        return self.shape_out
+
+    def set_state(self, state):
+        self.node.set_state(state)
+
+    def get_state(self):
+        return self.node.get_state()
+
+    def __str__(self):
+        return "%s(%s)" % (self.__class__.__name__,
+                           self.node)
+    def forward(self, X, **kwargs):
+        return self.node.forward(X, **kwargs)
+
+    # Abstract node methods
+
+    def __eq__(self, node):
+        if self.__class__ != node.__class__:
+            return False
+        return self.node == node.node
+
 class CompositeNode(Node):
 
     def __init__(self, left, right):
@@ -351,7 +461,8 @@ class CompositeNode(Node):
     def get_parameters(self):
         if self.frozen:
             return []
-        return self.left.get_parameters() + self.right.get_parameters()
+        params = set(self.left.get_parameters())
+        return list(params | set(self.right.get_parameters()))
 
     def get_input(self):
         return self.left.get_input()
@@ -375,45 +486,4 @@ class CompositeNode(Node):
         return "{left} >> {right}".format(
             left=self.left,
             right=self.right
-        )
-
-class IndexNode(Node):
-
-    def __init__(self, node, index):
-        super(IndexNode, self).__init__()
-        self.node = node
-        self.index = index
-
-    def infer_shape(self):
-        self.node.infer_shape()
-
-    def get_shape_in(self):
-        return self.node.get_shape_in()
-
-    def get_shape_out(self):
-        return self.node.get_shape_out()
-
-    def forward(self, X, **kwargs):
-        index = self.index
-        out = self.node.forward(X, **kwargs)
-        if index == -1:
-            index = T.shape(out.get_data())[0] - 1
-        return out[index, :, :]
-
-    def get_input(self):
-        return self.node.get_input()
-
-    def get_state(self):
-        return self.node.get_state()
-
-    def set_state(self, state):
-        self.node.set_state(state)
-
-    def get_parameters(self):
-        return self.node.get_parameters()
-
-    def __str__(self):
-        return "({node})[{index}]".format(
-            node=self.node,
-            index=self.index
         )

@@ -10,6 +10,10 @@ class Primitive(Data):
         super(Primitive, self).__init__(self.get_var(name, shape), shape, batch_size=batch_size)
 
     def __str__(self):
+        if self.name is not None:
+            return "%s[%s]<%s>" % (self.__class__.__name__,
+                                   self.name,
+                                    self.shape_out)
         return "%s<%s>" % (self.__class__.__name__,
                            self.shape_out)
 
