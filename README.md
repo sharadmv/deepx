@@ -41,7 +41,7 @@ of our model, we first want to define a loss function. Let's use cross entropy l
 
 ```python
 >>> from deepx.loss import *
->>> loss = CrossEntropy()
+>>> loss = CrossEntropy(model)
 ```
 
 Finally, we want to set up an optimization algorithm to minimize loss. An optimization algorithm takes in
@@ -49,7 +49,7 @@ a model and a loss function.
 
 ```python
 >>> from deepx.optimize import *
->>> rmsprop = RMSProp(model, loss)
+>>> rmsprop = RMSProp(loss)
 ```
 
 Finally, to perform gradient descent updates, we just call the `train` method of `rmsprop`.
