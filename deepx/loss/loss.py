@@ -7,29 +7,23 @@ class Loss(object):
 
         self._calc_loss = None
         self.updates = []
+        self._grads = None
 
     def get_inputs(self):
         inputs = self.model.get_formatted_input()
         return inputs
 
-    def batch_loss(self, *args):
-        if self._calc_loss is None:
-            y = T.placeholder(shape=self.get_activation().get_data())
-            self._calc_loss = T.function(self.get_final_input() + [y], [self.compute_loss(y)],
-                                         updates=self.get_updates())
-        return self._calc_loss(*args)
-
     def get_updates(self):
         return self.model.get_updates() + self.updates
 
-    def get_activation(self, use_dropout=True):
-        return self.model.get_activation(use_dropout=use_dropout)
+    def get_activation(self, **kwargs):
+        return self.model.get_activation(**kwargs)
 
     def get_final_input(self):
         return self.get_inputs()
 
-    def compute_loss(self, y):
-        return self.loss(self.get_activation(use_dropout=True), y)
+    def compute_loss(self, y, **kwargs):
+        return self.loss(self.get_activation(use_dropout=True, **kwargs), y)
 
     def loss(self, y_pred, y):
         if y_pred.is_sequence():
@@ -79,8 +73,8 @@ class ArithmeticLoss(Loss):
         self.left, self.right = left, right
         self._calc_loss = None
 
-    def get_activation(self, use_dropout=True):
-        return self.left.get_activation(use_dropout=use_dropout)
+    def get_activation(self, **kwargs):
+        return self.left.get_activation(**kwargs)
 
     def get_updates(self):
         updates = self.left.get_updates()
@@ -106,10 +100,10 @@ class ArithmeticLoss(Loss):
                     parameters.append(parameter)
         return parameters
 
-    def compute_loss(self, y):
-        left = self.left.compute_loss(y)
+    def compute_loss(self, y, **kwargs):
+        left = self.left.compute_loss(y, **kwargs)
         if isinstance(self.right, Loss):
-            right = self.right.compute_loss(y)
+            right = self.right.compute_loss(y, **kwargs)
         else:
             right = self.right
         return self.op(left, right)

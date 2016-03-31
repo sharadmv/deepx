@@ -6,4 +6,4 @@ from deepx.loss import *
 from deepx.optimize import *
 
 if __name__ == "__main__":
-    lstm = Sequence(Vector(1, 10), 10) >> Repeat(LSTM(1, stateful=True) >> Dropout(0.1), 2) >> Softmax(10)
+    lstm = Sequence(Vector(10)) >> Repeat(MaxoutLSTM(20) >> Dropout(0.1), 2) >> Maxout(100) >> Tanh() >> Softmax(10)

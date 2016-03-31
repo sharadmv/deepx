@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2), activation=Elu) >> Conv((20, 2, 2)) >> Flatten() >> Softmax(10)
 
-    rmsprop = RMSProp(conv_net, CrossEntropy())
+    rmsprop = RMSProp(CrossEntropy(conv_net))
 
     def train(n_iter, lr):
         for i in range(n_iter):
@@ -41,5 +41,5 @@ if __name__ == "__main__":
             loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print("Loss:", loss)
 
-        preds = conv_net.predict(Xtest).argmax(axis=1)
-        print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))
+        # preds = conv_net.predict(Xtest).argmax(axis=1)
+        # print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))

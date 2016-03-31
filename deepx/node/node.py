@@ -70,8 +70,10 @@ class Node(object):
             input = [input]
         return [i.get_data() for i in input]
 
-    def get_activation(self, use_dropout=True):
-        return self.forward(self.get_input(), use_dropout=use_dropout)
+    def get_activation(self, use_dropout=True, transform=lambda x: x):
+        def t(x):
+            return x.next(transform(x.get_data()), x.get_shape_out())
+        return self.forward(t(self.get_input()), use_dropout=use_dropout)
 
     # Node operations
 

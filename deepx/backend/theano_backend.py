@@ -170,6 +170,10 @@ def sum(x, axis=None, keepdims=False):
     '''
     return T.sum(x, axis=axis, keepdims=keepdims)
 
+def norm(x, L, axis=None, keepdims=False):
+    if keepdims:
+        x.norm(L, axis=axis).reshape((x.shape[0], 1))
+    return x.norm(L, axis=axis)
 
 def prod(x, axis=None, keepdims=False):
     '''Multiply the values in a tensor, alongside the specified axis.
@@ -244,7 +248,6 @@ def maximum(x, y):
 
 def minimum(x, y):
     return T.minimum(x, y)
-
 
 # COMPARISONS
 
@@ -567,7 +570,7 @@ def tanh(x):
 
 def dropout(x, level, seed=None):
     if level < 0. or level >= 1:
-        raise Exception('Dropout level must be in interval [0, 1[.')
+        raise Exception('Dropout level must be in interval [0, 1].')
     if seed is None:
         seed = np.random.randint(10e6)
     rng = RandomStreams(seed=seed)

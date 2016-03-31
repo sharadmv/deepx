@@ -6,8 +6,8 @@ class Full(ShapedNode):
 
     def initialize(self):
         if not self.is_elementwise():
-            self.init_parameter('W', (self.shape_in, self.shape_out))
-            self.init_parameter('b', self.shape_out)
+            self.init_parameter('W', (self.get_shape_in(), self.get_shape_out()))
+            self.init_parameter('b', self.get_shape_out())
 
     def is_elementwise(self):
         return self._elementwise
@@ -33,6 +33,22 @@ class Full(ShapedNode):
             return "%s()" % self.__class__.__name__
         return "%s(%s, %s)" % (self.__class__.__name__,
                                self.get_shape_in(), self.get_shape_out())
+class Maxout(Full):
+
+
+    def __init__(self, *args, **kwargs):
+        self.k = kwargs.pop('k', 4)
+        super(Maxout, self).__init__(*args, **kwargs)
+
+    def __str__(self):
+        return "%s(%s, %s)" % (self.__class__.__name__,
+                               self.get_shape_in(), self.get_shape_out())
+    def initialize(self):
+        self.init_parameter('W', (self.k, self.get_shape_in(), self.get_shape_out()))
+        self.init_parameter('b', (self.k, self.get_shape_out()))
+
+    def activate(self, X):
+        return T.max(X, axis=1)
 
 class Softmax(Full):
 
