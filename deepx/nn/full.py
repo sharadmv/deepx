@@ -1,8 +1,8 @@
 from .. import backend as T
 
-from ..node import ShapedNode
+from ..core import ShapedLayer
 
-class Full(ShapedNode):
+class Linear(ShapedLayer):
 
     def initialize(self):
         if not self.is_elementwise():
@@ -33,7 +33,7 @@ class Full(ShapedNode):
             return "%s()" % self.__class__.__name__
         return "%s(%s, %s)" % (self.__class__.__name__,
                                self.get_shape_in(), self.get_shape_out())
-class Maxout(Full):
+class Maxout(Linear):
 
 
     def __init__(self, *args, **kwargs):
@@ -50,7 +50,7 @@ class Maxout(Full):
     def activate(self, X):
         return T.max(X, axis=1)
 
-class Softmax(Full):
+class Softmax(Linear):
 
     def __init__(self, *args, **kwargs):
         self.T = kwargs.pop('T', 1.0)
@@ -59,22 +59,22 @@ class Softmax(Full):
     def activate(self, X):
         return T.softmax(X, self.T)
 
-class Sigmoid(Full):
+class Sigmoid(Linear):
 
     def activate(self, X):
         return T.sigmoid(X)
 
-class Tanh(Full):
+class Tanh(Linear):
 
     def activate(self, X):
         return T.tanh(X)
 
-class Relu(Full):
+class Relu(Linear):
 
     def activate(self, X):
         return T.relu(X)
 
-class Elu(Full):
+class Elu(Linear):
 
     def __init__(self, *args, **kwargs):
         self.alpha = kwargs.pop('alpha', 1.0)
@@ -83,7 +83,7 @@ class Elu(Full):
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
 
-class LeakyRelu(Full):
+class LeakyRelu(Linear):
 
     def __init__(self, *args, **kwargs):
         self.alpha = kwargs.pop('alpha', 0.1)
@@ -92,7 +92,7 @@ class LeakyRelu(Full):
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
 
-class Tanlu(Full):
+class Tanlu(Linear):
 
     def initialize(self):
         super(Tanlu, self).initialize()
