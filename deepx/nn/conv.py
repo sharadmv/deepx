@@ -6,13 +6,14 @@ from .full import Relu
 
 class Convolution(Layer):
 
-    def __init__(self, kernel, border_mode="same"):
+    def __init__(self, kernel=(1, 2, 2), border_mode="same"):
 
         self.kernel = kernel
         self.border_mode = border_mode
         self.channels_in = None
 
-        super(Convolution, self).__init__()
+        super(Convolution, self).__init__(kernel=self.kernel,
+                                          border_mode=self.border_mode)
 
     def is_configured(self):
         return self.channels_in is not None

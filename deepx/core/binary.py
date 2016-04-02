@@ -68,8 +68,8 @@ class BinaryOpNode(Node):
         old_params = self.get_parameter_tree()
         node = self.__class__(self.left.copy(**kwargs), self.right.copy(**kwargs))
         if keep_params:
-            node.infer_shape()
             node.set_parameter_tree(old_params)
+        node.infer_shape()
         return node
 
 class Chain(BinaryOpNode):
@@ -91,23 +91,16 @@ class Chain(BinaryOpNode):
         return self.left.is_input()
 
     def get_inputs(self):
-        return (self.left.get_inputs(), self.right.get_inputs())
+        return self.left.get_inputs()
 
     def get_outputs(self, **kwargs):
-        return self.forward(*self.get_inputs(), **kwargs)
+        return self.forward(self.get_inputs(), **kwargs)
 
-    def forward(self, left_input, right_input, **kwargs):
-        print "FORWARD", self, left_input, right_input
-        print "LEFT INPUT", left_input
-        print self.left
-        left_output = self.left.forward(*left_input, **kwargs)
-        if isinstance(right_input, tuple):
-            _, right = right_input
-            right_input = (left_output, right)
-        elif isinstance(right_input, list):
-            right_input = left_output + right_input
-        right_outputs = self.right.forward(*right_input, **kwargs)
-        return right_outputs
+    def forward(self, *left_input, **kwargs):
+        right_input = self.left.forward(*left_input, **kwargs)
+        right_input = right_input + self.right.get_inputs()
+        right_output = self.right.forward(*right_input, **kwargs)
+        return right_output
 
     def set_shape_in(self, shape_in):
         self.left.set_shape_in(shape_in)
@@ -126,7 +119,7 @@ class Chain(BinaryOpNode):
         self.left.infer_shape()
         left_out = self.left.get_shape_out()
         right_in = self.right.get_shape_in()
-        if right_in is not None:
+        if left_out is not None and right_in is not None:
             if left_out != right_in:
                 raise ShapeException(self.right, left_out)
         self.right.set_shape_in(left_out)

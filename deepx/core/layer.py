@@ -115,16 +115,17 @@ class Layer(ShapedNode):
         if keep_params:
             old_params = self.get_parameter_tree()
             node.set_parameter_tree(old_params)
-        if self.initialized:
-            node.initialized = True
+            if self.initialized:
+                node.initialized = True
         node.infer_shape()
         return node
 
 class ShapedLayer(Layer):
 
-    def __init__(self, shape_in=None, shape_out=None, **kwargs):
+    def __init__(self, shape_in=None, shape_out=None, elementwise=False,
+                 **kwargs):
 
-        self._elementwise = False
+        self._elementwise = elementwise
         if shape_out is not None:
             shape_in, shape_out = (shape_in, shape_out)
         elif shape_in is not None and shape_out is None:
@@ -141,6 +142,7 @@ class ShapedLayer(Layer):
         config = super(ShapedLayer, self).get_config()
         config['shape_in'] = self.get_shape_in()
         config['shape_out'] = self.get_shape_out()
+        config['elementwise'] = self._elementwise
         return config
 
     def get_options(self):
