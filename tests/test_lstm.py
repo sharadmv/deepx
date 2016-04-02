@@ -13,6 +13,7 @@ def logistic(x):
     return 1.0/(1.0 + np.exp(-x))
 
 class LSTMBase(BaseTest):
+
     def zero_lstm(self, lstm):
         for param in lstm.parameters:
             lstm.set_parameter_value(param, lstm.get_parameter_value(param) * 0)

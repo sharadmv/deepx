@@ -1,7 +1,7 @@
 from ..core import Data
 
 def Scalar(**kwargs):
-    return Data(1, datatype='Scalar', **kwargs)
+    return Data((), datatype='Scalar', **kwargs)
 
 def Vector(dim, **kwargs):
     return Data(dim, datatype='Vector', **kwargs)
