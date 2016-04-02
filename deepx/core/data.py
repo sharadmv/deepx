@@ -55,6 +55,12 @@ class Data(ShapedNode):
                     max_length=max_length,
                     batch_size=self.batch_size)
 
+    def get_parameter_tree(self):
+        return None
+
+    def set_parameter_tree(self, params):
+        pass
+
     def get_placeholder(self):
         return self.placeholder
 
@@ -73,6 +79,20 @@ class Data(ShapedNode):
 
     def is_input(self):
         return True
+
+    def copy(self, **kwargs):
+        return Data(self.dim,
+                    datatype=self.datatype,
+                    name=self.name,
+                    sequence=self.sequence,
+                    max_length=self.max_length,
+                    batch_size=self.batch_size)
+
+    def get_state(self, **kwargs):
+        return None
+
+    def set_state(self, state):
+        pass
 
     def __repr__(self):
         return str(self)

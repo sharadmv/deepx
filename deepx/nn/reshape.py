@@ -2,24 +2,15 @@ import numpy as np
 
 from .. import backend as T
 
-from ..node import Node
+from ..core import Layer, ShapedLayer
 
-class Reshape(Node):
+class Reshape(ShapedLayer):
 
-    def __init__(self, shape_in, shape_out=None):
-        super(Reshape, self).__init__()
-        if shape_out is None:
-            self.shape_in = None
-            self.shape_out = shape_in
-        else:
-            self.shape_in = shape_in
-            self.shape_out = shape_out
-
-    def can_initialize(self):
-        return True
+    def initialize(self):
+        pass
 
     def _infer(self, shape_in):
-        return self.shape_out
+        return self.get_shape_out()
 
     def _forward(self, X):
         shape_out = self.get_shape_out()
@@ -29,10 +20,10 @@ class Reshape(Node):
             shape_out = [shape_out]
         return T.reshape(X, [-1] + shape_out)
 
-class Flatten(Node):
+class Flatten(Layer):
 
-    def can_initialize(self):
-        return True
+    def initialize(self):
+        pass
 
     def _infer(self, shape_in):
         return np.product(shape_in)

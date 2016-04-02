@@ -7,6 +7,8 @@ class Node(object):
         self._predict = None
         self._predict_dropout = None
 
+        self.frozen = False
+
     def get_inputs(self):
         raise NotImplementedError
 
@@ -23,6 +25,8 @@ class Node(object):
         raise NotImplementedError
 
     def predict(self, *args, **kwargs):
+        if not self.is_input():
+            raise Exception("Cannot pass through data without an input node.")
         dropout = kwargs.pop('dropout', False)
         if dropout:
             if self._predict_dropout is None:
@@ -47,6 +51,16 @@ class Node(object):
 
     def get_parameters(self):
         raise NotImplementedError
+
+    def freeze(self):
+        node = self.copy(keep_params=True)
+        node.frozen = True
+        return node
+
+    def unfreeze(self):
+        node = self.copy(keep_params=True)
+        node.frozen = False
+        return node
 
     # Shape inference
 
@@ -84,7 +98,16 @@ class Node(object):
 
     # Node IO
 
-    def copy(self):
+    def get_options(self):
+        return ([], {})
+
+    def get_state(self, **kwargs):
+        raise NotImplementedError
+
+    def set_state(self, state):
+        raise NotImplementedError
+
+    def copy(self, **kwargs):
         raise NotImplementedError
 
     def __repr__(self):

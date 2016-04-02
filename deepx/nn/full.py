@@ -37,8 +37,8 @@ class Maxout(Linear):
 
 
     def __init__(self, *args, **kwargs):
-        self.k = kwargs.pop('k', 4)
         super(Maxout, self).__init__(*args, **kwargs)
+        self.k = self.config.get('k', 4)
 
     def __str__(self):
         return "%s(%s, %s)" % (self.__class__.__name__,
@@ -53,8 +53,8 @@ class Maxout(Linear):
 class Softmax(Linear):
 
     def __init__(self, *args, **kwargs):
-        self.T = kwargs.pop('T', 1.0)
         super(Softmax, self).__init__(*args, **kwargs)
+        self.T = self.config.get('T', 1.0)
 
     def activate(self, X):
         return T.softmax(X, self.T)
@@ -77,8 +77,8 @@ class Relu(Linear):
 class Elu(Linear):
 
     def __init__(self, *args, **kwargs):
-        self.alpha = kwargs.pop('alpha', 1.0)
         super(Elu, self).__init__(*args, **kwargs)
+        self.alpha = self.config.get('alpha', 1.0)
 
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
@@ -86,8 +86,8 @@ class Elu(Linear):
 class LeakyRelu(Linear):
 
     def __init__(self, *args, **kwargs):
-        self.alpha = kwargs.pop('alpha', 0.1)
         super(LeakyRelu, self).__init__(*args, **kwargs)
+        self.alpha = self.config.get('alpha', 0.1)
 
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
@@ -99,6 +99,6 @@ class Tanlu(Linear):
         self.init_parameter('alpha', self.get_shape_out(), value=0.5)
 
     def activate(self, X):
-        alpha = self.parameters['alpha']
+        alpha = self.get_parameter('alpha')
         constrained_alpha = T.clip(alpha, 0, 1)
         return constrained_alpha * T.tanh(X) + (1 - constrained_alpha) * T.relu(X)

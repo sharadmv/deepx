@@ -2,18 +2,11 @@ from base import BaseTest
 
 import numpy as np
 from deepx.nn import Vector, Flatten, Reshape, Matrix
-import deepx.backend as T
 
 class TestReshape(BaseTest):
 
-    def create_function(self, net):
-        self.assertTrue(net.is_initialized())
-        input = net.get_input()
-        output = net.forward(input)
-        return T.function([input.get_data()], [output.get_data()])
-
     def test_reshape(self):
-        input = Matrix((5, 5))
+        input = Matrix(5, 5)
 
         layer = Reshape(25)
 
@@ -47,7 +40,7 @@ class TestReshape(BaseTest):
         np.testing.assert_almost_equal(result, result2)
 
     def test_flatten(self):
-        input = Matrix((10, 3))
+        input = Matrix(10, 3)
 
         reshape = Reshape(30)
         flatten = Flatten()

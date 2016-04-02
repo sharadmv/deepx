@@ -1,10 +1,10 @@
 from base import BaseTest
 
 import numpy as np
-from deepx.nn import Vector, Full, Tanh, Relu, Sigmoid, Softmax, Elu
+from deepx.nn import Vector, Linear, Tanh, Relu, Sigmoid, Softmax, Elu
 import deepx.backend as T
 
-class TestFull(BaseTest):
+class TestLinear(BaseTest):
 
     def run_simple_full(self, type, activation, in_size=2, out_size=3, batch_size=5, **kwargs):
         np.random.seed(0)
@@ -42,8 +42,8 @@ class TestFull(BaseTest):
         np.testing.assert_almost_equal(result, result2, decimal=5)
 
     def test_full(self):
-        self.run_simple_full(Full, lambda x: x)
-        self.run_simple_full(Full, lambda x: x, 5, 10)
+        self.run_simple_full(Linear, lambda x: x)
+        self.run_simple_full(Linear, lambda x: x, 5, 10)
 
     def test_tanh(self):
         self.run_simple_full(Tanh, np.tanh)
@@ -69,7 +69,7 @@ class TestFull(BaseTest):
 
     def test_full_element(self):
         with self.assertRaises(Exception):
-            self.run_simple_elementwise(Full, lambda x: x)
+            self.run_simple_elementwise(Linear, lambda x: x)
 
     def test_tanh_element(self):
         self.run_simple_elementwise(Tanh, np.tanh)
