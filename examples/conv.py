@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2), activation=Elu) >> Conv((20, 2, 2)) >> Flatten() >> Softmax(10)
 
-    rmsprop = RMSProp(CrossEntropy(conv_net))
+    rmsprop = RMSProp(conv_net >> CrossEntropy())
 
     def train(n_iter, lr):
         for i in range(n_iter):

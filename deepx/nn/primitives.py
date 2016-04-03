@@ -9,7 +9,7 @@ def Vector(dim, **kwargs):
 def Matrix(dim1, dim2, **kwargs):
     return Data((dim1, dim2), datatype='Matrix', **kwargs)
 
-def Image(dim1, dim2, dim3, **kwargs):
+def Image((dim1, dim2, dim3), **kwargs):
     return Data((dim1, dim2, dim3), datatype='Image', **kwargs)
 
 def Sequence(data, max_length=None):

@@ -62,6 +62,9 @@ class BinaryOpNode(Node):
         self.left.set_state(left_state)
         self.right.set_state(right_state)
 
+    def get_initial_states(self, *args, **kwargs):
+        return self.left.get_initial_states(*args, **kwargs), self.right.get_initial_states(*args, **kwargs)
+
     def set_parameter_tree(self, params):
         left_params, right_params = params
         self.left.set_parameter_tree(left_params)
@@ -97,13 +100,19 @@ class Chain(BinaryOpNode):
         return self.left.get_inputs()
 
     def get_outputs(self, **kwargs):
-        return self.forward(self.get_inputs(), **kwargs)
+        return self.forward(*self.get_inputs(), **kwargs)
 
     def forward(self, *left_input, **kwargs):
         right_input = self.left.forward(*left_input, **kwargs)
         right_input = right_input + self.right.get_inputs()
         right_output = self.right.forward(*right_input, **kwargs)
         return right_output
+
+    def step(self, X, state):
+        left_state, right_state = state
+        left, left_state = self.left.step(X, left_state)
+        right, right_state = self.right.step(left, right_state)
+        return right, (left_state, right_state)
 
     def set_shape_in(self, shape_in):
         self.left.set_shape_in(shape_in)
@@ -132,7 +141,6 @@ class Chain(BinaryOpNode):
     def reset_state(self, i):
         self.left.reset_states(i)
         self.right.reset_states(i)
-
 
     def infer_shape(self):
         self.left.infer_shape()

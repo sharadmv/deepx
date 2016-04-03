@@ -17,6 +17,9 @@ class Node(object):
     def set_batch_size(self, batch_size):
         self.batch_size = batch_size
 
+    def get_initial_states(self, *args, **kwargs):
+        return None
+
     def get_updates(self):
         return self.updates
 
@@ -40,6 +43,18 @@ class Node(object):
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError
+
+    def _forward(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def step(self, X, state):
+        from .data import Data
+        out, state = self._step(X.get_placeholder(), state)
+        return Data.from_placeholder(out, self.get_shape_out(),
+                                  X.batch_size), state
+
+    def _step(self, X, state):
+        return self._forward(X), None
 
     def predict(self, *args, **kwargs):
         if not self.is_input():
@@ -109,7 +124,7 @@ class Node(object):
     # Node functions
 
     def chain(self, node):
-        from binary import Chain
+        from .binary import Chain
         return Chain(self, node)
 
     # Infix operation

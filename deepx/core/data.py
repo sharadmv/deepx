@@ -8,7 +8,8 @@ class Data(ShapedNode):
                  name=None,
                  sequence=False,
                  max_length=None,
-                 batch_size=None):
+                 batch_size=None,
+                 dtype=T.floatx()):
 
         assert isinstance(dim, int) or isinstance(dim, tuple)
 
@@ -24,11 +25,12 @@ class Data(ShapedNode):
         self.sequence = sequence
         self.batch_size = batch_size
         self.max_length = max_length
+        self.dtype = dtype
 
         if self.sequence:
-            self.placeholder = T.placeholder(shape=[self.max_length, self.batch_size] + list(self.dim), name=self.name)
+            self.placeholder = T.placeholder(shape=[self.max_length, self.batch_size] + list(self.dim), name=self.name, dtype=dtype)
         else:
-            self.placeholder = T.placeholder(shape=[self.batch_size] + list(self.dim), name=self.name)
+            self.placeholder = T.placeholder(shape=[self.batch_size] + list(self.dim), name=self.name, dtype=dtype)
 
     def get_inputs(self):
         return [self]
@@ -56,6 +58,9 @@ class Data(ShapedNode):
                     sequence=True,
                     max_length=max_length,
                     batch_size=self.batch_size)
+
+    def _forward(self, X):
+        return X
 
     def get_parameter_tree(self):
         return None

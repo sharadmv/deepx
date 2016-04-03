@@ -218,6 +218,10 @@ class RecurrentLayer(Layer):
             sequence=True
         )]
 
+    def step(self, X, state):
+        out, state = self._step(X.get_placeholder(), state, [])
+        return Data.from_placeholder(out, self.get_shape_out(), X.batch_size), state
+
     def _forward(self, X):
         S, N, D = T.shape(X)
 
