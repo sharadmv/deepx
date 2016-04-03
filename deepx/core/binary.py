@@ -142,6 +142,11 @@ class Chain(BinaryOpNode):
         self.left.reset_states(i)
         self.right.reset_states(i)
 
+    def tie(self, node):
+        new_node = self.__class__(self.left.tie(node.left), self.right.tie(node.right))
+        new_node.infer_shape()
+        return new_node
+
     def infer_shape(self):
         self.left.infer_shape()
 
