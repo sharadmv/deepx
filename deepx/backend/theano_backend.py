@@ -97,13 +97,13 @@ def eval(x):
 def zeros(shape, dtype=_FLOATX, name=None):
     '''Instantiate an all-zeros variable.
     '''
-    return variable(np.zeros(shape), dtype, name)
+    return T.zeros(shape)
 
 
 def ones(shape, dtype=_FLOATX, name=None):
     '''Instantiate an all-ones variable.
     '''
-    return variable(np.ones(shape), dtype, name)
+    return T.ones(shape)
 
 
 def ones_like(x):
@@ -450,6 +450,7 @@ def generate(step_function, input, n_steps):
     return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)
 
 def rnn(step_function, inputs, initial_states,
+        non_sequences=[],
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
 
@@ -488,13 +489,18 @@ def rnn(step_function, inputs, initial_states,
             the step function, of shape (samples, ...).
     '''
 
-    def _step(input, *states):
-        output, new_states = step_function(input, states)
+    num_seqs = len(inputs)
+    num_states = len(initial_states)
+
+    def _step(*args):
+        ins, states, non_seqs = args[:num_seqs], args[num_seqs:num_seqs + num_states], args[num_seqs + num_states:]
+        output, new_states = step_function(ins, states, non_seqs)
         return [output] + new_states
 
     results, _ = theano.scan(
         _step,
         sequences=inputs,
+        non_sequences=non_sequences,
         outputs_info=[None] + initial_states,
         go_backwards=go_backwards)
 

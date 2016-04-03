@@ -15,7 +15,10 @@ class Data(ShapedNode):
         if isinstance(dim, int):
             dim = (dim,)
 
+
         self.dim = dim
+        super(Data, self).__init__(dim, dim)
+
         self.name = name
         self.datatype = datatype or "Data"
         self.sequence = sequence
@@ -26,7 +29,6 @@ class Data(ShapedNode):
             self.placeholder = T.placeholder(shape=[self.max_length, self.batch_size] + list(self.dim), name=self.name)
         else:
             self.placeholder = T.placeholder(shape=[self.batch_size] + list(self.dim), name=self.name)
-        super(Data, self).__init__(dim, dim)
 
     def get_inputs(self):
         return [self]

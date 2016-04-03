@@ -36,9 +36,11 @@ class Linear(ShapedLayer):
 class Maxout(Linear):
 
 
-    def __init__(self, *args, **kwargs):
-        super(Maxout, self).__init__(*args, **kwargs)
-        self.k = self.config.get('k', 4)
+    def __init__(self, shape_in=None, shape_out=None, k=4, **kwargs):
+        self.k = k
+        super(Maxout, self).__init__(shape_in=shape_in,
+                                     shape_out=shape_out,
+                                     k=self.k, **kwargs)
 
     def __str__(self):
         return "%s(%s, %s)" % (self.__class__.__name__,

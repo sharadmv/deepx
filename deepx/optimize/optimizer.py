@@ -4,26 +4,30 @@ class Optimizer(object):
 
     def __init__(self, loss, clip_gradients=None):
         self.loss = loss
+        assert self.loss.get_shape_out() == (), "Can only optimize a scalar quantity."
 
         self.parameters = self.loss.get_parameters()
+
         self.initialize()
 
         self.aux_inputs = self.get_aux_inputs()
-        self.y = T.placeholder(shape=self.loss.get_activation().get_data(), name='y')
-        opt_inputs = self.loss.get_final_input() + [self.y]
-        self.opt_output = self.loss.compute_loss(self.y)
+        self.opt_outputs = self.loss.get_network_outputs()
 
-        self.grads = T.gradients(self.opt_output, self.parameters)
+        self.grads = self.get_gradient()
+
         if clip_gradients is not None:
             c = abs(clip_gradients)
             self.grads = [self.scale(g, c) for g in self.grads]
 
-        self.grad_updates = self.updates(*self.aux_inputs) + self.loss.get_updates()
-        self.opt_inputs = opt_inputs
+        self.grad_updates = self.get_updates() + self.loss.get_updates()
+        self.opt_inputs = self.loss.get_network_inputs()
 
         self._gradient = None
         self._loss = None
         self._train = None
+
+    def get_gradient(self):
+        return T.gradients(self.opt_outputs[0], self.parameters)
 
     def gradient(self, *args):
         if self._gradient is None:
@@ -32,12 +36,12 @@ class Optimizer(object):
 
     def batch_loss(self, *args):
         if self._loss is None:
-            self._loss = T.function(self.opt_inputs, [self.opt_output], updates=self.loss.get_updates())
+            self._loss = T.function(self.opt_inputs, self.opt_outputs, updates=self.loss.get_updates())
         return self._loss(*args)
 
     def train(self, *args):
         if self._train is None:
-            self._train = T.function(self.opt_inputs + self.aux_inputs, [self.opt_output], updates=self.grad_updates)
+            self._train = T.function(self.opt_inputs + self.aux_inputs, self.opt_outputs, updates=self.grad_updates)
         return self._train(*args)
 
     def clip(self, X, epsilon):
@@ -57,12 +61,8 @@ class Optimizer(object):
         param = T.variable(value)
         return param
 
-    def get_inputs(self):
-        return self.loss.inputs + self.aux_inputs
-
     def get_aux_inputs(self):
         raise NotImplementedError
 
     def get_updates(self):
         return self.updates(*self.aux_inputs)
-

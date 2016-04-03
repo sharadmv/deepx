@@ -15,7 +15,7 @@ class Dropout(Layer):
         return shape_in
 
     def forward(self, *args, **kwargs):
-        return super(Dropout, self).forward(use_kwargs=True, *args, **kwargs)
+        return super(Dropout, self).forward(ignore_sequence=True, use_kwargs=True, *args, **kwargs)
 
     def _forward(self, X, dropout=True):
         if dropout:

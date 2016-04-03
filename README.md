@@ -41,7 +41,7 @@ of our model, we first want to define a loss function. Let's use cross entropy l
 
 ```python
 >>> from deepx.loss import *
->>> loss = CrossEntropy(model)
+>>> loss = mlp >> CrossEntropy()
 ```
 
 Finally, we want to set up an optimization algorithm to minimize loss. An optimization algorithm takes in

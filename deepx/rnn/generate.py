@@ -1,9 +1,9 @@
 import numpy as np
 from .. import backend as T
-from ..node import Node
+from ..core import RecurrentLayer
 from ..util import pack_tuple, unpack_tuple
 
-class Generate(Node):
+class Generate(RecurrentLayer):
 
     def __init__(self, node, length=None, sharpen=np.array(10000).astype(np.float32)):
         super(Generate, self).__init__(node, length=length, sharpen=sharpen)

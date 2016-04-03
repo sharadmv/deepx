@@ -8,6 +8,17 @@ class Node(object):
         self._predict_dropout = None
 
         self.frozen = False
+        self.updates = []
+        self.batch_size = None
+
+    def get_batch_size(self):
+        return self.batch_size
+
+    def set_batch_size(self, batch_size):
+        self.batch_size = batch_size
+
+    def get_updates(self):
+        return self.updates
 
     def get_inputs(self):
         raise NotImplementedError
@@ -21,6 +32,12 @@ class Node(object):
     def get_network_outputs(self, **kwargs):
         return [x.get_placeholder() for x in self.get_outputs(**kwargs)]
 
+    def reset_states(self):
+        pass
+
+    def reset_state(self, i):
+        pass
+
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -30,16 +47,20 @@ class Node(object):
         dropout = kwargs.pop('dropout', False)
         if dropout:
             if self._predict_dropout is None:
+                outputs = self.get_network_outputs(dropout=True)
                 self._predict_dropout = T.function(
                     self.get_network_inputs(),
-                    self.get_network_outputs(dropout=True)
+                    outputs,
+                    updates=self.get_updates()
                 )
             return self._predict_dropout(*args, **kwargs)
         else:
             if self._predict is None:
+                outputs = self.get_network_outputs(dropout=False)
                 self._predict = T.function(
                     self.get_network_inputs(),
-                    self.get_network_outputs(dropout=False)
+                    outputs,
+                    updates=self.get_updates()
                 )
             return self._predict(*args, **kwargs)
 

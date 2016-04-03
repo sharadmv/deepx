@@ -8,6 +8,9 @@ class BinaryOpNode(Node):
         self.left = left
         self.right = right
 
+    def get_updates(self):
+        return self.left.get_updates() + self.right.get_updates()
+
     def get_inputs(self):
         return self.left.get_inputs(), self.right.get_inputs()
 
@@ -115,8 +118,27 @@ class Chain(BinaryOpNode):
     def get_shape_out(self):
         return self.right.get_shape_out()
 
+    def set_batch_size(self, batch_size):
+        self.left.set_batch_size(batch_size)
+        self.right.set_batch_size(batch_size)
+
+    def get_batch_size(self):
+        return self.left.get_batch_size()
+
+    def reset_states(self):
+        self.left.reset_states()
+        self.right.reset_states()
+
+    def reset_state(self, i):
+        self.left.reset_states(i)
+        self.right.reset_states(i)
+
+
     def infer_shape(self):
         self.left.infer_shape()
+
+        self.set_batch_size(self.left.get_batch_size())
+
         left_out = self.left.get_shape_out()
         right_in = self.right.get_shape_in()
         if left_out is not None and right_in is not None:

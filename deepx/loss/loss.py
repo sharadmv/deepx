@@ -1,5 +1,3 @@
-from .. import backend as T
-
 from ..core import Layer, Data
 
 class Loss(Layer):

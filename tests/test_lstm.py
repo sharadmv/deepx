@@ -2,8 +2,8 @@ from base import BaseTest
 
 import numpy as np
 import deepx.backend as T
-from deepx.nn import Vector
-from deepx.rnn import LSTM, Sequence
+from deepx.nn import Vector, Sequence
+from deepx.rnn import LSTM
 
 import unittest
 
@@ -137,8 +137,8 @@ class TestSimpleLSTM(LSTMBase):
 class TestStatefulLSTM(LSTMBase):
 
     def setUp(self):
-        self.lstm = Sequence(Vector(1, 1), 1) >> LSTM(1, 1, stateful=True)
-        self.lstm = Sequence(Vector(1, 1), 1) >> LSTM(1, 1, stateful=True)
+        self.lstm = Sequence(Vector(1, batch_size=1), 1) >> LSTM(1, 1, stateful=True)
+        self.lstm = Sequence(Vector(1, batch_size=1), 1) >> LSTM(1, 1, stateful=True)
 
     def test_stateful_lstm(self):
         self.lstm.reset_states()
@@ -170,7 +170,7 @@ class TestStatefulLSTM(LSTMBase):
                 for i in range(s):
                     out, state = self.lstm_forward(X[i], out, state, weights)
 
-                lstm = Sequence(Vector(1, 1), s) >> LSTM(1, 1, stateful=True)
+                lstm = Sequence(Vector(1, batch_size=1), s) >> LSTM(1, 1, stateful=True)
                 self.set_weights(lstm.right, 1)
                 lstm_out = lstm.predict(X[:s])[-1]
                 lstm_hidden = T.get_value(lstm.right.states[0])

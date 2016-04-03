@@ -1,10 +1,11 @@
+import numpy as np
+
 from .. import backend as T
+from ..core import RecurrentLayer
 
-from ..node import RecurrentNode
+class LSTM(RecurrentLayer):
 
-class LSTM(RecurrentNode):
-
-    def __init__(self, *args, **kwargs):
+    def __init__(self, shape_in=None, shape_out=None, **kwargs):
 
         self.use_forget_gate = kwargs.get('use_forget_gate', True)
         self.use_input_peep = kwargs.get('use_input_peep', False)
@@ -12,7 +13,23 @@ class LSTM(RecurrentNode):
         self.use_forget_peep = kwargs.get('use_forget_peep', False)
         self.use_tanh_output = kwargs.get('use_tanh_output', True)
 
-        super(LSTM, self).__init__(*args, **kwargs)
+        if shape_out is not None:
+            shape_in, shape_out = (shape_in, shape_out)
+        elif shape_in is not None and shape_out is None:
+            shape_in, shape_out = None, shape_in
+        else:
+            raise Exception("Need to specify LSTM shape")
+
+        super(LSTM, self).__init__(shape_in=shape_in, shape_out=shape_out, **kwargs)
+
+    def get_config(self):
+        config = super(LSTM, self).get_config()
+        config['shape_in'] = self.get_shape_in()
+        config['shape_out'] = self.get_shape_out()
+        return config
+
+    def get_options(self):
+        return ([], self.get_config())
 
 
     def _infer(self, shape_in):
@@ -52,8 +69,8 @@ class LSTM(RecurrentNode):
             if not N:
                 raise Exception('Must set batch size for input')
             else:
-                return [T.zeros((N, self.get_shape_out())),
-                        T.zeros((N, self.get_shape_out()))]
+                return [T.variable(np.zeros((N, self.get_shape_out()))),
+                        T.variable(np.zeros((N, self.get_shape_out())))]
         return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
                 T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
 
@@ -65,28 +82,11 @@ class LSTM(RecurrentNode):
         out, state = self._step(X.get_data(), state)
         return X.next(out, self.get_shape_out()), state
 
-    def _step(self, X, state):
-        previous_hidden, previous_state = state
-        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
+    def _step(self, X, states, _):
+        previous_hidden, previous_state = states
+        lstm_hidden, state = self.lstm_step(X[0], previous_hidden, previous_state)
         return lstm_hidden, [lstm_hidden, state]
 
-    def _forward(self, X):
-        S, N, D = T.shape(X)
-
-        if self.stateful:
-            if self.states is None:
-                self.states = self.get_initial_states(None)
-            hidden, state = self.states
-        else:
-            hidden, state = self.get_initial_states(X)
-
-        _, output, new_state = T.rnn(self._step,
-                              X,
-                              [hidden, state])
-        if self.stateful:
-            for state, ns in zip(self.states, new_state):
-                self.add_update(state, ns)
-        return output
 
     def lstm_step(self, X, previous_hidden, previous_state):
         params = self.parameters
