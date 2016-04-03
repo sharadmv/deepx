@@ -99,10 +99,7 @@ class Node(object):
         return node
 
     def tie(self, node):
-        new_node = self.copy(keep_params=True)
-        for key, val in node.parameters.items():
-            new_node.set_parameter_value(key, val)
-        return new_node
+        pass
 
     # Shape inference
 
