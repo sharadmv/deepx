@@ -137,7 +137,13 @@ class Index(ShapedNode):
     def forward(self, X, **kwargs):
         return [Data.index(X, self.index)]
 
+    def has_parameters(self):
+        return False
+
     # Shape inference
 
     def _infer(self, shape_in):
         return shape_in
+
+    def __str__(self):
+        return "Index(%u)" % self.index

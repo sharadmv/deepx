@@ -23,12 +23,12 @@ class Loss(Layer):
             y = self.y = Data(self.get_shape_in(), name='y', sequence=True)
         output = super(Loss, self).forward(X, y, **kwargs)[0]
         if output.is_sequence():
-            output = [Data.from_placeholder(
+            output = Data.from_placeholder(
                 self._sequence_loss(output.get_placeholder()),
                 self.get_shape_out(),
                 None,
                 sequence=False
-            )]
+            )
         return [output]
 
     def _sequence_loss(self, X):
