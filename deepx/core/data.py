@@ -51,6 +51,47 @@ class Data(ShapedNode):
         data.placeholder = placeholder
         return data
 
+    @classmethod
+    def convert_shape_to_tuple(cls, dim):
+        if isinstance(dim, tuple):
+            return dim
+        return (dim,)
+
+    @classmethod
+    def tile_data(cls, from_data, to_data):
+        dim = 0
+        while T.ndim(from_data) < T.ndim(to_data):
+            from_data = T.expand_dims(from_data, 0)
+            to_dim = T.shape(to_data)[dim]
+            from_data = T.tile(from_data, [to_dim] + [1] * (T.ndim(from_data) - 1))
+            dim += 1
+        return from_data
+
+    @classmethod
+    def concatenate(cls, datas):
+        shapes = [data.get_shape_out() for data in datas]
+        max_data = sorted([d.get_placeholder() for d in datas], key=lambda x: T.ndim(x))[::-1]
+
+        raw_datas = max_data[0:1] + [Data.tile_data(d, max_data[0]) for d in max_data[1:]]
+
+        return Data.from_placeholder(
+            T.concatenate(raw_datas, axis=-1),
+            sum(shapes),
+            datas[0].batch_size,
+            sequence=any(d.is_sequence() for d in datas)
+        )
+
+    @classmethod
+    def index(cls, data, index):
+        raw_data = data.get_placeholder()
+        return Data.from_placeholder(
+            raw_data[-1],
+            data.get_shape_out(),
+            data.batch_size,
+            sequence=False,
+        )
+
+
     def make_sequence(self, max_length):
         return Data(self.dim,
                     datatype=self.datatype,

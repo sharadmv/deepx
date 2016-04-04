@@ -29,7 +29,7 @@ class Loss(Layer):
                 None,
                 sequence=False
             )]
-        return output
+        return [output]
 
     def _sequence_loss(self, X):
         return T.mean(X)

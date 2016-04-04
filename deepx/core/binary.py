@@ -1,5 +1,4 @@
 from .node import Node
-from .exceptions import ShapeException
 
 class BinaryOpNode(Node):
 
@@ -7,6 +6,7 @@ class BinaryOpNode(Node):
         super(BinaryOpNode, self).__init__()
         self.left = left
         self.right = right
+        self.infer_shape()
 
     def get_updates(self):
         return self.left.get_updates() + self.right.get_updates()
@@ -32,6 +32,10 @@ class BinaryOpNode(Node):
 
     def get_shape_out(self):
         raise NotImplementedError
+
+    def set_batch_size(self, batch_size):
+        self.left.set_batch_size(batch_size)
+        self.right.set_batch_size(batch_size)
 
     def is_configured(self):
         return self.left.is_configured() and self.right.is_configured()
@@ -78,87 +82,16 @@ class BinaryOpNode(Node):
         node.infer_shape()
         return node
 
-class Chain(BinaryOpNode):
-
-    def __init__(self, left, right):
-        super(Chain, self).__init__(left, right)
-        self.infer_shape()
-
-    def get_network_inputs(self):
-        inputs = []
-        dups = set()
-        for input in (self.left.get_network_inputs() + self.right.get_network_inputs()):
-            if input not in dups:
-                inputs.append(input)
-                dups.add(input)
-        return inputs
-
-    def is_input(self):
-        return self.left.is_input()
-
-    def get_inputs(self):
-        return self.left.get_inputs()
-
-    def get_outputs(self, **kwargs):
-        return self.forward(*self.get_inputs(), **kwargs)
-
-    def forward(self, *left_input, **kwargs):
-        right_input = self.left.forward(*left_input, **kwargs)
-        right_input = right_input + self.right.get_inputs()
-        right_output = self.right.forward(*right_input, **kwargs)
-        return right_output
-
-    def step(self, X, state):
-        left_state, right_state = state
-        left, left_state = self.left.step(X, left_state)
-        right, right_state = self.right.step(left, right_state)
-        return right, (left_state, right_state)
-
-    def set_shape_in(self, shape_in):
-        self.left.set_shape_in(shape_in)
-        self.infer_shape()
-
-    def set_shape_out(self, shape_out):
-        self.right.set_shape_out(shape_out)
-
-    def get_shape_in(self):
-        return self.left.get_shape_in()
-
-    def get_shape_out(self):
-        return self.right.get_shape_out()
-
-    def set_batch_size(self, batch_size):
-        self.left.set_batch_size(batch_size)
-        self.right.set_batch_size(batch_size)
-
-    def get_batch_size(self):
-        return self.left.get_batch_size()
 
     def reset_states(self):
         self.left.reset_states()
         self.right.reset_states()
 
     def reset_state(self, i):
-        self.left.reset_states(i)
-        self.right.reset_states(i)
+        self.left.reset_state(i)
+        self.right.reset_state(i)
 
     def tie(self, node):
         new_node = self.__class__(self.left.tie(node.left), self.right.tie(node.right))
         new_node.infer_shape()
         return new_node
-
-    def infer_shape(self):
-        self.left.infer_shape()
-
-        self.set_batch_size(self.left.get_batch_size())
-
-        left_out = self.left.get_shape_out()
-        right_in = self.right.get_shape_in()
-        if left_out is not None and right_in is not None:
-            if left_out != right_in:
-                raise ShapeException(self.right, left_out)
-        self.right.set_shape_in(left_out)
-        self.right.infer_shape()
-
-    def __str__(self):
-        return "%s >> %s" % (self.left, self.right)

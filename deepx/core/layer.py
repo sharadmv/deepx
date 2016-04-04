@@ -150,6 +150,12 @@ class Layer(ShapedNode):
     def is_recurrent(self):
         return False
 
+    def tie(self, node):
+        new_node = self.copy(keep_params=True)
+        for key, val in node.parameters.items():
+            new_node.parameters[key] = val
+        return new_node
+
 class ShapedLayer(Layer):
 
     def __init__(self, shape_in=None, shape_out=None, elementwise=False,
@@ -242,9 +248,3 @@ class RecurrentLayer(Layer):
 
     def is_recurrent(self):
         return True
-
-    def tie(self, node):
-        new_node = self.copy(keep_params=True)
-        for key, val in node.parameters.items():
-            new_node.set_parameter_value(key, val)
-        return new_node

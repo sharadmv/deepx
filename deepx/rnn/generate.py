@@ -35,9 +35,14 @@ class Generate(RecurrentLayer):
 
     def sample(self, X):
         if self._sample is None:
-            input = self.get_input()
-            output = self.generate(input, use_dropout=False)[0]
-            self._sample = T.function(self.get_formatted_input(), [output], updates=self.get_updates())
+            inputs = self.get_inputs()
+            input = inputs[0]
+            if self.max_length is not None:
+                length = self.max_length
+            else:
+                length = inputs[1].get_placeholder()
+            output = self.generate(input, length, dropout=False)[0]
+            self._sample = T.function(self.get_network_inputs(), [output], updates=self.get_updates())
         return self._sample(X)
 
     def sharpen(self, x, idx):
@@ -86,7 +91,7 @@ class Generate(RecurrentLayer):
         return self.node.get_shape_out()
 
     def tie(self, node):
-        return Generate(self.node.tie(node), length=self.length)
+        return Generate(self.node.tie(node), max_length=self.max_length)
 
     def get_state(self):
         return self.node.get_state()

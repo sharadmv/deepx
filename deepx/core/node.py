@@ -30,7 +30,8 @@ class Node(object):
         return [x.get_placeholder() for x in self.get_inputs()]
 
     def get_outputs(self, **kwargs):
-        raise NotImplementedError
+        inputs = self.get_inputs()
+        return self.forward(*inputs, **kwargs)
 
     def get_network_outputs(self, **kwargs):
         return [x.get_placeholder() for x in self.get_outputs(**kwargs)]
@@ -99,7 +100,7 @@ class Node(object):
         return node
 
     def tie(self, node):
-        pass
+        return self.copy(keep_params=True)
 
     # Shape inference
 
@@ -127,13 +128,24 @@ class Node(object):
     # Node functions
 
     def chain(self, node):
-        from .binary import Chain
+        from .ops import Chain
         return Chain(self, node)
+
+    def concat(self, node):
+        from .ops import Concatenate
+        return Concatenate(self, node)
 
     # Infix operation
 
     def __rshift__(self, node):
         return self.chain(node)
+
+    def __or__(self, node):
+        return self.concat(node)
+
+    def __getitem__(self, index):
+        from .ops import Index
+        return self.chain(Index(index))
 
     # Node IO
 
@@ -170,10 +182,6 @@ class ShapedNode(Node):
 
     def get_inputs(self):
         return []
-
-    def get_outputs(self, **kwargs):
-        inputs = self.get_inputs()
-        return self.forward(*inputs, **kwargs)
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError
