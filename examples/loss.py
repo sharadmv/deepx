@@ -5,7 +5,7 @@ from deepx.loss import *
 from deepx.optimize import *
 
 if __name__ == "__main__":
-    X = Vector(784)
-    mlp = X >> Repeat(Tanh(200), 2) >> Softmax(10)
+    X = Sequence(Vector(784))
+    mlp = X >> LSTM(20) >> Softmax(2)
     loss = AdversarialLoss(mlp >> CrossEntropy(), X)
     adam = Adam(loss)

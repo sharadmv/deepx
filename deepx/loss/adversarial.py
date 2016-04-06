@@ -13,6 +13,9 @@ class AdversarialLoss(Loss):
         self._grads = None
         super(AdversarialLoss, self).__init__()
 
+    def is_input(self):
+        return self.node.is_input()
+
     def forward(self, *args, **kwargs):
         node_output = self.node.forward(*args, **kwargs)[0]
         X = self.X.get_placeholder()

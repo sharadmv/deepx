@@ -20,7 +20,8 @@ class Loss(Layer):
 
     def forward(self, X, y, **kwargs):
         if X.is_sequence():
-            y = self.y = Data(self.get_shape_in(), name='y', sequence=True)
+            if self.y is not None and not self.y.sequence:
+                y = self.y = Data(self.get_shape_in(), name='y', sequence=True)
         output = super(Loss, self).forward(X, y, **kwargs)[0]
         if output.is_sequence():
             output = Data.from_placeholder(
