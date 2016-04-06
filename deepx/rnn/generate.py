@@ -59,6 +59,7 @@ class Generate(RecurrentLayer):
 
         def step(input, _, *states):
             packed_state = pack_tuple(states, shape)
+            print self.node
             output_softmax, next_state = self.node.step(Data.from_placeholder(input, self.get_shape_out(),
                                                                               batch_size), packed_state)
             output_softmax = output_softmax.get_placeholder()

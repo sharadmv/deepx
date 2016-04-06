@@ -249,6 +249,9 @@ def maximum(x, y):
 def minimum(x, y):
     return T.minimum(x, y)
 
+def sign(x):
+    return T.sgn(x)
+
 # COMPARISONS
 
 def lt(x, y):

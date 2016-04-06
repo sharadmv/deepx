@@ -230,6 +230,8 @@ def maximum(x, y):
 def minimum(x, y):
     return tf.minimum(x, y)
 
+def sign(x):
+    return tf.sign(x)
 
 # COMPARISONS
 

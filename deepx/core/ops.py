@@ -34,7 +34,10 @@ class Chain(BinaryOpNode):
         return right_output
 
     def step(self, X, state):
-        raise NotImplementedError
+        left_state, right_state = state
+        left, left_state = self.left.step(X, left_state)
+        right, right_state = self.right.step(left, right_state)
+        return right, (left_state, right_state)
 
     def set_shape_in(self, shape_in):
         self.left.set_shape_in(shape_in)
@@ -95,12 +98,6 @@ class Concatenate(BinaryOpNode):
     def forward(self, left_input, right_input, **kwargs):
         left_output, right_output = self.left.forward(*left_input), self.right.forward(*right_input)
         return [Data.concatenate(left_output + right_output)]
-
-    def step(self, X, state):
-        left_state, right_state = state
-        left, left_state = self.left.step(X, left_state)
-        right, right_state = self.right.step(left, right_state)
-        return right, (left_state, right_state)
 
     def set_shape_in(self, shape_in):
         self.left.set_shape_in(shape_in)
