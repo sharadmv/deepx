@@ -31,15 +31,15 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10)
+    mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10, temperature_parameter=True)
     loss = mlp >> CrossEntropy()
     rmsprop = RMSProp(loss)
 
-    def train(n_iter, lr):
-        for i in range(n_iter):
-            u = np.random.choice(np.arange(split))
-            loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
-            print("Loss:", loss)
+    # def train(n_iter, lr):
+        # for i in range(n_iter):
+            # u = np.random.choice(np.arange(split))
+            # loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
+            # print("Loss:", loss)
 
-        preds = mlp.predict(Xtest).argmax(axis=1)
-        print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))
+        # preds = mlp.predict(Xtest).argmax(axis=1)
+        # print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))

@@ -1,6 +1,6 @@
 from .. import backend as T
 
-from ..core import ShapedLayer
+from ..core import ShapedLayer, Data
 
 class Linear(ShapedLayer):
 
@@ -22,11 +22,11 @@ class Linear(ShapedLayer):
             raise Exception("No identity nodes allowed.")
         return X
 
-    def _forward(self, X):
+    def _forward(self, X, *args):
         if self.is_elementwise():
-            return self.activate(X)
+            return self.activate(X, *args)
         W, b = self.parameters['W'], self.parameters['b']
-        return self.activate(T.dot(X, W) + b)
+        return self.activate(T.dot(X, W) + b, *args)
 
     def __str__(self):
         if self.is_elementwise():
@@ -57,8 +57,19 @@ class Softmax(Linear):
     def __init__(self, *args, **kwargs):
         super(Softmax, self).__init__(*args, **kwargs)
         self.T = self.config.get('T', 1.0)
+        self.temperature_parameter = self.config.get('temperature_parameter', False)
+        if self.temperature_parameter:
+            self.T = Data.from_placeholder(T.placeholder(ndim=0, name='temperature'),
+                                           (), None)
 
-    def activate(self, X):
+    def get_inputs(self):
+        if self.temperature_parameter:
+            return [self.T]
+        return []
+
+    def activate(self, X, *args):
+        if self.temperature_parameter:
+            return T.softmax(X, args[0])
         return T.softmax(X, self.T)
 
 class Sigmoid(Linear):

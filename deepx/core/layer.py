@@ -242,8 +242,10 @@ class RecurrentLayer(Layer):
                               [X],
                               [hidden, state])
         if self.stateful:
+            self.updates = []
             for state, ns in zip(self.states, new_state):
-                self.updates.append((state, ns))
+                if (state, ns) not in self.updates:
+                    self.updates.append((state, ns))
         return output
 
     def is_recurrent(self):
