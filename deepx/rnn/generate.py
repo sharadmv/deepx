@@ -25,7 +25,7 @@ class Generate(RecurrentLayer):
         else:
             length = inputs[1].get_placeholder()
         output = self.generate(X, length, **kwargs)
-        out = Data.from_placeholder(output[1], self.get_shape_out(),
+        out = Data.from_placeholder(output[0], self.get_shape_out(),
                    batch_size=X.batch_size,
                    sequence=True)
         return [out]
