@@ -1,17 +1,31 @@
 import numpy as np
 
 from .. import backend as T
-from ..core import RecurrentLayer, Data
+from ..core import RecurrentLayer, Shape
 
 class LSTM(RecurrentLayer):
 
-    def __init__(self, shape_in=None, shape_out=None, **kwargs):
+    def __init__(self, shape_in=None, shape_out=None,
+                 use_forget_gate=True,
+                 use_input_peep=False,
+                 use_output_peep=False,
+                 use_forget_peep=False,
+                 use_tanh_output=True, **kwargs):
+        super(LSTM, self).__init__(**kwargs)
+        if shape_out is not None:
+            shape_in, shape_out = (shape_in, shape_out)
+        elif shape_in is not None and shape_out is None:
+            shape_in, shape_out = None, shape_in
+        if shape_in is not None:
+            self.set_shape_in([Shape(shape_in, sequence=True)])
+        if shape_out is not None:
+            self.set_shape_out([Shape(shape_out, sequence=True)])
 
-        self.use_forget_gate = kwargs.get('use_forget_gate', True)
-        self.use_input_peep = kwargs.get('use_input_peep', False)
-        self.use_output_peep = kwargs.get('use_output_peep', False)
-        self.use_forget_peep = kwargs.get('use_forget_peep', False)
-        self.use_tanh_output = kwargs.get('use_tanh_output', True)
+        self.use_forget_gate = use_forget_gate
+        self.use_input_peep = use_input_peep
+        self.use_output_peep = use_output_peep
+        self.use_forget_peep = use_forget_peep
+        self.use_tanh_output = use_tanh_output
 
         if shape_out is not None:
             shape_in, shape_out = (shape_in, shape_out)
@@ -20,20 +34,8 @@ class LSTM(RecurrentLayer):
         else:
             raise Exception("Need to specify LSTM shape")
 
-        super(LSTM, self).__init__(shape_in=shape_in, shape_out=shape_out, **kwargs)
-
-    def get_config(self):
-        config = super(LSTM, self).get_config()
-        config['shape_in'] = self.get_shape_in()
-        config['shape_out'] = self.get_shape_out()
-        return config
-
-    def get_options(self):
-        return ([], self.get_config())
-
-
     def _infer(self, shape_in):
-        return self.shape_out
+        return shape_in.copy(dim=self.get_dim_out())
 
     def create_lstm_parameters(self, shape_in, shape_out):
         self.init_parameter('W_ix', (shape_in, shape_out))
@@ -60,29 +62,19 @@ class LSTM(RecurrentLayer):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
-    def get_initial_states(self, X, shape_index=1):
-        if self.stateful:
-            N = self.get_batch_size()
-        else:
-            N = T.shape(X)[shape_index]
-        if self.stateful:
-            if not N:
-                raise Exception('Must set batch size for input')
-            else:
-                return [T.variable(np.zeros((N, self.get_shape_out()))),
-                        T.variable(np.zeros((N, self.get_shape_out())))]
-        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
-                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
+    def get_initial_states(self, input_data=None, shape_index=1):
+        hidden = super(LSTM, self).get_initial_states(input_data=input_data, shape_index=shape_index)
+        state = super(LSTM, self).get_initial_states(input_data=input_data, shape_index=shape_index)
+        return hidden + state
 
     def initialize(self):
-        shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
-        self.create_lstm_parameters(shape_in, shape_out)
+        dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
+        self.create_lstm_parameters(dim_in, dim_out)
 
-    def _step(self, X, states, _):
-        previous_hidden, previous_state = states
-        lstm_hidden, state = self.lstm_step(X[0], previous_hidden, previous_state)
+    def _step(self, X, state):
+        previous_hidden, previous_state = state
+        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
         return lstm_hidden, [lstm_hidden, state]
-
 
     def lstm_step(self, X, previous_hidden, previous_state):
         params = self.parameters

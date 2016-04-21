@@ -1,196 +1,85 @@
+import copy as cp
+
 from .. import backend as T
+from .exceptions import ShapeOutError
+from .shape import Shape
 
 class Node(object):
-
+    """
+    The :class:`Node` is the highest level abstraction in DeepX.
+    It represents anything that takes in a set of inputs
+    and returns a set of outputs.
+    """
     def __init__(self):
 
-        self._predict = None
-        self._predict_dropout = None
-
+        self.shape_in = None
+        self.shape_out = None
         self.frozen = False
-        self.updates = []
         self.batch_size = None
+        self.config = {}
 
-    def get_batch_size(self):
-        return self.batch_size
+        self.states = None
+        self.updates = []
 
-    def set_batch_size(self, batch_size):
-        self.batch_size = batch_size
-
-    def get_initial_states(self, *args, **kwargs):
-        return None
+        self._predict = {}
 
     def get_updates(self):
         return self.updates
 
+    def set_updates(self, updates):
+        self.updates = updates
+
     def get_inputs(self):
         raise NotImplementedError
 
-    def get_network_inputs(self):
-        return [x.get_placeholder() for x in self.get_inputs()]
+    def forward(self, inputs, **kwargs):
+        raise NotImplementedError
 
     def get_outputs(self, **kwargs):
-        inputs = self.get_inputs()
-        return self.forward(*inputs, **kwargs)
+        self.initialize()
+        return self.forward(self.get_inputs(), **kwargs)
 
-    def get_network_outputs(self, **kwargs):
+    def get_graph_inputs(self):
+        return [x.get_placeholder() for x in self.get_inputs()]
+
+    def get_graph_outputs(self, **kwargs):
         return [x.get_placeholder() for x in self.get_outputs(**kwargs)]
 
-    def reset_states(self):
-        pass
-
-    def reset_state(self, i):
-        pass
-
-    def forward(self, *args, **kwargs):
+    def get_graph_parameters(self):
         raise NotImplementedError
 
-    def _forward(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def step(self, X, state):
-        from .data import Data
-        out, state = self._step(X.get_placeholder(), state)
-        return Data.from_placeholder(out, self.get_shape_out(),
-                                  X.batch_size), state
-
-    def _step(self, X, state):
-        return self._forward(X), None
+    def get_graph_updates(self, **kwargs):
+        return self.get_updates()
 
     def predict(self, *args, **kwargs):
-        if not self.is_input():
-            raise Exception("Cannot pass through data without an input node.")
         dropout = kwargs.pop('dropout', False)
-        if dropout:
-            if self._predict_dropout is None:
-                outputs = self.get_network_outputs(dropout=True)
-                self._predict_dropout = T.function(
-                    self.get_network_inputs(),
-                    outputs,
-                    updates=self.get_updates()
-                )
-            return self._predict_dropout(*args, **kwargs)
-        else:
-            if self._predict is None:
-                outputs = self.get_network_outputs(dropout=False)
-                self._predict = T.function(
-                    self.get_network_inputs(),
-                    outputs,
-                    updates=self.get_updates()
-                )
-            return self._predict(*args, **kwargs)
+        if dropout not in self._predict:
+            self.initialize()
+            self._predict[dropout] = T.function(
+                self.get_graph_inputs(),
+                self.get_graph_outputs(dropout=dropout),
+                updates=self.get_graph_updates()
+            )
+        return self._predict[dropout](*args, **kwargs)
 
-    def is_input(self):
-        raise NotImplementedError
-
-    def has_parameters(self):
-        raise NotImplementedError
-
-    def get_parameters(self):
-        raise NotImplementedError
-
-    def freeze(self):
-        node = self.copy(keep_params=True)
-        node.frozen = True
-        return node
-
-    def unfreeze(self):
-        node = self.copy(keep_params=True)
-        node.frozen = False
-        return node
-
-    def tie(self, node):
-        return self.copy(keep_params=True)
-
-    # Shape inference
-
-    def get_shape(self):
-        return (self.get_shape_in(), self.get_shape_out())
-
-    def set_shape_in(self, shape_in):
-        raise NotImplementedError
-
-    def set_shape_out(self, shape_out):
-        raise NotImplementedError
-
-    def get_shape_in(self):
-        raise NotImplementedError
-
-    def get_shape_out(self):
-        raise NotImplementedError
-
-    def is_configured(self):
-        raise NotImplementedError
-
-    def infer_shape(self):
-        raise NotImplementedError
-
-    # Node functions
-
-    def chain(self, node):
-        from .ops import Chain
-        return Chain(self, node)
-
-    def concat(self, node):
-        from .ops import Concatenate
-        return Concatenate(self, node)
-
-    # Infix operation
-
-    def __rshift__(self, node):
-        return self.chain(node)
-
-    def __or__(self, node):
-        return self.concat(node)
-
-    def __getitem__(self, index):
-        from .ops import Index
-        return self.chain(Index(index))
-
-    # Node IO
-
-    def get_options(self):
-        return ([], {})
-
-    def get_state(self, **kwargs):
-        raise NotImplementedError
-
-    def set_state(self, state):
-        raise NotImplementedError
-
-    def copy(self, **kwargs):
-        raise NotImplementedError
-
-    def __repr__(self):
-        return str(self)
-
-    def __str__(self):
-        return super(Node, self).__repr__()
-
-class ShapedNode(Node):
-
-    def __init__(self, shape_in=None, shape_out=None):
-        super(ShapedNode, self).__init__()
-
-        self.set_shape_in(shape_in)
-        self.set_shape_out(shape_out)
-
-        self.infer_shape()
-
-    def is_input(self):
-        return False
-
-    def get_inputs(self):
+    def get_initial_states(self, *args, **kwargs):
         return []
 
-    def forward(self, *args, **kwargs):
+    def reset_states(self):
+        if self.states is not None:
+            for i in range(len(self.states)):
+                self.reset_state(i)
+
+    def reset_state(self, i):
         raise NotImplementedError
 
+    def initialize(self, **kwargs):
+        raise NotImplementedError
+
+    def reinitialize(self, **kwargs):
+        raise NotImplementedError
 
     # Shape inference
-
-    def _infer(self, shape_in):
-        raise NotImplementedError
 
     def set_shape_in(self, shape_in):
         self.shape_in = shape_in
@@ -204,13 +93,65 @@ class ShapedNode(Node):
     def get_shape_out(self):
         return self.shape_out
 
-    def is_configured(self):
-        return (self.get_shape_in() is not None) and (self.get_shape_out() is not None)
+    def get_shape(self):
+        return (self.get_shape_in(), self.get_shape_out())
 
     def infer_shape(self):
-        if self.is_configured():
-            return
         shape_in = self.get_shape_in()
+        shape_out = self.get_shape_out()
         if shape_in is not None:
-            shape_out = self._infer(shape_in)
-            self.set_shape_out(shape_out)
+            predicted_shape_out = self._infer(shape_in)
+            if shape_out is None and shape_out == predicted_shape_out:
+                self.set_shape_out(predicted_shape_out)
+            elif shape_out != predicted_shape_out:
+                raise ShapeOutError(self, shape_out)
+
+    def _infer(self, shape_in):
+        raise NotImplementedError
+
+    # Binary operations
+
+    def chain(self, node):
+        from .ops import Chain
+        return Chain(self, node)
+
+    def concat(self, node):
+        from .ops import Concatenate
+        return Concatenate(self, node)
+
+    def freeze(self):
+        node = self.same()
+        node.frozen = True
+        return node
+
+    # Infix operations
+
+    def __call__(self, *args, **kwargs):
+        return self.predict(*args, **kwargs)
+
+    def __rshift__(self, node):
+        return self.chain(node)
+
+    def __or__(self, node):
+        return self.concat(node)
+
+    def __getitem__(self, index):
+        from .ops import Index
+        return self.chain(Index(index))
+
+    # Node Bookkeeping
+
+    def same(self):
+        return cp.deepcopy(self)
+
+    def copy(self):
+        node = cp.deepcopy(self)
+        if self.can_initialize():
+            node.reinitialize()
+        return node
+
+    def __repr__(self):
+        return str(self)
+
+    def __str__(self):
+        return super(Node, self).__repr__()

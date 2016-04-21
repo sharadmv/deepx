@@ -4,14 +4,14 @@ class Optimizer(object):
 
     def __init__(self, loss, clip_gradients=None):
         self.loss = loss
-        assert self.loss.get_shape_out() == (), "Can only optimize a scalar quantity."
+        assert self.loss.get_shape_out()[0].get_dim() == (), "Can only optimize a scalar quantity."
 
-        self.parameters = self.loss.get_parameters()
+        self.parameters = self.loss.get_graph_parameters()
 
         self.initialize()
 
         self.aux_inputs = self.get_aux_inputs()
-        self.opt_outputs = self.loss.get_network_outputs()
+        self.opt_outputs = self.loss.get_graph_outputs()
 
         self.grads = self.get_gradient()
 
@@ -20,7 +20,7 @@ class Optimizer(object):
             self.grads = [self.scale(g, c) for g in self.grads]
 
         self.grad_updates = self.get_updates() + self.loss.get_updates()
-        self.opt_inputs = self.loss.get_network_inputs()
+        self.opt_inputs = self.loss.get_graph_inputs()
 
         self._gradient = None
         self._loss = None

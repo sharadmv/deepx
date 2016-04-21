@@ -1,66 +1,60 @@
 from .. import backend as T
 
-from ..core import ShapedLayer, Data
+from ..core import ShapedLayer, Data, Shape
 
 class Linear(ShapedLayer):
 
     def initialize(self):
         if not self.is_elementwise():
-            self.init_parameter('W', (self.get_shape_in(), self.get_shape_out()))
-            self.init_parameter('b', self.get_shape_out())
-
-    def is_elementwise(self):
-        return self._elementwise
-
-    def _infer(self, shape_in):
-        if self.is_elementwise():
-            return shape_in
-        return self.shape_out
+            dim_in = self.get_dim_in()
+            dim_out = self.get_dim_out()
+            self.init_parameter('W', (dim_in, dim_out))
+            self.init_parameter('b', dim_out)
 
     def activate(self, X):
         if self.is_elementwise():
-            raise Exception("No identity nodes allowed.")
+            raise Exception("No identity nodes")
         return X
 
-    def _forward(self, X, *args):
+    def _forward(self, X, *args, **kwargs):
         if self.is_elementwise():
             return self.activate(X, *args)
         W, b = self.parameters['W'], self.parameters['b']
         return self.activate(T.dot(X, W) + b, *args)
 
-    def __str__(self):
-        if self.is_elementwise():
-            return "%s()" % self.__class__.__name__
-        return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.get_shape_in(), self.get_shape_out())
 class Maxout(Linear):
 
 
     def __init__(self, shape_in=None, shape_out=None, k=4, **kwargs):
-        self.k = k
         super(Maxout, self).__init__(shape_in=shape_in,
                                      shape_out=shape_out,
-                                     k=self.k, **kwargs)
+                                     **kwargs)
+        self.k = k
 
     def __str__(self):
         return "%s(%s, %s)" % (self.__class__.__name__,
                                self.get_shape_in(), self.get_shape_out())
+
     def initialize(self):
-        self.init_parameter('W', (self.k, self.get_shape_in(), self.get_shape_out()))
-        self.init_parameter('b', (self.k, self.get_shape_out()))
+        dim_in = self.get_dim_in()
+        dim_out = self.get_dim_out()
+        self.init_parameter('W', (self.k, dim_in, dim_out))
+        self.init_parameter('b', (self.k, dim_out))
 
     def activate(self, X):
         return T.max(X, axis=1)
 
 class Softmax(Linear):
 
-    def __init__(self, *args, **kwargs):
-        super(Softmax, self).__init__(*args, **kwargs)
-        self.T = self.config.get('T', 1.0)
-        self.temperature_parameter = self.config.get('temperature_parameter', False)
+    def __init__(self, shape_in=None, shape_out=None, temp=1.0, temperature_parameter=False,
+                 **kwargs):
+        super(Softmax, self).__init__(shape_in=shape_in,
+                                     shape_out=shape_out,
+                                     **kwargs)
+        self.T = temp
+        self.temperature_parameter = temperature_parameter
         if self.temperature_parameter:
-            self.T = Data.from_placeholder(T.placeholder(ndim=0, name='temperature'),
-                                           (), None)
+            self.T = Data(Shape(None), placeholder=T.placeholder(ndim=0, name='temperature'))
 
     def get_inputs(self):
         if self.temperature_parameter:
@@ -89,18 +83,22 @@ class Relu(Linear):
 
 class Elu(Linear):
 
-    def __init__(self, *args, **kwargs):
-        super(Elu, self).__init__(*args, **kwargs)
-        self.alpha = self.config.get('alpha', 1.0)
+    def __init__(self, shape_in=None, shape_out=None, alpha=1.0, **kwargs):
+        super(Elu, self).__init__(shape_in=shape_in,
+                                     shape_out=shape_out,
+                                     **kwargs)
+        self.alpha = alpha
 
     def activate(self, X):
         return T.relu(X) + self.alpha * (T.exp((X - abs(X)) * 0.5) - 1)
 
 class LeakyRelu(Linear):
 
-    def __init__(self, *args, **kwargs):
-        super(LeakyRelu, self).__init__(*args, **kwargs)
-        self.alpha = self.config.get('alpha', 0.1)
+    def __init__(self, shape_in=None, shape_out=None, alpha=1.0, **kwargs):
+        super(LeakyRelu, self).__init__(shape_in=shape_in,
+                                     shape_out=shape_out,
+                                     **kwargs)
+        self.alpha = alpha
 
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
@@ -108,8 +106,7 @@ class LeakyRelu(Linear):
 class Tanlu(Linear):
 
     def initialize(self):
-        super(Tanlu, self).initialize()
-        self.init_parameter('alpha', self.get_shape_out(), value=0.5)
+        self.init_parameter('alpha', self.get_shape_out()[0].get_dim(), value=0.5)
 
     def activate(self, X):
         alpha = self.get_parameter('alpha')

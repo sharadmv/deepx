@@ -6,7 +6,7 @@ def shape_identity(shape_in):
 class Lambda(Layer):
 
     def __init__(self, func, shape_func=shape_identity):
-        super(Lambda, self).__init__(func=func, shape_func=shape_func)
+        super(Lambda, self).__init__()
         self.func = func
         self.shape_func = shape_func
 
@@ -16,8 +16,5 @@ class Lambda(Layer):
     def _infer(self, shape_in):
         return self.shape_func(shape_in)
 
-    def _forward(self, X):
+    def _forward(self, X, **kwargs):
         return self.func(X)
-
-    def copy(self, **kwargs):
-        return Lambda(self.func, self.shape_func)

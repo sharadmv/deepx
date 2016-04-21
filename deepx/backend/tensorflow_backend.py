@@ -22,10 +22,16 @@ def _set_session(session):
 # VARIABLE MANIPULATION
 
 
-def alloc(value, shape, unbroadcast=None):
-    if None in shape:
-        raise NotImplementedError("Cannot handle dynamic allocation just yet.")
-    return tf.constant(value, shape=shape, dtype=_FLOATX)
+def alloc(value, shape, unbroadcast=None, dtype=_FLOATX):
+    vals = tf.fill(tf.pack(shape), np.array(value).astype(dtype))
+    new_shape = []
+    for s in shape:
+        if isinstance(s, tf.Tensor):
+            new_shape.append(None)
+        else:
+            new_shape.append(s)
+    vals.set_shape(new_shape)
+    return vals
 
 def variable(value, dtype=_FLOATX, name=None):
     v = tf.Variable(np.asarray(value, dtype=dtype), name=name)
@@ -47,11 +53,10 @@ def set_shape(x, dim, value):
     x.set_shape(s)
 
 def shape(x):
-    return x.get_shape().as_list()
+    return tf.shape(x)
 
 def ndim(x):
     return len(x.get_shape())
-
 
 def eval(x):
     '''Run a graph.
@@ -60,8 +65,7 @@ def eval(x):
 
 
 def zeros(shape, dtype=_FLOATX, name=None):
-    return variable(np.zeros(shape), dtype, name)
-
+    return tf.zeros(shape, dtype=dtype)
 
 def ones(shape, dtype=_FLOATX, name=None):
     return variable(np.ones(shape), dtype, name)
@@ -413,6 +417,7 @@ def generate(step_function, inputs, n_steps):
     return [tf.pack(a) for a in zip(*outputs)], []
 
 def rnn(step_function, inputs, initial_states,
+        non_sequences=[],
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
 
@@ -458,7 +463,7 @@ def rnn(step_function, inputs, initial_states,
     if go_backwards:
         input_list.reverse()
     for input in input_list:
-        output, new_states = step_function(input, states)
+        output, new_states = step_function(input, states, *non_sequences)
         if masking:
             # for now we raise an exception because tf.reduce_any will not work
             raise Exception("Masking is Theano-only for the time being.")
@@ -480,11 +485,10 @@ def rnn(step_function, inputs, initial_states,
         successive_outputs.append(output)
         successive_states.append(states)
 
-    last_output = successive_outputs[-1]
     outputs = tf.pack(successive_outputs)
     new_states = successive_states[-1]
 
-    return last_output, outputs, new_states
+    return outputs, new_states
 
 
 def switch(condition, then_expression, else_expression):

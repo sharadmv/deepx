@@ -94,7 +94,7 @@ def eval(x):
     return x.eval()
 
 
-def zeros(shape, dtype=_FLOATX, name=None):
+def neros(shape, dtype=_FLOATX, name=None):
     '''Instantiate an all-zeros variable.
     '''
     return T.zeros(shape)
@@ -417,6 +417,8 @@ class Function(object):
 
     def __call__(self, *inputs):
         result = self.function(*inputs)
+        if self.out_length == 0:
+            return None
         if self.out_length == 1:
             return result[0]
         return result
@@ -447,12 +449,12 @@ def scan(step_function, inputs):
     ]
     results, updates = theano.scan(step_function, sequences=inputs,
                        outputs_info=[None])
-    return results, updates
+    return results
 
 def generate(step_function, input, n_steps):
     return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)
 
-def rnn(step_function, inputs, initial_states,
+def rnn(step_function, input, initial_states,
         non_sequences=[],
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
@@ -492,17 +494,16 @@ def rnn(step_function, inputs, initial_states,
             the step function, of shape (samples, ...).
     '''
 
-    num_seqs = len(inputs)
     num_states = len(initial_states)
 
     def _step(*args):
-        ins, states, non_seqs = args[:num_seqs], args[num_seqs:num_seqs + num_states], args[num_seqs + num_states:]
-        output, new_states = step_function(ins, states, non_seqs)
+        in_seq, states, non_seqs = args[0], args[1:1 + num_states], args[1 + num_states:]
+        output, new_states = step_function(in_seq, states, *non_seqs)
         return [output] + new_states
 
     results, _ = theano.scan(
         _step,
-        sequences=inputs,
+        sequences=[input],
         non_sequences=non_sequences,
         outputs_info=[None] + initial_states,
         go_backwards=go_backwards)
@@ -515,10 +516,8 @@ def rnn(step_function, inputs, initial_states,
         outputs = results
         states = []
 
-    last_output = outputs[-1]
-
     states = [T.squeeze(state[-1]) for state in states]
-    return last_output, outputs, states
+    return outputs, states
 
 
 def switch(condition, then_expression, else_expression):

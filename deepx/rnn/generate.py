@@ -84,6 +84,9 @@ class Generate(RecurrentLayer):
             return self.node.get_inputs()
         return self.node.get_inputs() + [self.length]
 
+    def get_network_inputs(self):
+        return self.node.get_network_inputs() + [self.length.get_placeholder()]
+
     def get_shape_in(self):
         return self.node.get_shape_in()
 

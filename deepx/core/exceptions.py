@@ -1,5 +1,14 @@
+class ShapeOutError(Exception):
 
-class ShapeException(Exception):
+    def __init__(self, node, shape_out):
+        message = "Shape mismatch for %s. Expected out: %s. Inferred out: %s" % (
+            node,
+            str(node.get_shape_out()),
+            str(shape_out),
+        )
+        super(ShapeOutError, self).__init__(message)
+
+class ShapeInError(Exception):
 
     def __init__(self, node, shape_in):
         message = "Shape mismatch for %s. Expected in: %s. Inferred in: %s" % (
@@ -7,4 +16,4 @@ class ShapeException(Exception):
             str(node.get_shape_in()),
             str(shape_in),
         )
-        super(ShapeException, self).__init__(message)
+        super(ShapeInError, self).__init__(message)

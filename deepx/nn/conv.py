@@ -7,16 +7,10 @@ from .full import Relu
 class Convolution(Layer):
 
     def __init__(self, kernel=(1, 2, 2), border_mode="same"):
-
+        super(Convolution, self).__init__()
         self.kernel = kernel
         self.border_mode = border_mode
         self.channels_in = None
-
-        super(Convolution, self).__init__(kernel=self.kernel,
-                                          border_mode=self.border_mode)
-
-    def is_configured(self):
-        return self.channels_in is not None
 
     def initialize(self):
         channels_out, kernel_height, kernel_width = self.kernel
@@ -24,9 +18,10 @@ class Convolution(Layer):
         self.init_parameter('b', channels_out)
 
     def _infer(self, shape_in):
-        self.channels_in = shape_in[0]
+        dim = shape_in.dim
+        self.channels_in = dim[0]
         channels_out, kernel_height, kernel_width = self.kernel
-        d_in, h_in, w_in = shape_in
+        d_in, h_in, w_in = dim
         if self.border_mode == "same":
             h_out = h_in
             w_out = w_in
@@ -35,9 +30,9 @@ class Convolution(Layer):
             w_out = w_in - kernel_width + 1
         else:
             raise Exception("Border mode must be {same, valid}.")
-        return channels_out, h_out, w_out
+        return shape_in.copy(dim=(channels_out, h_out, w_out))
 
-    def _forward(self, X):
+    def _forward(self, X, **kwargs):
         W = self.get_parameter('W')
         b = self.get_parameter('b')
         return (T.conv2d(X, W, border_mode=self.border_mode)
@@ -54,19 +49,16 @@ class Pool(Layer):
     def initialize(self):
         return
 
-    def is_configured(self):
-        return self.get_shape_out() is not None
-
     def _infer(self, shape_in):
-        channels_in, h_in, w_in = shape_in
+        channels_in, h_in, w_in = shape_in.dim
         k_h, k_w = self.kernel
-        return (
+        return shape_in.copy(dim=(
             channels_in,
             int(math.ceil(h_in/float(k_h))),
             int(math.ceil(w_in/float(k_w))),
-        )
+        ))
 
-    def _forward(self, X):
+    def _forward(self, X, **kwargs):
         return T.pool2d(X, self.kernel, strides=(self.stride, self.stride))
 
 def Conv(conv_kernel, pool_kernel=(2, 2), pool_stride=2, border_mode='same', pool_type='max', activation=Relu):

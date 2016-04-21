@@ -12,15 +12,15 @@ class TestLinear(BaseTest):
         layer = type(in_size, out_size, **kwargs)
         input = Vector(in_size)
 
-        state = layer.get_state()
-        W, b = np.array(state['W']), np.array(state['b'])
-
         net_func = self.create_function(input >> layer)
 
         B = batch_size
         X = np.random.normal(size=(B, in_size))
 
         result = net_func(X)
+
+        state = layer.get_state()
+        W, b = np.array(state['W']), np.array(state['b'])
         result2 = activation(np.dot(X, W) + b)
 
         np.testing.assert_almost_equal(result, result2, decimal=5)

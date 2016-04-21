@@ -8,15 +8,42 @@ class BinaryOpNode(Node):
         self.right = right
         self.infer_shape()
 
+    def can_initialize(self):
+        return self.left.can_initialize() and self.right.can_initialize()
+
+    def reinitialize(self, **kwargs):
+        self.left.reinitialize(**kwargs)
+        self.right.reinitialize(**kwargs)
+
+    def initialize(self, **kwargs):
+        self.left.initialize(**kwargs)
+        self.right.initialize(**kwargs)
+
     def get_updates(self):
         return self.left.get_updates() + self.right.get_updates()
 
     def get_inputs(self):
-        return self.left.get_inputs(), self.right.get_inputs()
+        raise NotImplementedError
 
-    def get_outputs(self, **kwargs):
-        left_input, right_input = self.left.get_inputs(), self.right.get_inputs()
-        return self.forward(left_input, right_input, **kwargs)
+    def get_graph_inputs(self):
+        inputs = []
+        dups = set()
+        for input in (self.left.get_graph_inputs() + self.right.get_graph_inputs()):
+            if input not in dups:
+                inputs.append(input)
+                dups.add(input)
+        return inputs
+
+    def get_graph_parameters(self):
+        if self.frozen:
+            return []
+        parameters = []
+        dups = set()
+        for parameter in (self.left.get_graph_parameters() + self.right.get_graph_parameters()):
+            if parameter not in dups:
+                parameters.append(parameter)
+                dups.add(parameter)
+        return parameters
 
     def has_parameters(self):
         return self.left.has_parameters() or self.right.has_parameters()
@@ -41,22 +68,7 @@ class BinaryOpNode(Node):
         return self.left.is_configured() and self.right.is_configured()
 
     def get_parameters(self):
-        if self.frozen:
-            return []
-        params = []
-        dups = set()
-        if self.left.has_parameters():
-            for param in self.left.get_parameters():
-                dups.add(param)
-                params.append(param)
-        if self.right.has_parameters():
-            for param in self.right.get_parameters():
-                if param not in dups:
-                    params.append(param)
-        return params
-
-    def get_parameter_tree(self):
-        return (self.left.get_parameter_tree(), self.right.get_parameter_tree())
+        return (self.left.get_parameters(), self.right.get_parameters())
 
     def get_state(self, **kwargs):
         return (self.left.get_state(**kwargs), self.right.get_state(**kwargs))
@@ -73,15 +85,6 @@ class BinaryOpNode(Node):
         left_params, right_params = params
         self.left.set_parameter_tree(left_params)
         self.right.set_parameter_tree(right_params)
-
-    def copy(self, keep_params=False, **kwargs):
-        old_params = self.get_parameter_tree()
-        node = self.__class__(self.left.copy(**kwargs), self.right.copy(**kwargs))
-        if keep_params:
-            node.set_parameter_tree(old_params)
-        node.infer_shape()
-        return node
-
 
     def reset_states(self):
         self.left.reset_states()

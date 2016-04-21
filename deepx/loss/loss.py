@@ -8,34 +8,30 @@ class Loss(Layer):
         super(Loss, self).__init__()
 
     def _infer(self, shape_in):
-        return ()
+        return shape_in.copy(dim=())
 
     def initialize(self):
         pass
 
     def get_inputs(self):
         if self.y is None:
-            self.y = Data(self.get_shape_in(), name='y')
+            self.y = Data(self.get_shape_in()[0], name='y')
         return [self.y]
-
-    def forward(self, X, y, **kwargs):
-        if X.is_sequence():
-            if self.y is not None and not self.y.sequence:
-                y = self.y = Data(self.get_shape_in(), name='y', sequence=True)
-        output = super(Loss, self).forward(X, y, **kwargs)[0]
-        if output.is_sequence():
-            output = Data.from_placeholder(
-                self._sequence_loss(output.get_placeholder()),
-                self.get_shape_out(),
-                None,
-                sequence=False
-            )
-        return [output]
 
     def _sequence_loss(self, X):
         return T.mean(X)
 
-    def _forward(self, X, y):
+    def forward(self, inputs, **kwargs):
+        X, y = inputs
+        if X.is_sequence():
+            def step(*inputs):
+                return self._loss(*inputs)
+            return [Data(self.get_shape_out()[0],
+                        placeholder=T.scan(step, [X.get_placeholder(), y.get_placeholder()])[0])]
+        return [Data(self.get_shape_out()[0],
+                    placeholder=self._forward(X.get_placeholder(), y.get_placeholder()))]
+
+    def _forward(self, X, y, **kwargs):
         return self._loss(X, y)
 
     def __str__(self):

@@ -1,3 +1,0 @@
-
-class Regularizer():
-    raise NotImplementedError
