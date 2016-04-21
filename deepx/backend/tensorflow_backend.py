@@ -33,8 +33,18 @@ def alloc(value, shape, unbroadcast=None, dtype=_FLOATX):
     vals.set_shape(new_shape)
     return vals
 
+class Var(tf.Variable):
+
+    def __init__(self, *args, **kwargs):
+        super(Var, self).__init__(*args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
+
+    def __deepcopy__(self, memo):
+        return self
+
 def variable(value, dtype=_FLOATX, name=None):
-    v = tf.Variable(np.asarray(value, dtype=dtype), name=name)
+    v = Var(np.asarray(value, dtype=dtype), name=name)
     _get_session().run(v.initializer)
     return v
 
