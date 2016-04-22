@@ -95,7 +95,7 @@ class Layer(Node):
     def get_graph_parameters(self):
         if self.frozen:
             return []
-        return self.parameters.values()
+        return list(self.parameters.values())
 
     def get_parameters(self):
         return self.parameters
