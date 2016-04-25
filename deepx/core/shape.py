@@ -16,6 +16,9 @@ class Shape(object):
         self.max_length = max_length
         self.dtype = dtype
 
+    def is_none(self):
+        return self.dim is None
+
     def get_dim(self):
         return self.dim
 
@@ -32,6 +35,8 @@ class Shape(object):
         return self.dtype
 
     def create_placeholder(self, name=None):
+        if self.is_none():
+            raise TypeError("Cannot create placeholder for Shape(None)")
         if self.sequence:
             shape = [self.max_length, self.batch_size] + list(self.dim)
         else:
@@ -50,8 +55,6 @@ class Shape(object):
     def __eq__(self, other):
         if self.dim != other.dim:
             return False
-        # if self.batch_size != other.batch_size:
-            # return False
         if self.sequence != other.sequence:
             return False
         if self.dtype != other.dtype:

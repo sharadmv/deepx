@@ -41,7 +41,7 @@ if 'DEEPX_BACKEND' in os.environ:
 if _BACKEND == 'theano':
     try:
         from .theano_backend import *
-    except:
+    except ImportError:
         logging.info("Failed importing theano. Trying tensorflow...")
         _BACKEND = 'tensorflow'
 if _BACKEND == 'tensorflow':

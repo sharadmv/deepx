@@ -4,107 +4,107 @@ from .binary import BinaryOpNode
 from .exceptions import ShapeInError
 from .data import Data
 
+__all__ = ["Chain", "Concatenate"]
+
 class Chain(BinaryOpNode):
 
     def __init__(self, left, right):
         super(Chain, self).__init__(left, right)
-        self.infer_shape()
+        if left.get_num_outputs() != right.get_num_inputs():
+            raise TypeError("Cannot chain %s and %s" % (left, right))
 
-    def get_network_inputs(self):
-        inputs = []
-        dups = set()
-        for input in (self.left.get_network_inputs() + self.right.get_network_inputs()):
-            if input not in dups:
-                inputs.append(input)
-                dups.add(input)
-        return inputs
+    def get_outputs(self, *inputs, **kwargs):
+        left_out = self.left.get_outputs(*inputs, **kwargs)
+        right_out = self.right.get_outputs(*left_out, **kwargs)
+        return right_out
 
-    def is_input(self):
-        return self.left.is_input()
+    def get_shapes_in(self):
+        return self.left.get_shapes_in()
 
-    def get_inputs(self):
-        return self.left.get_inputs()
+    def get_shapes_out(self):
+        return self.right.get_shapes_out()
 
-    def forward(self, left_input, **kwargs):
-        right_input = self.left.forward(left_input, **kwargs)
-        right_input = right_input + self.right.get_inputs()
-        right_output = self.right.forward(right_input, **kwargs)
-        return right_output
+    def set_shapes_in(self, shapes_in):
+        self.left.set_shapes_in(shapes_in)
 
-    def step(self, X, state):
-        left_state, right_state = state
-        left, left_state = self.left.step(X, left_state)
-        right, right_state = self.right.step(left, right_state)
-        return right, (left_state, right_state)
+    def set_shapes_out(self, shapes_out):
+        self.right.set_shapes_out(shapes_in)
 
-    def set_shape_in(self, shape_in):
-        self.left.set_shape_in(shape_in)
-        self.infer_shape()
+    def get_num_inputs(self):
+        return self.left.get_num_inputs()
 
-    def set_shape_out(self, shape_out):
-        self.right.set_shape_out(shape_out)
-
-    def get_shape_in(self):
-        return self.left.get_shape_in()
-
-    def get_shape_out(self):
-        return self.right.get_shape_out()
+    def get_num_outputs(self):
+        return self.right.get_num_outputs()
 
     def infer_shape(self):
         self.left.infer_shape()
-
-        left_out = self.left.get_shape_out()
-        right_in = self.right.get_shape_in()
-        if left_out is not None and right_in is not None:
-            if left_out != right_in:
-                raise ShapeInError(self.right, left_out)
-        self.right.set_shape_in(left_out)
         self.right.infer_shape()
+        if self.left.get_shapes_out() is not None or self.left.get_shapes_out() == self.right.get_shapes_out():
+            self.right.set_shapes_in(self.left.get_shapes_out())
+            self.right.infer_shape()
 
-    def __str__(self):
+    def __repr__(self):
         return "%s >> %s" % (self.left, self.right)
 
-class Concatenate(BinaryOpNode):
+    def __str__(self):
+        return repr(self)
 
-    def __init__(self, left, right):
-        super(Concatenate, self).__init__(left, right)
-        self.infer_shape()
+class Concatenate(Node):
 
-    def is_input(self):
-        return self.left.is_input() and self.right.is_input()
+    def get_graph_parameters(self):
+        return []
 
-    def get_inputs(self):
-        return (self.left.get_inputs(), self.right.get_inputs())
+    def get_graph_inputs(self):
+        return []
 
-    def forward(self, inputs, **kwargs):
-        left_input, right_input = inputs
-        left_output, right_output = self.left.forward(*left_input), self.right.forward(*right_input)
-        return [Data.concatenate(left_output + right_output)]
+    def get_graph_updates(self, **kwargs):
+        return []
 
-    def set_shape_in(self, shape_in):
-        self.infer_shape()
+    def reset_states(self):
+        return
 
-    def set_shape_out(self, shape_out):
-        self.right.set_shape_out(shape_out)
+    def reset_state(self, i):
+        return
 
-    def get_shape_in(self):
-        return self.left.get_shape_in()
+    def initialize(self, **kwargs):
+        return
 
-    def get_shape_out(self):
-        return [Shape.concatenate([self.left.get_shape_out()[0], self.right.get_shape_out()[0]])]
+    def reinitialize(self, **kwargs):
+        return
 
-    def set_batch_size(self, batch_size):
-        self.left.set_batch_size(batch_size)
-        self.right.set_batch_size(batch_size)
+    def get_outputs(self, *inputs, **kwargs):
+        return [Data.concatenate(inputs)]
 
-    def get_batch_size(self):
-        return self.left.get_batch_size()
+    def get_shapes_in(self):
+        return self.shapes_in
+
+    def get_shapes_out(self):
+        return self.shapes_out
+
+    def set_shapes_in(self, shapes_in):
+        self.shapes_in = shapes_in
+
+    def set_shapes_out(self, shapes_out):
+        self.shapes_out = shapes_out
+
+    def get_num_inputs(self):
+        shapes_in = self.get_shapes_in()
+        if shapes_in is None:
+            return None
+        return len(shapes_in)
+
+    def get_num_outputs(self):
+        return 1
 
     def infer_shape(self):
-        pass
+        if self.shapes_in is not None:
+            self.shapes_out = [Shape.concatenate(self.shapes_in)]
+
+    def __repr__(self):
+        return "Concatenate()"
 
     def __str__(self):
-        return "(%s) | (%s)" % (self.left, self.right)
+        return repr(self)
 
 class Index(Node):
 

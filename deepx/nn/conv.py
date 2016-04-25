@@ -17,7 +17,7 @@ class Convolution(Layer):
         self.init_parameter('W', (channels_out, self.channels_in, kernel_height, kernel_width))
         self.init_parameter('b', channels_out)
 
-    def _infer(self, shape_in):
+    def infer(self, shape_in):
         dim = shape_in.dim
         self.channels_in = dim[0]
         channels_out, kernel_height, kernel_width = self.kernel
@@ -32,9 +32,8 @@ class Convolution(Layer):
             raise Exception("Border mode must be {same, valid}.")
         return shape_in.copy(dim=(channels_out, h_out, w_out))
 
-    def _forward(self, X, **kwargs):
-        W = self.get_parameter('W')
-        b = self.get_parameter('b')
+    def forward(self, X, **kwargs):
+        W, b = self.get_parameter_list('W', 'b')
         return (T.conv2d(X, W, border_mode=self.border_mode)
                 + T.expand_dims(T.expand_dims(T.expand_dims(b, 0), 2), 3))
 
@@ -49,7 +48,7 @@ class Pool(Layer):
     def initialize(self):
         return
 
-    def _infer(self, shape_in):
+    def infer(self, shape_in):
         channels_in, h_in, w_in = shape_in.dim
         k_h, k_w = self.kernel
         return shape_in.copy(dim=(
@@ -58,7 +57,7 @@ class Pool(Layer):
             int(math.ceil(w_in/float(k_w))),
         ))
 
-    def _forward(self, X, **kwargs):
+    def forward(self, X, **kwargs):
         return T.pool2d(X, self.kernel, strides=(self.stride, self.stride))
 
 def Conv(conv_kernel, pool_kernel=(2, 2), pool_stride=2, border_mode='same', pool_type='max', activation=Relu):

@@ -17,9 +17,9 @@ class LSTM(RecurrentLayer):
         elif shape_in is not None and shape_out is None:
             shape_in, shape_out = None, shape_in
         if shape_in is not None:
-            self.set_shape_in([Shape(shape_in, sequence=True)])
+            self.set_shapes_in([Shape(shape_in, sequence=True)])
         if shape_out is not None:
-            self.set_shape_out([Shape(shape_out, sequence=True)])
+            self.set_shapes_out([Shape(shape_out, sequence=True)])
 
         self.use_forget_gate = use_forget_gate
         self.use_input_peep = use_input_peep
@@ -34,7 +34,7 @@ class LSTM(RecurrentLayer):
         else:
             raise Exception("Need to specify LSTM shape")
 
-    def _infer(self, shape_in):
+    def infer(self, shape_in):
         return shape_in.copy(dim=self.get_dim_out())
 
     def create_lstm_parameters(self, shape_in, shape_out):
@@ -62,21 +62,21 @@ class LSTM(RecurrentLayer):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
-    def get_initial_states(self, input_data=None, shape_index=1):
-        hidden = super(LSTM, self).get_initial_states(input_data=input_data, shape_index=shape_index)
-        state = super(LSTM, self).get_initial_states(input_data=input_data, shape_index=shape_index)
-        return hidden + state
+    def create_initial_state(self, input_data, stateful, shape_index=1):
+        batch_size = self.get_shapes_in()[0].get_batch_size() or T.shape(input_data)[1]
+        dim_out = self.get_dim_out()
+        if stateful:
+            if not isinstance(batch_size, int):
+                raise TypeError("batch_size must be set for stateful RNN.")
+            return [T.variable(np.zeros((batch_size, dim_out))), T.variable(np.zeros((batch_size, dim_out)))]
+        return [T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index), T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index)]
 
     def initialize(self):
         dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
         self.create_lstm_parameters(dim_in, dim_out)
 
-    def _step(self, X, state):
-        previous_hidden, previous_state = state
-        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
-        return lstm_hidden, [lstm_hidden, state]
-
-    def lstm_step(self, X, previous_hidden, previous_state):
+    def step(self, X, states, **kwargs):
+        previous_hidden, previous_state = states
         params = self.parameters
         Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
@@ -109,7 +109,7 @@ class LSTM(RecurrentLayer):
             output = output_gate * T.tanh(state)
         else:
             output = output_gate * state
-        return output, state
+        return output, [output, state]
 
 class MaxoutLSTM(LSTM):
 
@@ -142,8 +142,8 @@ class MaxoutLSTM(LSTM):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
-
-    def lstm_step(self, X, previous_hidden, previous_state):
+    def step(self, X, states, **kwargs):
+        previous_hidden, previous_state = states
         params = self.parameters
         Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
@@ -176,4 +176,4 @@ class MaxoutLSTM(LSTM):
             output = output_gate * T.tanh(state)
         else:
             output = output_gate * state
-        return output, state
+        return output, [output, state]

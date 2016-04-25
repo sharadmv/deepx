@@ -5,6 +5,7 @@ class Optimizer(object):
     def __init__(self, loss, clip_gradients=None):
         self.loss = loss
         assert self.loss.get_shape_out()[0].get_dim() == (), "Can only optimize a scalar quantity."
+        self.loss.initialize()
 
         self.parameters = self.loss.get_graph_parameters()
 

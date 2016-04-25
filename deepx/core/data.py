@@ -1,8 +1,8 @@
-from .layer import Layer
+from .node import Node
 from .shape import Shape
 from .. import util
 
-class Data(Layer):
+class Data(Node):
 
     def __init__(self, shape,
                  placeholder=None,
@@ -15,30 +15,63 @@ class Data(Layer):
         self.placeholder = placeholder
         self.datatype = datatype or "Data"
         self.name = name
-        self.initialize()
+        self.placeholder = placeholder or self.shape.create_placeholder(name=self.name)
 
-    def can_initialize(self):
-        return True
+    def get_outputs(self, **kwargs):
+        return [self]
+
+    def get_graph_inputs(self):
+        return [self.placeholder]
+
+    def get_graph_parameters(self):
+        return []
+
+    def get_graph_updates(self, **kwargs):
+        return []
+
+    def reset_states(self):
+        pass
+
+    def reset_state(self, i):
+        pass
+
+    def initialize(self, **kwargs):
+        self.placeholder = self.placeholder or self.shape.create_placeholder(name=self.name)
+
+    def reinitialize(self, **kwargs):
+        self.initialize()
+        self.shape.create_placeholder(name=self.name)
+
+    # Shape inference
+
+    def set_shapes_in(self, shapes_in):
+        raise Exception("Should never be setting shapes_in of Data.")
+
+    def set_shapes_out(self, shapes_out):
+        raise Exception("Should never be setting shapes_out of Data.")
+
+    def get_shapes_in(self):
+        return []
+
+    def get_shapes_out(self):
+        return [self.shape]
+
+    def get_num_inputs(self):
+        return 0
+
+    def get_num_outputs(self):
+        return 1
+
+    def infer_shape(self):
+        pass
 
     def make_sequence(self, max_length):
         new_shape = self.shape.copy(sequence=True,
                                     max_length=max_length)
         return Data(new_shape, name=self.name, datatype=self.datatype)
 
-    def initialize(self):
-        self.placeholder = self.placeholder or self.shape.create_placeholder(name=self.name)
-
-    def _infer(self, shape_in):
-        return shape_in
-
     def get_placeholder(self):
         return self.placeholder
-
-    def get_shape_in(self):
-        return [self.shape]
-
-    def get_shape_out(self):
-        return [self.shape]
 
     def is_sequence(self):
         return self.shape.is_sequence()
@@ -46,17 +79,11 @@ class Data(Layer):
     def get_batch_size(self):
         return self.shape.get_batch_size()
 
-    def get_inputs(self):
-        return [self]
-
-    def forward(self, *args, **kwargs):
-        return [self]
-
     @classmethod
     def concatenate(self, data_list):
-        shapes = [d.get_shape_out()[0] for d in data_list]
+        shapes = [d.get_shapes_out()[0] for d in data_list]
         tensor_list = [d.get_placeholder() for d in data_list]
-        result = util.concatenate_data(tensor_list)
+        result = util.concatenate_data(tensor_list, sequence=any(d.is_sequence() for d in data_list))
         final_shape = Shape.concatenate(shapes)
         return Data(final_shape, placeholder=result)
 
@@ -64,7 +91,7 @@ class Data(Layer):
         return str(self)
 
     def __deepcopy__(self, memo):
-        return Data(self.get_shape_out()[0],
+        return Data(self.shape.copy(),
                     datatype=self.datatype,
                     name=self.name)
 

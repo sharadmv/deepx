@@ -1,38 +1,91 @@
-from .. import backend as T
-from ..core import Layer, Data
+from abc import abstractmethod
 
-class Loss(Layer):
+from .. import backend as T
+from ..core import Node, Data, Shape
+
+class Loss(Node):
 
     def __init__(self):
-        self.y = None
         super(Loss, self).__init__()
+        self.y = None
+        self.set_shapes_out([
+            Shape(())
+        ])
 
-    def _infer(self, shape_in):
-        return shape_in.copy(dim=())
-
-    def initialize(self):
-        pass
-
-    def get_inputs(self):
+    def get_outputs(self, *inputs, **kwargs):
+        X = inputs[0]
         if self.y is None:
-            self.y = Data(self.get_shape_in()[0], name='y')
-        return [self.y]
-
-    def _sequence_loss(self, X):
-        return T.mean(X)
-
-    def forward(self, inputs, **kwargs):
-        X, y = inputs
+            y = inputs[1]
+        else:
+            y = self.y
         if X.is_sequence():
             def step(*inputs):
-                return self._loss(*inputs)
-            return [Data(self.get_shape_out()[0],
-                        placeholder=T.scan(step, [X.get_placeholder(), y.get_placeholder()])[0])]
-        return [Data(self.get_shape_out()[0],
-                    placeholder=self._forward(X.get_placeholder(), y.get_placeholder()))]
+                return self.loss(*inputs)
+            loss, _ = T.scan(step, [X.get_placeholder(), y.get_placeholder()])
+            loss = T.sequence_loss(output)
+        else:
+            loss = self.loss(X.get_placeholder(), y.get_placeholder())
+        return [Data(self.get_shapes_out()[0], placeholder=loss)]
 
-    def _forward(self, X, y, **kwargs):
-        return self._loss(X, y)
+    def get_graph_inputs(self):
+        if self.y is None:
+            return []
+        return [self.y.get_placeholder()]
+
+    def get_graph_parameters(self):
+        return []
+
+    def get_graph_updates(self, **kwargs):
+        return []
+
+    def reset_states(self):
+        return
+
+    def reset_state(self, i):
+        return
+
+    def initialize(self, **kwargs):
+        return
+
+    def reinitialize(self, **kwargs):
+        return
+
+    # Shape inference
+
+    def set_shapes_in(self, shapes_in):
+        assert len(shapes_in) == 1 or len(shapes_in) == 2
+        self.shapes_in = shapes_in
+
+    def set_shapes_out(self, shapes_out):
+        self.shapes_out = shapes_out
+
+    def get_shapes_in(self):
+        return self.shapes_in
+
+    def get_shapes_out(self):
+        return self.shapes_out
+
+    def get_num_inputs(self):
+        shapes_in = self.get_shapes_in()
+        if shapes_in is None:
+            return None
+        return len(shapes_in)
+
+    def get_num_outputs(self):
+        return 1
+
+    def infer_shape(self):
+        shapes_in = self.get_shapes_in()
+        if shapes_in is not None:
+            self.set_shapes_out([shapes_in[0].copy(
+                 dim=()
+            )])
+            if len(shapes_in) == 1:
+                self.y = Data(shapes_in[0], name='y')
+
+    @abstractmethod
+    def loss(self, ypred, y):
+        pass
 
     def __str__(self):
-        return self.__class__.__name__
+        return "%s()" % self.__class__.__name__

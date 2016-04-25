@@ -9,12 +9,12 @@ class Dropout(Layer):
         assert 0 <= self.p < 1, 'Invalid dropout value'
 
     def initialize(self):
-        pass
+        return
 
-    def _infer(self, shape_in):
+    def infer(self, shape_in):
         return shape_in
 
-    def _forward(self, X, dropout=True):
+    def forward(self, X, dropout=True):
         if dropout:
             return T.dropout(X, self.p)
         else:

@@ -16,11 +16,11 @@ class Linear(ShapedLayer):
             raise Exception("No identity nodes")
         return X
 
-    def _forward(self, X, *args, **kwargs):
+    def forward(self, X, **kwargs):
         if self.is_elementwise():
-            return self.activate(X, *args)
-        W, b = self.parameters['W'], self.parameters['b']
-        return self.activate(T.dot(X, W) + b, *args)
+            return self.activate(X)
+        W, b = self.get_parameter_list('W', 'b')
+        return self.activate(T.dot(X, W) + b)
 
 class Maxout(Linear):
 
@@ -30,10 +30,6 @@ class Maxout(Linear):
                                      shape_out=shape_out,
                                      **kwargs)
         self.k = k
-
-    def __str__(self):
-        return "%s(%s, %s)" % (self.__class__.__name__,
-                               self.get_shape_in(), self.get_shape_out())
 
     def initialize(self):
         dim_in = self.get_dim_in()
@@ -54,16 +50,14 @@ class Softmax(Linear):
         self.T = temp
         self.temperature_parameter = temperature_parameter
         if self.temperature_parameter:
-            self.T = Data(Shape(None), placeholder=T.placeholder(ndim=0, name='temperature'))
+            self.T = T.placeholder(ndim=0, name='temperature')
 
-    def get_inputs(self):
+    def get_graph_inputs(self):
         if self.temperature_parameter:
             return [self.T]
         return []
 
-    def activate(self, X, *args):
-        if self.temperature_parameter:
-            return T.softmax(X, args[0])
+    def activate(self, X):
         return T.softmax(X, self.T)
 
 class Sigmoid(Linear):
@@ -106,7 +100,7 @@ class LeakyRelu(Linear):
 class Tanlu(Linear):
 
     def initialize(self):
-        self.init_parameter('alpha', self.get_shape_out()[0].get_dim(), value=0.5)
+        self.init_parameter('alpha', self.get_dim_out(), value=0.5)
 
     def activate(self, X):
         alpha = self.get_parameter('alpha')

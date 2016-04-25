@@ -1,8 +1,12 @@
+from abc import ABCMeta, abstractmethod
 import copy as cp
 
 from .. import backend as T
+from ..util import flatten
 from .exceptions import ShapeOutError
 from .shape import Shape
+
+__all__ = ['Node', 'NodeList']
 
 class Node(object):
     """
@@ -10,46 +14,84 @@ class Node(object):
     It represents anything that takes in a set of inputs
     and returns a set of outputs.
     """
+    __metaclass__ = ABCMeta
+
     def __init__(self):
 
-        self.shape_in = None
-        self.shape_out = None
-        self.frozen = False
-        self.batch_size = None
-        self.config = {}
+        self.shapes_in = None
+        self.shapes_out = None
 
+        self.frozen = False
         self.states = None
         self.updates = []
 
         self._predict = {}
 
-    def get_updates(self):
-        return self.updates
+    @abstractmethod
+    def get_outputs(self, *args, **kwargs):
+        pass
 
-    def set_updates(self, updates):
-        self.updates = updates
-
-    def get_inputs(self):
-        raise NotImplementedError
-
-    def forward(self, inputs, **kwargs):
-        raise NotImplementedError
-
-    def get_outputs(self, **kwargs):
-        self.initialize()
-        return self.forward(self.get_inputs(), **kwargs)
-
+    @abstractmethod
     def get_graph_inputs(self):
-        return [x.get_placeholder() for x in self.get_inputs()]
+        pass
 
-    def get_graph_outputs(self, **kwargs):
-        return [x.get_placeholder() for x in self.get_outputs(**kwargs)]
+    def get_graph_outputs(self, *inputs, **kwargs):
+        # TODO: remove dups
+        return [d.get_placeholder() for d in self.get_outputs(*inputs, **kwargs)]
 
+    @abstractmethod
     def get_graph_parameters(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get_graph_updates(self, **kwargs):
-        return self.get_updates()
+        pass
+
+    @abstractmethod
+    def reset_states(self):
+        pass
+
+    @abstractmethod
+    def reset_state(self, i):
+        pass
+
+    @abstractmethod
+    def initialize(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def reinitialize(self, **kwargs):
+        pass
+
+    # Shape inference
+
+    @abstractmethod
+    def set_shapes_in(self, shapes_in):
+        pass
+
+    @abstractmethod
+    def set_shapes_out(self, shapes_out):
+        pass
+
+    @abstractmethod
+    def get_shapes_in(self):
+        pass
+
+    @abstractmethod
+    def get_shapes_out(self):
+        pass
+
+    @abstractmethod
+    def get_num_inputs(self):
+        pass
+
+    @abstractmethod
+    def get_num_outputs(self):
+        pass
+
+    @abstractmethod
+    def infer_shape(self):
+        pass
 
     def predict(self, *args, **kwargs):
         dropout = kwargs.pop('dropout', False)
@@ -62,53 +104,6 @@ class Node(object):
             )
         return self._predict[dropout](*args, **kwargs)
 
-    def get_initial_states(self, *args, **kwargs):
-        return []
-
-    def reset_states(self):
-        if self.states is not None:
-            for i in range(len(self.states)):
-                self.reset_state(i)
-
-    def reset_state(self, i):
-        raise NotImplementedError
-
-    def initialize(self, **kwargs):
-        raise NotImplementedError
-
-    def reinitialize(self, **kwargs):
-        raise NotImplementedError
-
-    # Shape inference
-
-    def set_shape_in(self, shape_in):
-        self.shape_in = shape_in
-
-    def set_shape_out(self, shape_out):
-        self.shape_out = shape_out
-
-    def get_shape_in(self):
-        return self.shape_in
-
-    def get_shape_out(self):
-        return self.shape_out
-
-    def get_shape(self):
-        return (self.get_shape_in(), self.get_shape_out())
-
-    def infer_shape(self):
-        shape_in = self.get_shape_in()
-        shape_out = self.get_shape_out()
-        if shape_in is not None:
-            predicted_shape_out = self._infer(shape_in)
-            if shape_out is None and shape_out == predicted_shape_out:
-                self.set_shape_out(predicted_shape_out)
-            elif shape_out != predicted_shape_out:
-                raise ShapeOutError(self, shape_out)
-
-    def _infer(self, shape_in):
-        raise NotImplementedError
-
     # Binary operations
 
     def chain(self, node):
@@ -117,7 +112,7 @@ class Node(object):
 
     def concat(self, node):
         from .ops import Concatenate
-        return Concatenate(self, node)
+        return (self, node) >> Concatenate()
 
     def freeze(self):
         node = self.same()
@@ -130,6 +125,13 @@ class Node(object):
         return self.predict(*args, **kwargs)
 
     def __rshift__(self, node):
+        if isinstance(node, tuple):
+            return self.chain(NodeList(node))
+        return self.chain(node)
+
+    def __rrshift__(self, node):
+        if isinstance(node, tuple):
+            return NodeList(node).chain(self)
         return self.chain(node)
 
     def __or__(self, node):
@@ -141,13 +143,18 @@ class Node(object):
 
     # Node Bookkeeping
 
+    def get_updates(self):
+        return self.updates
+
+    def set_updates(self, updates):
+        self.updates = updates
+
     def same(self):
         return cp.deepcopy(self)
 
     def copy(self):
         node = cp.deepcopy(self)
-        if self.can_initialize():
-            node.reinitialize()
+        node.reinitialize()
         return node
 
     def __repr__(self):
@@ -155,3 +162,74 @@ class Node(object):
 
     def __str__(self):
         return super(Node, self).__repr__()
+
+class NodeList(Node):
+
+    def __init__(self, nodes):
+        super(Node, self).__init__()
+        self.nodes = tuple(nodes)
+
+    def get_outputs(self, *inputs, **kwargs):
+        return tuple(flatten(node.get_outputs(*inputs, **kwargs) for node in self.nodes))
+
+    def get_graph_inputs(self):
+        # TODO: remove dups
+        return [input for node in self.nodes for input in node.get_graph_inputs()]
+
+    def get_graph_parameters(self):
+        # TODO: remove dups
+        return [parameter for node in self.nodes for parameter in node.get_graph_parameters()]
+
+    def get_graph_updates(self, **kwargs):
+        # TODO: remove dups
+        return [update for node in self.nodes for update in node.get_graph_updates()]
+
+    def reset_states(self):
+        for node in self.nodes:
+            node.reset_states()
+
+    def reset_state(self, i):
+        for node in self.nodes:
+            node.reset_state(i)
+
+    def initialize(self, **kwargs):
+        for node in self.nodes:
+            node.initialize(**kwargs)
+
+    def reinitialize(self, **kwargs):
+        for node in self.nodes:
+            node.initialize(**kwargs)
+
+    # Shape inference
+
+    def set_shapes_in(self, shapes_in):
+        for node in self.nodes:
+            node.set_shapes_in(shapes_in)
+
+    def set_shapes_out(self, shapes_out):
+        for node, s in zip(self.nodes, shapes_out):
+            node.set_shapes_out(s)
+
+    def get_shapes_in(self):
+        return self.nodes[0].get_shapes_in()
+
+    def get_shapes_out(self):
+        return list(flatten(node.get_shapes_out() for node in self.nodes))
+
+    def get_num_inputs(self):
+        return self.nodes[0].get_num_inputs()
+
+    def get_num_outputs(self):
+        return sum(node.get_num_outputs() for node in self.nodes)
+
+    def _infer(self, *args): pass
+
+    def infer_shape(self):
+        for node in self.nodes:
+            node.infer_shape()
+
+    def __repr__(self):
+        return "NodeList([%s])" % ', '.join(map(repr, self.nodes))
+
+    def __str__(self):
+        return "(%s)" % ', '.join(map(str, self.nodes))
