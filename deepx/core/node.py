@@ -107,7 +107,7 @@ class Node(object):
     # Binary operations
 
     def chain(self, node):
-        from .ops import Chain
+        from .chain import Chain
         return Chain(self, node)
 
     def concat(self, node):
@@ -118,6 +118,34 @@ class Node(object):
         node = self.same()
         node.frozen = True
         return node
+
+    def add(self, node):
+        from .ops import Add
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (self, node) >> Add()
+
+    def sub(self, node):
+        from .ops import Sub
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (self, node) >> Sub()
+
+    def prod(self, node):
+        from .ops import Prod
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (self, node) >> Prod()
+
+    def div(self, node):
+        from .ops import Div
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (self, node) >> Div()
 
     # Infix operations
 
@@ -133,6 +161,30 @@ class Node(object):
         if isinstance(node, tuple):
             return NodeList(node).chain(self)
         return self.chain(node)
+
+    def __add__(self, node):
+        return self.add(node)
+
+    def __radd__(self, node):
+        return self.add(node)
+
+    def __mul__(self, node):
+        return self.prod(node)
+
+    def __rmul__(self, node):
+        return self.prod(node)
+
+    def __sub__(self, node):
+        return self.sub(node)
+
+    def __rsub__(self, node):
+        return self.sub(node)
+
+    def __div__(self, node):
+        return self.div(node)
+
+    def __rdiv__(self, node):
+        return self.div(node)
 
     def __or__(self, node):
         return self.concat(node)

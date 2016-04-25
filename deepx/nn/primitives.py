@@ -1,3 +1,5 @@
+import numpy as np
+
 from ..core import Data
 from ..core import Shape
 

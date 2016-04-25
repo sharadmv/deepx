@@ -1,55 +1,16 @@
+import six
+
+from .. import backend as T
+
 from .node import Node
 from .shape import Shape
 from .binary import BinaryOpNode
 from .exceptions import ShapeInError
 from .data import Data
 
-__all__ = ["Chain", "Concatenate"]
+__all__ = ['Concatenate', 'Add', 'Prod', 'Sub', 'Div']
 
-class Chain(BinaryOpNode):
-
-    def __init__(self, left, right):
-        super(Chain, self).__init__(left, right)
-        if left.get_num_outputs() != right.get_num_inputs():
-            raise TypeError("Cannot chain %s and %s" % (left, right))
-
-    def get_outputs(self, *inputs, **kwargs):
-        left_out = self.left.get_outputs(*inputs, **kwargs)
-        right_out = self.right.get_outputs(*left_out, **kwargs)
-        return right_out
-
-    def get_shapes_in(self):
-        return self.left.get_shapes_in()
-
-    def get_shapes_out(self):
-        return self.right.get_shapes_out()
-
-    def set_shapes_in(self, shapes_in):
-        self.left.set_shapes_in(shapes_in)
-
-    def set_shapes_out(self, shapes_out):
-        self.right.set_shapes_out(shapes_in)
-
-    def get_num_inputs(self):
-        return self.left.get_num_inputs()
-
-    def get_num_outputs(self):
-        return self.right.get_num_outputs()
-
-    def infer_shape(self):
-        self.left.infer_shape()
-        self.right.infer_shape()
-        if self.left.get_shapes_out() is not None or self.left.get_shapes_out() == self.right.get_shapes_out():
-            self.right.set_shapes_in(self.left.get_shapes_out())
-            self.right.infer_shape()
-
-    def __repr__(self):
-        return "%s >> %s" % (self.left, self.right)
-
-    def __str__(self):
-        return repr(self)
-
-class Concatenate(Node):
+class SimpleOperator(Node):
 
     def get_graph_parameters(self):
         return []
@@ -72,9 +33,6 @@ class Concatenate(Node):
     def reinitialize(self, **kwargs):
         return
 
-    def get_outputs(self, *inputs, **kwargs):
-        return [Data.concatenate(inputs)]
-
     def get_shapes_in(self):
         return self.shapes_in
 
@@ -93,6 +51,11 @@ class Concatenate(Node):
             return None
         return len(shapes_in)
 
+class Concatenate(SimpleOperator):
+
+    def get_outputs(self, *inputs, **kwargs):
+        return [Data.concatenate(inputs)]
+
     def get_num_outputs(self):
         return 1
 
@@ -105,6 +68,58 @@ class Concatenate(Node):
 
     def __str__(self):
         return repr(self)
+
+class ArithmeticOperator(SimpleOperator):
+
+    def get_outputs(self, *inputs, **kwargs):
+        raw_inputs = [d.get_placeholder() for d in inputs]
+        raw_output = reduce(self.op, raw_inputs)
+        return [Data(self.get_shapes_out()[0],
+                     placeholder=raw_output)]
+
+    def get_num_outputs(self):
+        return 1
+
+    def infer_shape(self):
+        shapes_in = self.get_shapes_in()
+        if shapes_in is not None:
+            shapes_in = sorted(shapes_in, key=lambda x: len(x.get_dim()))
+            self.shapes_out = [shapes_in[0].copy()]
+
+    def __repr__(self):
+        return "%s()" % self.op_name
+
+    def __str__(self):
+        return repr(self)
+
+class Add(ArithmeticOperator):
+    op_name = 'Add'
+
+    @staticmethod
+    def op(x, y):
+        return x + y
+
+class Prod(ArithmeticOperator):
+    op_name = 'Prod'
+
+    @staticmethod
+    def op(x, y):
+        return x * y
+
+
+class Sub(ArithmeticOperator):
+    op_name = 'Sub'
+
+    @staticmethod
+    def op(x, y):
+        return x - y
+
+class Div(ArithmeticOperator):
+    op_name = 'Div'
+
+    @staticmethod
+    def op(x, y):
+        return x / y
 
 class Index(Node):
 

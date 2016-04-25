@@ -1,3 +1,5 @@
+import numpy as np
+
 from .node import Node
 from .shape import Shape
 from .. import util
@@ -110,3 +112,13 @@ class Data(Node):
             if self.is_sequence():
                 return "Sequence(%s)" % string
             return string
+
+class Constant(Data):
+
+    def __init__(self, value):
+        value = np.array(value)
+        super(Constant, self).__init__(Shape(value.shape), placeholder=value,
+                                       datatype="Constant")
+
+    def get_graph_inputs(self):
+        return []
