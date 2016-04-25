@@ -22,7 +22,7 @@ class Layer(Node):
             raw_output = self.recurrent_forward(raw_input, **kwargs)
         else:
             raw_output = self.forward(raw_input, **kwargs)
-            return [Data(self.get_shapes_out()[0], placeholder=raw_output)]
+        return [Data(self.get_shapes_out()[0], placeholder=raw_output)]
 
     @abstractmethod
     def forward(self, X):
