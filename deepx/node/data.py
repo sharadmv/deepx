@@ -62,5 +62,8 @@ class Data(Node):
         return Data(self.data, shape=self.get_shape_out(), sequence=self.sequence, batch_size=self.batch_size,
                     sequence_length=self.sequence_length)
 
+    def set_state(self, state):
+        pass
+
     def is_sequence(self):
         return self.sequence
