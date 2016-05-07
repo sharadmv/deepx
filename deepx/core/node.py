@@ -93,6 +93,14 @@ class Node(object):
     def infer_shape(self):
         pass
 
+    @abstractmethod
+    def get_state(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def set_state(self, state):
+        pass
+
     def predict(self, *args, **kwargs):
         dropout = kwargs.pop('dropout', False)
         if dropout not in self._predict:
@@ -133,6 +141,13 @@ class Node(object):
             node = Constant(node)
         return (self, node) >> Sub()
 
+    def rsub(self, node):
+        from .ops import Sub
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (node, self) >> Sub()
+
     def prod(self, node):
         from .ops import Prod
         from .data import Constant
@@ -146,6 +161,13 @@ class Node(object):
         if not isinstance(node, Node):
             node = Constant(node)
         return (self, node) >> Div()
+
+    def rdiv(self, node):
+        from .ops import Div
+        from .data import Constant
+        if not isinstance(node, Node):
+            node = Constant(node)
+        return (node, self) >> Div()
 
     # Infix operations
 
@@ -178,13 +200,13 @@ class Node(object):
         return self.sub(node)
 
     def __rsub__(self, node):
-        return self.sub(node)
+        return self.rsub(node)
 
     def __div__(self, node):
         return self.div(node)
 
     def __rdiv__(self, node):
-        return self.div(node)
+        return self.rdiv(node)
 
     def __or__(self, node):
         return self.concat(node)
@@ -218,17 +240,25 @@ class Node(object):
 class NodeList(Node):
 
     def __init__(self, nodes):
-        super(Node, self).__init__()
+        super(NodeList, self).__init__()
         self.nodes = tuple(nodes)
 
     def get_outputs(self, *inputs, **kwargs):
         return tuple(flatten(node.get_outputs(*inputs, **kwargs) for node in self.nodes))
 
     def get_graph_inputs(self):
-        # TODO: remove dups
-        return [input for node in self.nodes for input in node.get_graph_inputs()]
+        inputs = []
+        dups = set()
+        for node in self.nodes:
+            for input in node.get_graph_inputs():
+                if input not in dups:
+                    dups.add(input)
+                    inputs.append(input)
+        return inputs
 
     def get_graph_parameters(self):
+        if self.frozen:
+            return []
         # TODO: remove dups
         return [parameter for node in self.nodes for parameter in node.get_graph_parameters()]
 
@@ -273,6 +303,13 @@ class NodeList(Node):
 
     def get_num_outputs(self):
         return sum(node.get_num_outputs() for node in self.nodes)
+
+    def get_state(self, **kwargs):
+        return tuple(node.get_state(**kwargs) for node in self.nodes)
+
+    def set_state(self, state):
+        for node, s in zip(self.nodes, state):
+            node.set_state(s)
 
     def _infer(self, *args): pass
 

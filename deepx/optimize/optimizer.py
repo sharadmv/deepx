@@ -12,7 +12,7 @@ class Optimizer(object):
         self.initialize()
 
         self.aux_inputs = self.get_aux_inputs()
-        self.opt_outputs = self.loss.get_graph_outputs()
+        self.opt_outputs = [T.mean(a) for a in self.loss.get_graph_outputs()]
 
         self.grads = self.get_gradient()
 

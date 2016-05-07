@@ -39,6 +39,15 @@ class Chain(BinaryOpNode):
             self.right.set_shapes_in(self.left.get_shapes_out())
             self.right.infer_shape()
 
+    def get_state(self, **kwargs):
+        return (self.left.get_state(**kwargs), self.right.get_state(**kwargs))
+
+
+    def set_state(self, state):
+        left, right = state
+        self.left.set_state(left)
+        self.right.set_state(right)
+
     def __repr__(self):
         return "%s >> %s" % (self.left, self.right)
 

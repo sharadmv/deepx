@@ -67,6 +67,12 @@ class Data(Node):
     def infer_shape(self):
         pass
 
+    def get_state(self, **kwargs):
+        return None
+
+    def set_state(self, state):
+        pass
+
     def make_sequence(self, max_length):
         new_shape = self.shape.copy(sequence=True,
                                     max_length=max_length)
@@ -111,7 +117,7 @@ class Data(Node):
             )
             if self.is_sequence():
                 return "Sequence(%s)" % string
-            return string
+        return string
 
 class Constant(Data):
 

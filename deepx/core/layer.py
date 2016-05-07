@@ -38,6 +38,8 @@ class Layer(Node):
         return []
 
     def get_graph_parameters(self):
+        if self.frozen:
+            return []
         return self.parameters.values()
 
     def get_graph_updates(self, **kwargs):

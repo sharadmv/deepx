@@ -9,10 +9,22 @@ class BinaryOpNode(Node):
         self.infer_shape()
 
     def get_graph_parameters(self):
+        if self.frozen:
+            return []
         return self.left.get_graph_parameters() + self.right.get_graph_parameters()
 
     def get_graph_inputs(self):
-        return self.left.get_graph_inputs() + self.right.get_graph_inputs()
+        inputs = []
+        dups = set()
+        for input in self.left.get_graph_inputs():
+            if input not in dups:
+                dups.add(input)
+                inputs.append(input)
+        for input in self.right.get_graph_inputs():
+            if input not in dups:
+                dups.add(input)
+                inputs.append(input)
+        return inputs
 
     def get_graph_updates(self, **kwargs):
         return self.left.get_graph_updates(**kwargs) + self.right.get_graph_updates(**kwargs)
