@@ -33,7 +33,7 @@ if __name__ == "__main__":
 
     mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10)
     loss = mlp >> CrossEntropy()
-    rmsprop = RMSProp(loss)
+    rmsprop = Adam(loss)
 
     def train(n_iter, lr):
         for i in range(n_iter):

@@ -21,8 +21,8 @@ class Loss(Node):
         if X.is_sequence():
             def step(*inputs):
                 return self.loss(*inputs)
-            loss, _ = T.scan(step, [X.get_placeholder(), y.get_placeholder()])
-            loss = T.sequence_loss(output)
+            loss = T.scan(step, [X.get_placeholder(), y.get_placeholder()])
+            loss = self.sequence_loss(loss)
         else:
             loss = self.loss(X.get_placeholder(), y.get_placeholder())
         return [Data(self.get_shapes_out()[0], placeholder=loss)]
@@ -82,6 +82,15 @@ class Loss(Node):
             )])
             if len(shapes_in) == 1:
                 self.y = Data(shapes_in[0], name='y')
+
+    def get_state(self):
+        return None
+
+    def set_state(self, state):
+        return
+
+    def sequence_loss(self, loss):
+        return T.mean(loss)
 
     @abstractmethod
     def loss(self, ypred, y):

@@ -41,5 +41,5 @@ if __name__ == "__main__":
             loss = rmsprop.train(Xtrain[u:u+50], ytrain[u:u+50], lr)
             print("Loss:", loss)
 
-        # preds = conv_net.predict(Xtest).argmax(axis=1)
-        # print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))
+        preds = conv_net(Xtest).argmax(axis=1)
+        print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))

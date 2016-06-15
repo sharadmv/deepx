@@ -443,12 +443,14 @@ def sample(p, seed=None):
     rng = RandomStreams(seed=seed)
     return rng.multinomial(n=1, pvals=p, dtype=theano.config.floatX)
 
-def scan(step_function, inputs):
-    inputs = [
-        dict(input=input) for input in inputs
-    ]
+def scan(step_function, raw_inputs):
+    inputs = []
+    length = None
+    for input in raw_inputs:
+        inputs.append(dict(input=input))
+        length = length or input.shape[0]
     results, updates = theano.scan(step_function, sequences=inputs,
-                       outputs_info=[None])
+                       outputs_info=[None], n_steps=length)
     return results
 
 def generate(step_function, input, n_steps):

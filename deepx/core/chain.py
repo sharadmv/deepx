@@ -35,13 +35,12 @@ class Chain(BinaryOpNode):
     def infer_shape(self):
         self.left.infer_shape()
         self.right.infer_shape()
-        if self.left.get_shapes_out() is not None or self.left.get_shapes_out() == self.right.get_shapes_out():
+        if self.left.get_shapes_out() is not None and self.left.get_shapes_out() != self.right.get_shapes_in():
             self.right.set_shapes_in(self.left.get_shapes_out())
             self.right.infer_shape()
 
     def get_state(self, **kwargs):
         return (self.left.get_state(**kwargs), self.right.get_state(**kwargs))
-
 
     def set_state(self, state):
         left, right = state
