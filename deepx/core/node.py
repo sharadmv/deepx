@@ -36,8 +36,16 @@ class Node(object):
         pass
 
     def get_graph_outputs(self, *inputs, **kwargs):
-        # TODO: remove dups
-        return [d.get_placeholder() for d in self.get_outputs(*inputs, **kwargs)]
+        final_outputs = []
+        dups = set()
+        for output in self.get_outputs(*inputs, **kwargs):
+            graph_outputs = output.get_graph_outputs()
+            for graph_output in graph_outputs:
+                if graph_output in dups:
+                    continue
+                final_outputs.append(graph_output)
+                dups.add(graph_output)
+        return final_outputs
 
     @abstractmethod
     def get_graph_parameters(self):

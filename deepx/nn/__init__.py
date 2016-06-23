@@ -5,3 +5,4 @@ from .reshape import *
 from .utility import *
 from .ops import *
 from .dropout import *
+from .residual import *

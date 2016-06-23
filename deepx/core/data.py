@@ -25,6 +25,9 @@ class Data(Node):
     def get_graph_inputs(self):
         return [self.placeholder]
 
+    def get_graph_outputs(self):
+        return [self.placeholder]
+
     def get_graph_parameters(self):
         return []
 
