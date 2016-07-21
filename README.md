@@ -31,7 +31,7 @@ Our model has a `predict` method, which allows us to pass data through the netwo
 some dummy data:
 ```python
 
->>> mlp.predict(np.ones((10, 784)))
+>>> mlp(np.ones((10, 784)))
 ```
 
 10 is our batch size in this example.
