@@ -94,16 +94,16 @@ def eval(x):
     return x.eval()
 
 
-def zeros(shape, dtype=_FLOATX, name=None):
+def neros(shape, dtype=_FLOATX, name=None):
     '''Instantiate an all-zeros variable.
     '''
-    return variable(np.zeros(shape), dtype, name)
+    return T.zeros(shape)
 
 
 def ones(shape, dtype=_FLOATX, name=None):
     '''Instantiate an all-ones variable.
     '''
-    return variable(np.ones(shape), dtype, name)
+    return T.ones(shape)
 
 
 def ones_like(x):
@@ -248,6 +248,9 @@ def maximum(x, y):
 
 def minimum(x, y):
     return T.minimum(x, y)
+
+def sign(x):
+    return T.sgn(x)
 
 # COMPARISONS
 
@@ -414,6 +417,8 @@ class Function(object):
 
     def __call__(self, *inputs):
         result = self.function(*inputs)
+        if self.out_length == 0:
+            return None
         if self.out_length == 1:
             return result[0]
         return result
@@ -438,18 +443,21 @@ def sample(p, seed=None):
     rng = RandomStreams(seed=seed)
     return rng.multinomial(n=1, pvals=p, dtype=theano.config.floatX)
 
-def scan(step_function, inputs):
-    inputs = [
-        dict(input=input) for input in inputs
-    ]
+def scan(step_function, raw_inputs):
+    inputs = []
+    length = None
+    for input in raw_inputs:
+        inputs.append(dict(input=input))
+        length = length or input.shape[0]
     results, updates = theano.scan(step_function, sequences=inputs,
-                       outputs_info=[None])
-    return results, updates
+                       outputs_info=[None], n_steps=length)
+    return results
 
 def generate(step_function, input, n_steps):
     return theano.scan(step_function, sequences=[], outputs_info=input, n_steps=n_steps)
 
-def rnn(step_function, inputs, initial_states,
+def rnn(step_function, input, initial_states,
+        non_sequences=[],
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
 
@@ -488,13 +496,17 @@ def rnn(step_function, inputs, initial_states,
             the step function, of shape (samples, ...).
     '''
 
-    def _step(input, *states):
-        output, new_states = step_function(input, states)
+    num_states = len(initial_states)
+
+    def _step(*args):
+        in_seq, states, non_seqs = args[0], args[1:1 + num_states], args[1 + num_states:]
+        output, new_states = step_function(in_seq, states, *non_seqs)
         return [output] + new_states
 
     results, _ = theano.scan(
         _step,
-        sequences=inputs,
+        sequences=[input],
+        non_sequences=non_sequences,
         outputs_info=[None] + initial_states,
         go_backwards=go_backwards)
 
@@ -506,10 +518,8 @@ def rnn(step_function, inputs, initial_states,
         outputs = results
         states = []
 
-    last_output = outputs[-1]
-
     states = [T.squeeze(state[-1]) for state in states]
-    return last_output, outputs, states
+    return outputs, states
 
 
 def switch(condition, then_expression, else_expression):

@@ -1,22 +1,41 @@
+import numpy as np
+
 from .. import backend as T
+from ..core import RecurrentLayer, Shape
 
-from ..node import RecurrentNode
+class LSTM(RecurrentLayer):
 
-class LSTM(RecurrentNode):
+    def __init__(self, shape_in=None, shape_out=None,
+                 use_forget_gate=True,
+                 use_input_peep=False,
+                 use_output_peep=False,
+                 use_forget_peep=False,
+                 use_tanh_output=True, **kwargs):
+        super(LSTM, self).__init__(**kwargs)
+        if shape_out is not None:
+            shape_in, shape_out = (shape_in, shape_out)
+        elif shape_in is not None and shape_out is None:
+            shape_in, shape_out = None, shape_in
+        if shape_in is not None:
+            self.set_shapes_in([Shape(shape_in, sequence=True)])
+        if shape_out is not None:
+            self.set_shapes_out([Shape(shape_out, sequence=True)])
 
-    def __init__(self, *args, **kwargs):
+        self.use_forget_gate = use_forget_gate
+        self.use_input_peep = use_input_peep
+        self.use_output_peep = use_output_peep
+        self.use_forget_peep = use_forget_peep
+        self.use_tanh_output = use_tanh_output
 
-        self.use_forget_gate = kwargs.get('use_forget_gate', True)
-        self.use_input_peep = kwargs.get('use_input_peep', False)
-        self.use_output_peep = kwargs.get('use_output_peep', False)
-        self.use_forget_peep = kwargs.get('use_forget_peep', False)
-        self.use_tanh_output = kwargs.get('use_tanh_output', True)
+        if shape_out is not None:
+            shape_in, shape_out = (shape_in, shape_out)
+        elif shape_in is not None and shape_out is None:
+            shape_in, shape_out = None, shape_in
+        else:
+            raise Exception("Need to specify LSTM shape")
 
-        super(LSTM, self).__init__(*args, **kwargs)
-
-
-    def _infer(self, shape_in):
-        return self.shape_out
+    def infer(self, shape_in):
+        return shape_in.copy(dim=self.get_dim_out())
 
     def create_lstm_parameters(self, shape_in, shape_out):
         self.init_parameter('W_ix', (shape_in, shape_out))
@@ -43,52 +62,21 @@ class LSTM(RecurrentNode):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
-    def get_initial_states(self, X, shape_index=1):
-        if self.stateful:
-            N = self.get_batch_size()
-        else:
-            N = T.shape(X)[shape_index]
-        if self.stateful:
-            if not N:
-                raise Exception('Must set batch size for input')
-            else:
-                return [T.zeros((N, self.get_shape_out())),
-                        T.zeros((N, self.get_shape_out()))]
-        return [T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index),
-                T.alloc(0, (N, self.get_shape_out()), unbroadcast=shape_index)]
+    def create_initial_state(self, input_data, stateful, shape_index=1):
+        batch_size = self.get_shapes_in()[0].get_batch_size() or T.shape(input_data)[1]
+        dim_out = self.get_dim_out()
+        if stateful:
+            if not isinstance(batch_size, int):
+                raise TypeError("batch_size must be set for stateful RNN.")
+            return [T.variable(np.zeros((batch_size, dim_out))), T.variable(np.zeros((batch_size, dim_out)))]
+        return [T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index), T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index)]
 
     def initialize(self):
-        shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
-        self.create_lstm_parameters(shape_in, shape_out)
+        dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
+        self.create_lstm_parameters(dim_in, dim_out)
 
-    def step(self, X, state):
-        out, state = self._step(X.get_data(), state)
-        return X.next(out, self.get_shape_out()), state
-
-    def _step(self, X, state):
-        previous_hidden, previous_state = state
-        lstm_hidden, state = self.lstm_step(X, previous_hidden, previous_state)
-        return lstm_hidden, [lstm_hidden, state]
-
-    def _forward(self, X):
-        S, N, D = T.shape(X)
-
-        if self.stateful:
-            if self.states is None:
-                self.states = self.get_initial_states(None)
-            hidden, state = self.states
-        else:
-            hidden, state = self.get_initial_states(X)
-
-        _, output, new_state = T.rnn(self._step,
-                              X,
-                              [hidden, state])
-        if self.stateful:
-            for state, ns in zip(self.states, new_state):
-                self.add_update(state, ns)
-        return output
-
-    def lstm_step(self, X, previous_hidden, previous_state):
+    def step(self, X, states, **kwargs):
+        previous_hidden, previous_state = states
         params = self.parameters
         Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
@@ -121,7 +109,7 @@ class LSTM(RecurrentNode):
             output = output_gate * T.tanh(state)
         else:
             output = output_gate * state
-        return output, state
+        return output, [output, state]
 
 class MaxoutLSTM(LSTM):
 
@@ -154,8 +142,8 @@ class MaxoutLSTM(LSTM):
         if self.use_forget_peep:
             self.init_parameter('P_f', (shape_out, shape_out))
 
-
-    def lstm_step(self, X, previous_hidden, previous_state):
+    def step(self, X, states, **kwargs):
+        previous_hidden, previous_state = states
         params = self.parameters
         Wi, Ui, bi = params['W_ix'], params['U_ih'], params['b_i']
         if self.use_input_peep:
@@ -188,4 +176,4 @@ class MaxoutLSTM(LSTM):
             output = output_gate * T.tanh(state)
         else:
             output = output_gate * state
-        return output, state
+        return output, [output, state]

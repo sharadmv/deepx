@@ -31,6 +31,6 @@ class TestOps(BaseTest):
         double = Lambda(lambda x: x * 2)
 
         with self.assertRaises(AssertionError):
-            self.run_net(Scalar() >> Repeat(double, 0), np.array([1]), np.array([0]))
+            self.run_net(Scalar() >> Repeat(double, 0), np.array([[1]]), np.array([0]))
         with self.assertRaises(AssertionError):
             self.run_net(Scalar() >> Repeat(double, -1), np.array([1]), np.array([0]))

@@ -2,8 +2,8 @@ from base import BaseTest
 
 import numpy as np
 import deepx.backend as T
-from deepx.nn import Vector
-from deepx.rnn import LSTM, Sequence
+from deepx.nn import Vector, Sequence
+from deepx.rnn import LSTM
 
 import unittest
 
@@ -13,6 +13,7 @@ def logistic(x):
     return 1.0/(1.0 + np.exp(-x))
 
 class LSTMBase(BaseTest):
+
     def zero_lstm(self, lstm):
         for param in lstm.parameters:
             lstm.set_parameter_value(param, lstm.get_parameter_value(param) * 0)
@@ -46,6 +47,8 @@ class TestSimpleLSTM(LSTMBase):
     def setUp(self):
         self.lstm = Sequence(Vector(1)) >> LSTM(1, 1, use_forget_gate=False)
         self.lstm_forget = Sequence(Vector(1)) >> LSTM(1, 1, use_forget_gate=True)
+        self.lstm.initialize()
+        self.lstm_forget.initialize()
 
     def test_input_gate(self):
         self.set_weights(self.lstm.right, 1)
@@ -136,17 +139,17 @@ class TestSimpleLSTM(LSTMBase):
 class TestStatefulLSTM(LSTMBase):
 
     def setUp(self):
-        self.lstm = Sequence(Vector(1, 1), 1) >> LSTM(1, 1, stateful=True)
-        self.lstm = Sequence(Vector(1, 1), 1) >> LSTM(1, 1, stateful=True)
+        self.lstm = Sequence(Vector(1, batch_size=1), 1) >> LSTM(1, 1, stateful=True)
+        self.lstm.initialize()
 
     def test_stateful_lstm(self):
         self.lstm.reset_states()
         self.set_weights(self.lstm.right, 2)
 
         X = np.random.normal(size=(1, 1, 1))
-        weights = np.ones((self.lstm.get_shape_in(), self.lstm.get_shape_out())) * 2
-        state = np.zeros((1, self.lstm.get_shape_out()))
-        out = np.zeros((1, self.lstm.get_shape_out()))
+        weights = np.ones((self.lstm.right.get_dim_in(), self.lstm.right.get_dim_out())) * 2
+        state = np.zeros((1, self.lstm.right.get_dim_out()))
+        out = np.zeros((1, self.lstm.right.get_dim_out()))
 
         for i in range(1000):
             out, state = self.lstm_forward(X, out, state, weights)
@@ -154,22 +157,23 @@ class TestStatefulLSTM(LSTMBase):
             lstm_out = self.lstm.predict(X)
             lstm_state = T.get_value(self.lstm.right.states[1])
 
-            np.testing.assert_almost_equal(lstm_out[0], out[0], 4)
-            np.testing.assert_almost_equal(lstm_state, state[0], 4)
+            np.testing.assert_almost_equal(lstm_out[0], out[0], 3)
+            np.testing.assert_almost_equal(lstm_state, state[0], 3)
 
 
     def test_stateful_lstm2(self):
-        weights = np.ones((self.lstm.get_shape_in(), self.lstm.get_shape_out()))
+        weights = np.ones((self.lstm.right.get_dim_in(), self.lstm.right.get_dim_out()))
         for _ in range(10):
             X = np.random.normal(size=(10, 1, 1))
 
             for s in range(1, 3):
-                state = np.zeros((1, self.lstm.get_shape_out()))
-                out = np.zeros((1, self.lstm.get_shape_out()))
+                state = np.zeros((1, self.lstm.right.get_dim_out()))
+                out = np.zeros((1, self.lstm.right.get_dim_out()))
                 for i in range(s):
                     out, state = self.lstm_forward(X[i], out, state, weights)
 
-                lstm = Sequence(Vector(1, 1), s) >> LSTM(1, 1, stateful=True)
+                lstm = Sequence(Vector(1, batch_size=1), s) >> LSTM(1, 1, stateful=True)
+                lstm.initialize()
                 self.set_weights(lstm.right, 1)
                 lstm_out = lstm.predict(X[:s])[-1]
                 lstm_hidden = T.get_value(lstm.right.states[0])

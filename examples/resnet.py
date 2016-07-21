@@ -31,7 +31,10 @@ if __name__ == "__main__":
     Xtrain, Xtest = X[train_idx], X[test_idx]
     ytrain, ytest = y[train_idx], y[test_idx]
 
-    conv_net = Image((1, 28, 28)) >> Conv((10, 2, 2), activation=Elu) >> Conv((20, 2, 2)) >> Flatten() >> Softmax(10)
+    conv_net = Image((1, 28, 28)) >> \
+        Convolution((3, 2, 2)) >> \
+        Repeat(Residual(Convolution((3, 2, 2)) >> Relu() >> Convolution((3, 2, 2))), 5) >> \
+        Flatten() >> Relu(200) >> Softmax(10)
 
     rmsprop = RMSProp(conv_net >> CrossEntropy())
 

@@ -1,13 +1,5 @@
 from .. import backend as T
 
-def create_tensor(ndim, name=None):
-    return T.placeholder(ndim=ndim, name=name)
-
-def shape_length(shape):
-    if isinstance(shape, tuple):
-        return sum(map(shape_length, shape))
-    return 1
-
 def pack_tuple(data, shape):
     def pack(data, shape):
         if shape is None:
@@ -50,3 +42,22 @@ def rzip(l1, l2):
             yield type(a)(rzip(a, b))
         else:
             yield a, b
+
+def tile_data(from_data, to_data):
+    dim = 0
+    while T.ndim(from_data) < T.ndim(to_data):
+        from_data = T.expand_dims(from_data, 0)
+        to_dim = T.shape(to_data)[dim]
+        from_data = T.tile(from_data, [to_dim] + [1] * (T.ndim(from_data) - 1))
+        dim += 1
+    return from_data
+
+def concatenate_data(tensor_list, sequence=False):
+    if not sequence:
+        return T.concatenate(tensor_list, axis=-1)
+    max_tensors = sorted([t for t in tensor_list], key=lambda x: T.ndim(x))[::-1]
+    raw_tensors = max_tensors[0:1] + [tile_data(t, max_tensors[0]) for t in max_tensors[1:]]
+    return T.concatenate(raw_tensors, axis=-1)
+
+def flatten(tuples):
+    return (t2 for t1 in tuples for t2 in t1)

@@ -7,7 +7,7 @@ from .common import _FLOATX, _EPSILON
 _SESSION = None
 
 
-def _get_session():
+def get_session():
     global _SESSION
     if _SESSION is None:
         _SESSION = tf.Session('')
@@ -22,14 +22,30 @@ def _set_session(session):
 # VARIABLE MANIPULATION
 
 
-def alloc(value, shape, unbroadcast=None):
-    if None in shape:
-        raise NotImplementedError("Cannot handle dynamic allocation just yet.")
-    return tf.constant(value, shape=shape, dtype=_FLOATX)
+def alloc(value, shape, unbroadcast=None, dtype=_FLOATX):
+    vals = tf.fill(tf.pack(shape), np.array(value).astype(dtype))
+    new_shape = []
+    for s in shape:
+        if isinstance(s, tf.Tensor):
+            new_shape.append(None)
+        else:
+            new_shape.append(s)
+    vals.set_shape(new_shape)
+    return vals
+
+class Var(tf.Variable):
+
+    def __init__(self, *args, **kwargs):
+        super(Var, self).__init__(*args, **kwargs)
+        self.args = args
+        self.kwargs = kwargs
+
+    def __deepcopy__(self, memo):
+        return self
 
 def variable(value, dtype=_FLOATX, name=None):
-    v = tf.Variable(np.asarray(value, dtype=dtype), name=name)
-    _get_session().run(v.initializer)
+    v = Var(np.asarray(value, dtype=dtype), name=name)
+    get_session().run(v.initializer)
     return v
 
 
@@ -47,21 +63,19 @@ def set_shape(x, dim, value):
     x.set_shape(s)
 
 def shape(x):
-    return x.get_shape().as_list()
+    return tf.shape(x)
 
 def ndim(x):
     return len(x.get_shape())
 
-
 def eval(x):
     '''Run a graph.
     '''
-    return x.eval(session=_get_session())
+    return x.eval(session=get_session())
 
 
 def zeros(shape, dtype=_FLOATX, name=None):
-    return variable(np.zeros(shape), dtype, name)
-
+    return tf.zeros(shape, dtype=dtype)
 
 def ones(shape, dtype=_FLOATX, name=None):
     return variable(np.ones(shape), dtype, name)
@@ -94,6 +108,8 @@ def make_sequence(var, max_length):
 def dot(x, y):
     return tf.matmul(x, y)
 
+def sparse_dot(x, y):
+    return tf.sparse_tensor_dense_matmul(x, y)
 
 def transpose(x):
     return tf.transpose(x)
@@ -230,6 +246,8 @@ def maximum(x, y):
 def minimum(x, y):
     return tf.minimum(x, y)
 
+def sign(x):
+    return tf.sign(x)
 
 # COMPARISONS
 
@@ -350,11 +368,11 @@ def spatial_2d_padding(x, padding=(1, 1), dim_ordering='th'):
 def get_value(x):
     '''Technically the same as eval() for TF.
     '''
-    return x.eval(session=_get_session())
+    return x.eval(session=get_session())
 
 
 def set_value(x, value):
-    tf.assign(x, np.asarray(value)).op.run(session=_get_session())
+    tf.assign(x, np.asarray(value)).op.run(session=get_session())
 
 
 # GRAPH MANIPULATION
@@ -370,7 +388,7 @@ class Function(object):
     def __call__(self, *inputs):
         names = [v.name for v in self.inputs]
         feed_dict = dict(zip(names, inputs))
-        session = _get_session()
+        session = get_session()
         updated = session.run(self.outputs + self.updates, feed_dict=feed_dict)
         if len(self.outputs) == 1:
             return updated[0]
@@ -411,6 +429,7 @@ def generate(step_function, inputs, n_steps):
     return [tf.pack(a) for a in zip(*outputs)], []
 
 def rnn(step_function, inputs, initial_states,
+        non_sequences=[],
         go_backwards=False, masking=False):
     '''Iterates over the time dimension of a tensor.
 
@@ -456,7 +475,7 @@ def rnn(step_function, inputs, initial_states,
     if go_backwards:
         input_list.reverse()
     for input in input_list:
-        output, new_states = step_function(input, states)
+        output, new_states = step_function(input, states, *non_sequences)
         if masking:
             # for now we raise an exception because tf.reduce_any will not work
             raise Exception("Masking is Theano-only for the time being.")
@@ -478,11 +497,10 @@ def rnn(step_function, inputs, initial_states,
         successive_outputs.append(output)
         successive_states.append(states)
 
-    last_output = successive_outputs[-1]
     outputs = tf.pack(successive_outputs)
     new_states = successive_states[-1]
 
-    return last_output, outputs, new_states
+    return outputs, new_states
 
 
 def switch(condition, then_expression, else_expression):

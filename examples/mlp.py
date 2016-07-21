@@ -4,7 +4,6 @@ from tqdm import tqdm
 import logging
 logging.basicConfig(level=logging.INFO)
 from deepx.nn import *
-from deepx.rnn import *
 from deepx.loss import *
 from deepx.optimize import *
 from sklearn.datasets import fetch_mldata
@@ -33,8 +32,8 @@ if __name__ == "__main__":
     ytrain, ytest = y[train_idx], y[test_idx]
 
     mlp = Vector(784) >> MLP(Relu(100), 2) >> Softmax(10)
-    loss = CrossEntropy(mlp) / 2 + 100
-    rmsprop = RMSProp(loss)
+    loss = mlp >> CrossEntropy()
+    rmsprop = Adam(loss)
 
     def train(n_iter, lr):
         for i in range(n_iter):
