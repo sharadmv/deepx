@@ -9,7 +9,8 @@ class Data(Node):
     def __init__(self, shape,
                  placeholder=None,
                  datatype=None,
-                 name=None):
+                 name=None,
+                 is_input=True):
         if not isinstance(shape, Shape):
             raise TypeError("Must instantiate with Shape object.")
         super(Data, self).__init__()
@@ -17,13 +18,19 @@ class Data(Node):
         self.placeholder = placeholder
         self.datatype = datatype or "Data"
         self.name = name
-        self.placeholder = placeholder or self.shape.create_placeholder(name=self.name)
+        self.is_input = is_input
+        if placeholder is not None:
+            self.placeholder = placeholder
+        else:
+            self.placeholder = self.shape.create_placeholder(name=self.name)
 
     def get_outputs(self, **kwargs):
         return [self]
 
     def get_graph_inputs(self):
-        return [self.placeholder]
+        if self.is_input:
+            return [self.placeholder]
+        return []
 
     def get_graph_outputs(self):
         return [self.placeholder]
@@ -41,7 +48,8 @@ class Data(Node):
         pass
 
     def initialize(self, **kwargs):
-        self.placeholder = self.placeholder or self.shape.create_placeholder(name=self.name)
+        if self.placeholder is None:
+            self.placeholder = self.shape.create_placeholder(name=self.name)
 
     def reinitialize(self, **kwargs):
         self.initialize()

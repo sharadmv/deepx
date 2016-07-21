@@ -1,6 +1,6 @@
 from .. import backend as T
 
-from ..core import ShapedLayer, Data, Shape
+from ..core import ShapedLayer
 
 class Linear(ShapedLayer):
 
@@ -20,6 +20,8 @@ class Linear(ShapedLayer):
         if self.is_elementwise():
             return self.activate(X)
         W, b = self.get_parameter_list('W', 'b')
+        if self.sparse:
+            return self.activate(T.sparse_dot(X, W) + b)
         return self.activate(T.dot(X, W) + b)
 
 class Maxout(Linear):

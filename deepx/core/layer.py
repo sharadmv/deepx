@@ -152,8 +152,10 @@ class Layer(Node):
 class ShapedLayer(Layer):
 
     def __init__(self, shape_in=None, shape_out=None, elementwise=False,
+                 sparse=False,
                  **kwargs):
         super(ShapedLayer, self).__init__(**kwargs)
+        self.sparse = sparse
         self._elementwise = elementwise
         if shape_out is not None:
             shape_in, shape_out = (shape_in, shape_out)

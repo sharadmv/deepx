@@ -1,7 +1,7 @@
 import numpy as np
 
 def normal(shape, scale=0.01):
-    return np.random.normal(loc=0.0, scale=scale, size=shape)
+    return np.random.normal(loc=0.0, scale=scale, size=shape, dtype=np.float32)
 
 def uniform(shape, a=-0.05, b=0.05):
     return np.random.uniform(a, b, size=shape)

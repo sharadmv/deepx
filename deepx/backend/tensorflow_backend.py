@@ -7,7 +7,7 @@ from .common import _FLOATX, _EPSILON
 _SESSION = None
 
 
-def _get_session():
+def get_session():
     global _SESSION
     if _SESSION is None:
         _SESSION = tf.Session('')
@@ -45,7 +45,7 @@ class Var(tf.Variable):
 
 def variable(value, dtype=_FLOATX, name=None):
     v = Var(np.asarray(value, dtype=dtype), name=name)
-    _get_session().run(v.initializer)
+    get_session().run(v.initializer)
     return v
 
 
@@ -71,7 +71,7 @@ def ndim(x):
 def eval(x):
     '''Run a graph.
     '''
-    return x.eval(session=_get_session())
+    return x.eval(session=get_session())
 
 
 def zeros(shape, dtype=_FLOATX, name=None):
@@ -108,6 +108,8 @@ def make_sequence(var, max_length):
 def dot(x, y):
     return tf.matmul(x, y)
 
+def sparse_dot(x, y):
+    return tf.sparse_tensor_dense_matmul(x, y)
 
 def transpose(x):
     return tf.transpose(x)
@@ -366,11 +368,11 @@ def spatial_2d_padding(x, padding=(1, 1), dim_ordering='th'):
 def get_value(x):
     '''Technically the same as eval() for TF.
     '''
-    return x.eval(session=_get_session())
+    return x.eval(session=get_session())
 
 
 def set_value(x, value):
-    tf.assign(x, np.asarray(value)).op.run(session=_get_session())
+    tf.assign(x, np.asarray(value)).op.run(session=get_session())
 
 
 # GRAPH MANIPULATION
@@ -386,7 +388,7 @@ class Function(object):
     def __call__(self, *inputs):
         names = [v.name for v in self.inputs]
         feed_dict = dict(zip(names, inputs))
-        session = _get_session()
+        session = get_session()
         updated = session.run(self.outputs + self.updates, feed_dict=feed_dict)
         if len(self.outputs) == 1:
             return updated[0]

@@ -1,18 +1,16 @@
-import numpy as np
-
 from ..core import Data
 from ..core import Shape
 
 def Scalar(**kwargs):
     return Data(Shape(()), datatype='Scalar', **kwargs)
 
-def Vector(dim, name=None, **kwargs):
+def Vector(dim, name=None, placeholder=None, is_input=True, **kwargs):
     assert isinstance(dim, int)
-    return Data(Shape(dim, **kwargs), datatype='Vector', name=name)
+    return Data(Shape(dim, **kwargs), datatype='Vector', name=name, placeholder=placeholder, is_input=is_input)
 
-def Matrix(dim, name=None, **kwargs):
+def Matrix(dim, name=None, placeholder=None, is_input=True, **kwargs):
     assert len(dim) == 2
-    return Data(Shape(dim, **kwargs), datatype='Matrix', name=name)
+    return Data(Shape(dim, **kwargs), datatype='Matrix', name=name, placeholder=placeholder, is_input=is_input)
 
 def Image(dim, name=None, **kwargs):
     assert len(dim) == 3
