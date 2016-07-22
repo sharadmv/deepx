@@ -161,7 +161,7 @@ class ArithmeticOperator(SimpleOperator):
 
     def get_outputs(self, *inputs, **kwargs):
         raw_inputs = [d.get_placeholder() for d in inputs]
-        raw_output = reduce(self.op, raw_inputs)
+        raw_output = six.moves.reduce(self.op, raw_inputs)
         return [Data(self.get_shapes_out()[0],
                      placeholder=raw_output)]
 

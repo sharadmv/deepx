@@ -8,7 +8,6 @@ setup(
     description = "A basic deep learning library.",
     license = "MIT",
     keywords = "theano, tensorflow",
-    install_requires = ['theano'],
     packages=find_packages(
         '.'
     ),
