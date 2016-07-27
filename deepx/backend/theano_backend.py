@@ -1,3 +1,4 @@
+import numpy as np
 import os
 
 CONTEXT_MAP = {
@@ -15,26 +16,147 @@ else:
     flags = FLAGS
 os.environ["THEANO_FLAGS"] = flags
 
+import theano
 import theano.tensor as T
 import theano.sparse as sparse
+# from theano.sandbox.cuda import dnn
 
-from .backend_base import BackendBase
+from .backend_base import BackendBase, FunctionBase
+
+class Session(object):
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, *args):
+        pass
+
+class TheanoFunction(FunctionBase):
+
+    def __init__(self, *args, **kwargs):
+        super(TheanoFunction, self).__init__(*args, **kwargs)
+        self.func = None
+        if self.lazy is not True:
+            self.create_function()
+
+    def create_function(self):
+        self.func = theano.function(self.inputs, self.outputs,
+                                    allow_input_downcast=True)
+
+    def __call__(self, *inputs):
+        if self.func is None:
+            self.create_function()
+        return self.func(*inputs)
+
 
 class TheanoBackend(BackendBase):
 
+    def __init__(self, **kwargs):
+        super(TheanoBackend, self).__init__(**kwargs)
+        self._session = Session()
+
     # General purpose methods
+
+    def get_current_device(self):
+        device = super(TheanoBackend, self).get_current_device()
+        if 'cpu' in device:
+            device = 'cpu'
+        return device
 
     def _tensor(self, broadcastable, dtype=None, name=None):
         dtype = dtype or self.floatx()
         ttype = T.TensorType(dtype, broadcastable)
-        device = self.get_current_device()
-        if 'cpu' in device:
-            device = 'cpu'
-        return ttype(name).transfer(device)
+        return ttype(name).transfer(self.get_current_device())
 
-    # def _variable(self, initial_value=None, trainable=True, name=None):
-        # with self._device(self.get_current_device()):
-            # return tf.Variable(initial_value=initial_value, trainable=trainable, name=name, target=self.get_current_device())
+    def _shared(self, value, name=None):
+        value = np.array(value)
+        return theano.shared(value, name=name, target=self.get_current_device())
+
+    def session(self, allow_soft_placement=True, log_device_placement=True):
+        return Session()
+
+    def _initialize(self):
+        return
+
+    # Unified interface
+
+    def zeros(self, shape, dtype=None, name=None):
+        dtype = dtype or self.floatx()
+        return T.zeros(shape, dtype=dtype)
+
+    def zeros_like(self, x, dtype=None, name=None):
+        result = T.zeros_like(x)
+        if dtype is not None:
+            result = result.astype(dtype)
+        return result
+
+    def ones(self, shape, dtype=None, name=None):
+        dtype = dtype or self.floatx()
+        return T.ones(shape, dtype=dtype)
+
+    def ones_like(self, x, dtype=None, name=None):
+        result = T.ones_like(x)
+        if dtype is not None:
+            result = result.astype(dtype)
+        return result
+
+    def random_normal(self, shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
+        np.random.seed(seed)
+        dtype = dtype or self.floatx()
+        return np.random.normal(size=shape, loc=mean, scale=stddev).astype(dtype)
+
+    def random_uniform(self, shape, minval=1, maxval=None, dtype=None, seed=None):
+        np.random.seed(seed)
+        dtype = dtype or self.floatx()
+        if maxval is None and dtype == self.floatx():
+            maxval = 1
+        return np.random.uniform(size=shape, low=minval, high=maxval).astype(dtype)
+
+    def tanh(self, x, name=None):
+        return T.tanh(x)
+
+    def sigmoid(self, x, name=None):
+        return T.nnet.sigmoid(x)
+
+    def relu(self, x, name=None):
+        return T.nnet.relu(x)
+
+    def conv2d(self, x, kernel, strides=[1, 1], border_mode='same', ):
+        if self.use_cudnn:
+            if border_mode == 'same':
+                assert(strides == [1, 1])
+                np_kernel = kernel.eval()
+                pad_x = (np_kernel.shape[2] - strides[0]) // 2
+                pad_y = (np_kernel.shape[3] - strides[1]) // 2
+                conv_out = dnn.dnn_conv(img=x,
+                                        kerns=kernel,
+                                        border_mode=(pad_x, pad_y))
+            else:
+                conv_out = dnn.dnn_conv(img=x,
+                                        kerns=kernel,
+                                        border_mode=border_mode,
+                                        subsample=strides)
+        else:
+            if border_mode == 'same':
+                th_border_mode = 'full'
+                assert(strides == (1, 1))
+            elif border_mode == 'valid':
+                th_border_mode = 'valid'
+            else:
+                raise Exception('Border mode not supported: ' + str(border_mode))
+
+            conv_out = T.nnet.conv.conv2d(x, kernel,
+                                        border_mode=th_border_mode,
+                                        subsample=strides,
+                                        image_shape=None,
+                                        filter_shape=None)
+            if border_mode == 'same':
+                shift_x = (kernel.shape[2] - 1) // 2
+                shift_y = (kernel.shape[3] - 1) // 2
+                conv_out = conv_out[:, :,
+                                    shift_x:x.shape[2] + shift_x,
+                                    shift_y:x.shape[3] + shift_y]
+        return conv_out
 
     # Tensorflow interface
 
@@ -47,7 +169,7 @@ class TheanoBackend(BackendBase):
         return self._tensor(broadcastable, dtype=dtype, name=name)
 
     def variable(self, initial_value=None, trainable=True, name=None):
-        return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+        return self._shared(initial_value, name=name)
 
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         if transpose_a:
@@ -63,14 +185,23 @@ class TheanoBackend(BackendBase):
     def scalar(self, name=None, dtype=None, shape=[]):
         return self._tensor([], dtype=dtype, name=name)
 
-    def vector(self, name=None, dtype=None):
+    def vector(self, name=None, dtype=None, shape=[]):
         return self._tensor([False], dtype=dtype, name=name)
 
-    def matrix(self, name=None, dtype=None):
+    def matrix(self, name=None, dtype=None, shape=[]):
         return self._tensor([False, False], dtype=dtype, name=name)
 
-    def tensor3(self, name=None, dtype=None):
+    def tensor3(self, name=None, dtype=None, shape=[]):
         return self._tensor([False, False, False], dtype=dtype, name=name)
 
-    def tensor4(self, name=None, dtype=None):
+    def tensor4(self, name=None, dtype=None, shape=[]):
         return self._tensor([False, False, False, False], dtype=dtype, name=name)
+
+    def shared(self, value, name=None):
+        return self._shared(value, name=name)
+
+    def dot(self, x, y):
+        return T.dot(x, y)
+
+    def function(self, inputs, outputs, updates=None):
+        return TheanoFunction(self._session, inputs, outputs)

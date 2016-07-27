@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import copy as cp
 
-from .. import backend as T
+from .. import T
 from ..util import flatten
 from .exceptions import ShapeOutError
 from .shape import Shape
@@ -26,6 +26,7 @@ class Node(object):
         self.updates = []
 
         self._predict = {}
+        self.output_device = T.get_current_device()
 
     @abstractmethod
     def get_outputs(self, *args, **kwargs):

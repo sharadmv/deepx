@@ -1,17 +1,22 @@
+from .. import T
 import numpy as np
 
-def normal(shape, scale=0.01):
-    return np.random.normal(loc=0.0, scale=scale, size=shape, dtype=np.float32)
+def normal(shape, **kwargs):
+    if isinstance(shape, int):
+        shape = [shape]
+    return T.random_normal(shape, **kwargs)
 
-def uniform(shape, a=-0.05, b=0.05):
-    return np.random.uniform(a, b, size=shape)
+def uniform(shape, **kwargs):
+    if isinstance(shape, int):
+        shape = [shape]
+    return T.random_uniform(shape, **kwargs)
 
 lls = locals()
 
 class Initializer(object):
 
     def __init__(self):
-        self.default = 'uniform'
+        self.default = 'normal'
 
     def init(self, shape, init_type, value=None, **kwargs):
         if value is not None:

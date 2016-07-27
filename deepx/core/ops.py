@@ -1,6 +1,6 @@
 import six
 
-from .. import backend as T
+from .. import T
 
 from .node import Node
 from .shape import Shape

@@ -1,7 +1,7 @@
 from abc import abstractmethod
 import numpy as np
 
-from .. import backend as T
+from .. import T
 from .exceptions import ShapeOutError
 from .node import Node
 from .data import Data
@@ -10,7 +10,7 @@ from .initialization import initialize_weights
 
 class Layer(Node):
 
-    def __init__(self, weight_init='uniform'):
+    def __init__(self, weight_init='normal'):
         super(Layer, self).__init__()
         self.weight_init = weight_init
         self.parameters = {}
