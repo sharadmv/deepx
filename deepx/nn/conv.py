@@ -1,6 +1,6 @@
 import math
 
-from .. import backend as T
+from .. import T
 from ..core import Layer
 from .full import Relu
 

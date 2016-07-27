@@ -1,6 +1,6 @@
 import numpy as np
 
-from .. import backend as T
+from .. import T
 
 from ..core import Layer, ShapedLayer
 

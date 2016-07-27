@@ -1,4 +1,4 @@
-from .. import backend as T
+from .. import T
 from ..core import Layer
 
 class Dropout(Layer):
