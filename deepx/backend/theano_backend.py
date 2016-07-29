@@ -1,5 +1,7 @@
 import numpy as np
+import six
 import os
+from functools import wraps
 
 CONTEXT_MAP = {
     '/gpu:0': 'cuda0',
@@ -19,9 +21,10 @@ os.environ["THEANO_FLAGS"] = flags
 import theano
 import theano.tensor as T
 import theano.sparse as sparse
-# from theano.sandbox.cuda import dnn
+from theano.sandbox.cuda import dnn
+from theano.tensor.signal import pool
 
-from .backend_base import BackendBase, FunctionBase
+from .backend_base import BackendBase, FunctionBase, DeviceDecorator
 
 class Session(object):
 
@@ -48,7 +51,7 @@ class TheanoFunction(FunctionBase):
             self.create_function()
         return self.func(*inputs)
 
-
+@six.add_metaclass(DeviceDecorator)
 class TheanoBackend(BackendBase):
 
     def __init__(self, **kwargs):
@@ -56,6 +59,19 @@ class TheanoBackend(BackendBase):
         self._session = Session()
 
     # General purpose methods
+
+    @classmethod
+    def use_device(cls, method):
+        @wraps(method)
+        def func(self, *args, **kwargs):
+            result = method(self, *args, **kwargs)
+            if hasattr(result, 'transfer'):
+                try:
+                    return result.transfer(self.get_current_device())
+                except ValueError:
+                    return result
+            return result
+        return func
 
     def get_current_device(self):
         device = super(TheanoBackend, self).get_current_device()
@@ -121,7 +137,7 @@ class TheanoBackend(BackendBase):
     def relu(self, x, name=None):
         return T.nnet.relu(x)
 
-    def conv2d(self, x, kernel, strides=[1, 1], border_mode='same', ):
+    def conv2d(self, x, kernel, strides=[1, 1], border_mode='same'):
         if self.use_cudnn:
             if border_mode == 'same':
                 assert(strides == [1, 1])
@@ -139,13 +155,13 @@ class TheanoBackend(BackendBase):
         else:
             if border_mode == 'same':
                 th_border_mode = 'full'
-                assert(strides == (1, 1))
+                assert(strides == [1, 1])
             elif border_mode == 'valid':
                 th_border_mode = 'valid'
             else:
                 raise Exception('Border mode not supported: ' + str(border_mode))
 
-            conv_out = T.nnet.conv.conv2d(x, kernel,
+            conv_out = T.nnet.conv2d(x, kernel,
                                         border_mode=th_border_mode,
                                         subsample=strides,
                                         image_shape=None,
@@ -157,6 +173,33 @@ class TheanoBackend(BackendBase):
                                     shift_x:x.shape[2] + shift_x,
                                     shift_y:x.shape[3] + shift_y]
         return conv_out
+
+    def pool2d(self, x, pool_size, strides=(1, 1), border_mode='valid',
+               pool_mode='max'):
+        if border_mode == 'same':
+            # TODO: add implementation for border_mode="same"
+            raise Exception('border_mode="same" not supported with Theano.')
+        elif border_mode == 'valid':
+            ignore_border = False
+            padding = (0, 0)
+        else:
+            raise Exception('Invalid border mode: ' + str(border_mode))
+
+        pool_out = pool.pool_2d(x, ds=pool_size,
+                                ignore_border=ignore_border,
+                                padding=padding,
+                                mode=pool_mode
+                                )
+        return pool_out
+
+    def flatten(self, x):
+        return T.reshape(x, (x.shape[0], T.prod(x.shape) // x.shape[0]))
+
+    def mean(self, x, axis=None, keepdims=False):
+        return T.mean(x, axis=axis, keepdims=keepdims)
+
+    def log(self, x):
+        return T.log(x)
 
     # Tensorflow interface
 
@@ -179,6 +222,18 @@ class TheanoBackend(BackendBase):
         if a_is_sparse or b_is_sparse:
             return sparse.dot(a, b)
         return T.dot(a, b)
+
+    def expand_dims(self, x, dim=-1):
+        '''Add a 1-sized dimension at index "dim".
+        '''
+        pattern = [i for i in range(x.type.ndim)]
+        if dim < 0:
+            if x.type.ndim == 0:
+                dim = 0
+            else:
+                dim = dim % x.type.ndim + 1
+        pattern.insert(dim, 'x')
+        return x.dimshuffle(pattern)
 
     # Theano interface
 

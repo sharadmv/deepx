@@ -1,6 +1,6 @@
 from abc import abstractmethod
 
-from .. import backend as T
+from .. import T
 from ..core import Node, Data, Shape
 
 class Loss(Node):

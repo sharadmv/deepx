@@ -1,5 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from six import add_metaclass
 import copy as cp
+from functools import wraps
 
 from .. import T
 from ..util import flatten
@@ -8,13 +10,23 @@ from .shape import Shape
 
 __all__ = ['Node', 'NodeList']
 
+class DeviceDecorator(ABCMeta):
+    def __init__(cls, name, bases, clsdict):
+        if 'get_outputs' in clsdict:
+            old = clsdict['get_outputs']
+            @wraps(old)
+            def new_get_outputs(self, *args, **kwargs):
+                with T.device(self.device):
+                    return old(self, *args, **kwargs)
+            setattr(cls, 'get_outputs', new_get_outputs)
+
+@add_metaclass(DeviceDecorator)
 class Node(object):
     """
     The :class:`Node` is the highest level abstraction in DeepX.
     It represents anything that takes in a set of inputs
     and returns a set of outputs.
     """
-    __metaclass__ = ABCMeta
 
     def __init__(self):
 
@@ -26,7 +38,7 @@ class Node(object):
         self.updates = []
 
         self._predict = {}
-        self.output_device = T.get_current_device()
+        self.device = T.get_current_device()
 
     @abstractmethod
     def get_outputs(self, *args, **kwargs):
@@ -184,12 +196,12 @@ class Node(object):
         return self.predict(*args, **kwargs)
 
     def __rshift__(self, node):
-        if isinstance(node, tuple):
+        if isinstance(node, tuple) or isinstance(node, list):
             return self.chain(NodeList(node))
         return self.chain(node)
 
     def __rrshift__(self, node):
-        if isinstance(node, tuple):
+        if isinstance(node, tuple) or isinstance(node, list):
             return NodeList(node).chain(self)
         return self.chain(node)
 
