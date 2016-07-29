@@ -1,4 +1,4 @@
-from .. import backend as T
+from .. import T
 from .optimizer import Optimizer
 
 class SGD(Optimizer):

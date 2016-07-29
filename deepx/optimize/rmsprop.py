@@ -1,4 +1,4 @@
-from .. import backend as T
+from .. import T
 from .optimizer import Optimizer
 
 class RMSProp(Optimizer):
@@ -9,14 +9,14 @@ class RMSProp(Optimizer):
         super(RMSProp, self).__init__(loss, clip_gradients=clip_gradients)
 
     def initialize(self):
-        self.average_gradient = [T.variable(T.get_value(p) * 0) for p in self.parameters]
+        self.average_gradient = [T.variable(T.zeros_like(p)) for p in self.parameters]
 
     def reset_parameters(self):
         for p in self.average_gradient:
             T.set_value(p, T.get_value(p) * 0)
 
     def get_aux_inputs(self):
-        return [T.placeholder(ndim=0, name='learning_rate')]
+        return [T.scalar(name='learning_rate')]
 
     def updates(self, learning_rate):
         updates = []

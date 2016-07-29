@@ -1,4 +1,4 @@
-from .. import backend as T
+from .. import T
 from .optimizer import Optimizer
 
 class Adadelta(Optimizer):
@@ -9,8 +9,8 @@ class Adadelta(Optimizer):
         super(Adadelta, self).__init__(loss, clip_gradients=clip_gradients)
 
     def initialize(self):
-        self.a = [T.variable(T.get_value(p) * 0) for p in self.parameters]
-        self.d = [T.variable(T.get_value(p) * 0) for p in self.parameters]
+        self.a = [T.variable(T.zeros_like(p)) for p in self.parameters]
+        self.d = [T.variable(T.zeros_like(p)) for p in self.parameters]
 
     def reset_parameters(self):
         for param in [self.a, self.d]:

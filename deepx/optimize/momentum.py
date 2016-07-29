@@ -1,7 +1,7 @@
-from .. import backend as T
+from .. import T
 from .optimizer import Optimizer
 
-class momentum(Optimizer):
+class Momentum(Optimizer):
 
     def initialize(self):
         self.caches = [T.variable(T.get_value(p) * 0) for p in self.parameters]

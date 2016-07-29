@@ -10,10 +10,11 @@ def uses_device(method):
 @six.add_metaclass(ABCMeta)
 class FunctionBase(object):
 
-    def __init__(self, session, inputs, outputs, lazy=True):
+    def __init__(self, session, inputs, outputs, updates, lazy=True):
         self.session = session
         self.inputs = inputs
         self.outputs = outputs
+        self.updates = updates
         self.lazy = lazy
 
     def feed_dict(self, *inputs):
@@ -146,6 +147,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def softmax(self, x, T=1.0):
+        pass
+
+    @uses_device
+    @abstractmethod
     def conv2d(self, x, kernel, strides=(1, 1), border_mode='same',
                image_shape=None, filter_shape=None):
         pass
@@ -171,6 +177,21 @@ class BackendBase(object):
     def log(self, x):
         pass
 
+    @uses_device
+    @abstractmethod
+    def exp(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def sqrt(x):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def categorical_crossentropy(output, target, from_logits=False):
+        pass
+
     # Tensorflow interface
 
     @abstractmethod
@@ -189,6 +210,16 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def expand_dims(self, x, dim=-1):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def gradients(self, loss, variables):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def square(self, x):
         pass
 
     # Theano interface
@@ -224,6 +255,16 @@ class BackendBase(object):
 
     @abstractmethod
     def function(self, inputs, outputs, updates=None):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def grad(self, loss, variables):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def sqr(self, x):
         pass
 
 should_decorate = set()

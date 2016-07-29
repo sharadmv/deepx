@@ -44,18 +44,22 @@ class TheanoFunction(FunctionBase):
 
     def create_function(self):
         self.func = theano.function(self.inputs, self.outputs,
+                                    updates=self.updates,
                                     allow_input_downcast=True)
 
     def __call__(self, *inputs):
         if self.func is None:
             self.create_function()
-        return self.func(*inputs)
+        result = self.func(*inputs)
+        if len(result) == 1:
+            return result[0]
+        return result
 
 @six.add_metaclass(DeviceDecorator)
 class TheanoBackend(BackendBase):
 
-    def __init__(self, **kwargs):
-        super(TheanoBackend, self).__init__(**kwargs)
+    def __init__(self, use_cudnn=False, **kwargs):
+        super(TheanoBackend, self).__init__(use_cudnn=use_cudnn, **kwargs)
         self._session = Session()
 
     # General purpose methods
@@ -137,6 +141,9 @@ class TheanoBackend(BackendBase):
     def relu(self, x, name=None):
         return T.nnet.relu(x)
 
+    def softmax(self, x, T=1.0):
+        return T.nnet.softmax(x)
+
     def conv2d(self, x, kernel, strides=[1, 1], border_mode='same'):
         if self.use_cudnn:
             if border_mode == 'same':
@@ -201,6 +208,22 @@ class TheanoBackend(BackendBase):
     def log(self, x):
         return T.log(x)
 
+    def exp(self, x):
+        return T.exp(x)
+
+    def sqrt(self, x):
+        x = T.clip(x, 0., np.inf)
+        return T.sqrt(x)
+
+    def categorical_crossentropy(self, output, target, from_logits=False):
+        if from_logits:
+            output = T.nnet.softmax(output)
+        else:
+            output /= output.sum(axis=-1, keepdims=True)
+        output = T.clip(output, self.epsilon(), 1.0 - self.epsilon())
+        return T.nnet.categorical_crossentropy(output, target)
+
+
     # Tensorflow interface
 
     def placeholder(self, dtype, shape=None, name=None):
@@ -235,6 +258,12 @@ class TheanoBackend(BackendBase):
         pattern.insert(dim, 'x')
         return x.dimshuffle(pattern)
 
+    def gradients(self, loss, variables):
+        return T.grad(loss, variables)
+
+    def square(self, x):
+        return T.sqr(x)
+
     # Theano interface
 
     def scalar(self, name=None, dtype=None, shape=[]):
@@ -260,3 +289,9 @@ class TheanoBackend(BackendBase):
 
     def function(self, inputs, outputs, updates=None):
         return TheanoFunction(self._session, inputs, outputs)
+    def grad(self, loss, variables):
+        return T.grad(loss, variables)
+
+    def sqr(self, x):
+        return T.sqr(x)
+

@@ -10,10 +10,15 @@ class TensorflowFunction(FunctionBase):
 
     def __init__(self, *args, **kwargs):
         super(TensorflowFunction, self).__init__(*args, **kwargs)
+        with tf.control_dependencies(self.outputs):
+            self.updates = [tf.assign(k, v) for k, v in self.updates]
 
     def __call__(self, *inputs):
         feed_dict = self.feed_dict(*inputs)
-        return self.session.run(self.outputs, feed_dict=feed_dict)
+        result = self.session.run(self.outputs + self.updates, feed_dict=feed_dict)
+        if len(self.outputs) == 1:
+            return result[0]
+        return result[:len(self.outputs)]
 
 @six.add_metaclass(DeviceDecorator)
 class TensorflowBackend(BackendBase):
@@ -85,6 +90,9 @@ class TensorflowBackend(BackendBase):
 
     def relu(self, x, name=None):
         return tf.nn.relu(x, name=name)
+
+    def softmax(self, x, T=1.0):
+        return tf.nn.softmax(x)
 
     def conv2d(self, x, kernel, strides=(1, 1), border_mode='same',
                image_shape=None, filter_shape=None):
@@ -163,6 +171,27 @@ class TensorflowBackend(BackendBase):
     def log(self, x):
         return tf.log(x)
 
+    def exp(self, x):
+        return tf.exp(x)
+
+    def sqrt(self, x):
+        x = tf.clip_by_value(x,
+                             tf.cast(0., dtype=self.floatx()),
+                             tf.cast(np.inf, dtype=self.floatx()))
+        return tf.sqrt(x)
+
+    def categorical_crossentropy(self, output, target, from_logits=False):
+        if not from_logits:
+            output /= tf.reduce_sum(output,
+                                    reduction_indices=len(output.get_shape())-1,
+                                    keep_dims=True)
+            output = tf.clip_by_value(output, tf.cast(self.epsilon(), dtype=self.floatx()),
+                                    tf.cast(1.- self.epsilon(), dtype=self.floatx()))
+            return - tf.reduce_sum(target * tf.log(output),
+                                   reduction_indices=len(output.get_shape())-1)
+        else:
+            return tf.nn.softmax_cross_entropy_with_logits(output, target)
+
     # Tensorflow interface
 
     def placeholder(self, dtype, shape=None, name=None):
@@ -176,6 +205,12 @@ class TensorflowBackend(BackendBase):
 
     def expand_dims(self, x, dim=-1):
         return tf.expand_dims(x, dim)
+
+    def gradients(self, loss, variables):
+        return tf.gradients(loss, variables)
+
+    def square(self, x):
+        return tf.square(x)
 
     # Theano interface
 
@@ -205,5 +240,12 @@ class TensorflowBackend(BackendBase):
     def dot(self, x, y):
         return tf.matmul(x, y)
 
-    def function(self, inputs, outputs, updates=None):
-        return TensorflowFunction(self._session, inputs, outputs)
+    def function(self, inputs, outputs, updates=[]):
+        return TensorflowFunction(self._session, inputs, outputs, updates)
+    def grad(self, loss, variables):
+        return tf.gradients(loss, variables)
+
+    def sqr(self, x):
+        return tf.square(x)
+
+
