@@ -1,4 +1,4 @@
-from .. import backend as T
+from .. import T
 
 def pack_tuple(data, shape):
     def pack(data, shape):

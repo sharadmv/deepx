@@ -10,7 +10,8 @@ class CrossEntropy(Loss):
 class LogLoss(Loss):
 
     def loss(self, ypred, y):
-        return - T.mean(y * T.log(ypred) + (1 - y) * T.log(1 - ypred))
+        ypred = T.clip_by_value(ypred, T.epsilon(), 1 - T.epsilon())
+        return -T.mean(y * T.log(ypred) + (1 - y) * T.log(1 - ypred))
 
 class MSE(Loss):
 

@@ -2,6 +2,7 @@ import numpy as np
 import six
 import tensorflow as tf
 from functools import wraps
+from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
 
@@ -15,7 +16,7 @@ class TensorflowFunction(FunctionBase):
 
     def __call__(self, *inputs):
         feed_dict = self.feed_dict(*inputs)
-        result = self.session.run(self.outputs + self.updates, feed_dict=feed_dict)
+        result = self.get_session().run(self.outputs + self.updates, feed_dict=feed_dict)
         if len(self.outputs) == 1:
             return result[0]
         return result[:len(self.outputs)]
@@ -25,7 +26,7 @@ class TensorflowBackend(BackendBase):
 
     def __init__(self, **kwargs):
         super(TensorflowBackend, self).__init__(**kwargs)
-        self._session = self.session()
+        self._sessions = []
 
     # General purpose methods
 
@@ -49,14 +50,22 @@ class TensorflowBackend(BackendBase):
     def _device(self, name):
         return tf.device(name)
 
-    def session(self, allow_soft_placement=True, log_device_placement=True):
-        config_proto = tf.ConfigProto(allow_soft_placement=True,
-                                      log_device_placement=True)
-        return tf.Session(config=config_proto)
+    @contextmanager
+    def session(self, **kwargs):
+        config_proto = tf.ConfigProto(**kwargs)
+        with tf.Session(config=config_proto) as sess:
+            self._sessions.append(sess)
+            self._initialize()
+            yield sess
+            self._sessions.pop()
 
+    def get_current_session(self):
+        if len(self._sessions) == 0:
+            raise Exception('No current session')
+        return self._sessions[-1]
 
     def _initialize(self):
-        self._session.run(tf.initialize_all_variables())
+        self.get_current_session().run(tf.initialize_all_variables())
 
     # Unified interface
 
@@ -93,6 +102,12 @@ class TensorflowBackend(BackendBase):
 
     def softmax(self, x, T=1.0):
         return tf.nn.softmax(x)
+
+    def dropout(self, x, p, seed=None):
+        retain_prob = 1. - p
+        if seed is None:
+            seed = np.random.randint(10e6)
+        return tf.nn.dropout(x * 1., retain_prob, seed=seed)
 
     def conv2d(self, x, kernel, strides=(1, 1), border_mode='same',
                image_shape=None, filter_shape=None):
@@ -174,6 +189,9 @@ class TensorflowBackend(BackendBase):
     def exp(self, x):
         return tf.exp(x)
 
+    def pow(self, x, a):
+        return tf.pow(x, a)
+
     def sqrt(self, x):
         x = tf.clip_by_value(x,
                              tf.cast(0., dtype=self.floatx()),
@@ -191,6 +209,11 @@ class TensorflowBackend(BackendBase):
                                    reduction_indices=len(output.get_shape())-1)
         else:
             return tf.nn.softmax_cross_entropy_with_logits(output, target)
+
+    def concatenate(self, tensors, axis=-1):
+        if axis < 0:
+            axis = axis % len(tensors[0].get_shape())
+        return tf.concat(axis, tensors)
 
     # Tensorflow interface
 
@@ -211,6 +234,9 @@ class TensorflowBackend(BackendBase):
 
     def square(self, x):
         return tf.square(x)
+
+    def clip_by_value(self, x, low, high):
+        return tf.clip_by_value(x, low, high)
 
     # Theano interface
 
@@ -237,11 +263,15 @@ class TensorflowBackend(BackendBase):
     def shared(self, value, name=None):
         return self._variable(initial_value=value, name=name)
 
+    def sparse_dot(self, x, y):
+        return tf.sparse_tensor_dense_matmul(x, y)
+
     def dot(self, x, y):
         return tf.matmul(x, y)
 
     def function(self, inputs, outputs, updates=[]):
-        return TensorflowFunction(self._session, inputs, outputs, updates)
+        return TensorflowFunction(self, inputs, outputs, updates)
+
     def grad(self, loss, variables):
         return tf.gradients(loss, variables)
 

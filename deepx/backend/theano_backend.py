@@ -23,6 +23,7 @@ import theano.tensor as T
 import theano.sparse as sparse
 from theano.sandbox.cuda import dnn
 from theano.tensor.signal import pool
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
 
@@ -144,6 +145,17 @@ class TheanoBackend(BackendBase):
     def softmax(self, x, T=1.0):
         return T.nnet.softmax(x)
 
+    def dropout(self, x, p, seed=None):
+        if p < 0. or p >= 1:
+            raise Exception('Dropout level must be in interval [0, 1].')
+        if seed is None:
+            seed = np.random.randint(10e6)
+        rng = RandomStreams(seed=seed)
+        retain_prob = 1. - p
+        x *= rng.binomial(x.shape, p=retain_prob, dtype=x.dtype)
+        x /= retain_prob
+        return x
+
     def conv2d(self, x, kernel, strides=[1, 1], border_mode='same'):
         if self.use_cudnn:
             if border_mode == 'same':
@@ -211,6 +223,9 @@ class TheanoBackend(BackendBase):
     def exp(self, x):
         return T.exp(x)
 
+    def pow(self, x, a):
+        return T.pow(x, a)
+
     def sqrt(self, x):
         x = T.clip(x, 0., np.inf)
         return T.sqrt(x)
@@ -223,6 +238,8 @@ class TheanoBackend(BackendBase):
         output = T.clip(output, self.epsilon(), 1.0 - self.epsilon())
         return T.nnet.categorical_crossentropy(output, target)
 
+    def concatenate(self, tensors, axis=-1):
+        return T.concatenate(tensors, axis=axis)
 
     # Tensorflow interface
 
@@ -285,6 +302,9 @@ class TheanoBackend(BackendBase):
         return self._shared(value, name=name)
 
     def dot(self, x, y):
+        return T.dot(x, y)
+
+    def sparse_dot(self, x, y):
         return T.dot(x, y)
 
     def function(self, inputs, outputs, updates=None):
