@@ -212,7 +212,7 @@ class RecurrentLayer(Layer):
         if stateful:
             if not isinstance(batch_size, int):
                 raise TypeError("batch_size must be set for stateful RNN.")
-            return [T.variable(np.zeros((batch_size, dim_out)))]
+            return [T.variable(T.zeros((batch_size, dim_out)))]
         return [T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index)]
 
     def get_initial_states(self, input_data=None, shape_index=1):

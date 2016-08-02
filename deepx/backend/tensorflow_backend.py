@@ -277,5 +277,3 @@ class TensorflowBackend(BackendBase):
 
     def sqr(self, x):
         return tf.square(x)
-
-
