@@ -9,7 +9,7 @@ _deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
 if not os.path.exists(_deepx_dir):
     os.makedirs(_deepx_dir)
 
-_BACKEND = 'theano'
+_BACKEND = 'tensorflow'
 _config_path = os.path.expanduser(os.path.join('~', '.deepx', 'deepx.json'))
 if os.path.exists(_config_path):
     _config = json.load(open(_config_path))
@@ -35,14 +35,17 @@ if 'DEEPX_BACKEND' in os.environ:
     assert _backend in {'theano', 'tensorflow'}
     _BACKEND = _backend
 
-if _BACKEND == 'theano':
-    from .theano_backend import TheanoBackend as Backend
-elif _BACKEND == 'tensorflow':
-    from .tensorflow_backend import TensorflowBackend as Backend
-elif _BACKEND != 'theano':
-    raise Exception('Unknown backend: ' + str(_BACKEND))
-
-backend = Backend()
-backend.set_floatx(_floatx)
-backend.set_epsilon(_epsilon)
-logging.info("Backend: %s", _BACKEND)
+try:
+    if _BACKEND == 'theano':
+        from .theano_backend import TheanoBackend as Backend
+    elif _BACKEND == 'tensorflow':
+        from .tensorflow_backend import TensorflowBackend as Backend
+    elif _BACKEND != 'theano':
+        raise Exception('Unknown backend: ' + str(_BACKEND))
+    backend = Backend()
+    backend.set_floatx(_floatx)
+    backend.set_epsilon(_epsilon)
+    logging.info("Backend: %s", _BACKEND)
+except:
+    logging.info("Failed importing: {backend}".format(backend=_BACKEND))
+    raise Exception('Import failed: ' + str(_BACKEND))
