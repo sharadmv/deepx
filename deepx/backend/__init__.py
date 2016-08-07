@@ -11,6 +11,7 @@ if not os.path.exists(_deepx_dir):
     os.makedirs(_deepx_dir)
 
 _BACKEND = 'tensorflow'
+
 _config_path = os.path.expanduser(os.path.join('~', '.deepx', 'deepx.json'))
 if os.path.exists(_config_path):
     _config = json.load(open(_config_path))
@@ -24,9 +25,13 @@ if os.path.exists(_config_path):
     _BACKEND = _backend
 else:
     # save config file, for easy edition
-    _config = {'floatx': 'float32',
-               'epsilon': 1e-7,
-               'backend': 'tensorflow'
+    _floatx = 'float32'
+    _epsilon = 1e-7
+    _backend = 'tensorflow'
+
+    _config = {'floatx': _floatx,
+               'epsilon': _epsilon,
+               'backend': _backend
                }
     with open(_config_path, 'w') as f:
         f.write(json.dumps(_config) + '\n')
@@ -41,7 +46,7 @@ try:
         from .theano_backend import TheanoBackend as Backend
     elif _BACKEND == 'tensorflow':
         from .tensorflow_backend import TensorflowBackend as Backend
-    elif _BACKEND != 'theano':
+    else:
         raise Exception('Unknown backend: ' + str(_BACKEND))
     backend = Backend()
     backend.set_floatx(_floatx)
