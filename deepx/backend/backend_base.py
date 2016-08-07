@@ -30,6 +30,11 @@ class FunctionBase(object):
 
 @six.add_metaclass(ABCMeta)
 class BackendBase(object):
+    """
+    Base class for DeepX backends.
+    Outlines the methods and signatures for a general set of methods
+    used in building and utilizing symbolic graphs.
+    """
 
     def __init__(self, use_cudnn=True):
         self._FLOATX = 'float32'
@@ -63,13 +68,36 @@ class BackendBase(object):
 
     # General methods
 
-    @staticmethod
+    @classmethod
     @abstractmethod
-    def use_device(method):
+    def use_device(cls, method):
+        """
+        use_device(method)
+        A decorator that will force the output of a function to
+        belong to a certain device context.
+        """
         pass
 
     @contextmanager
     def device(self, name):
+        """
+        device(name)
+        Assigns a device context to `deepx` functions.
+
+        Args:
+            name (str): The name of the device
+
+        Examples:
+            Using DeepX backend directly:
+                >>> from deepx import T
+                >>> with T.device('/gpu:0'):
+                ...     X = T.matrix()
+
+            Using DeepX to define a network:
+                >>> from deepx import T
+                >>> with T.device('/gpu:0'):
+                ...     network = Vector(784) >> Tanh(200) >> Softmax(10)
+        """
         self.push_device(name)
         yield
         self.pop_device()
@@ -83,14 +111,24 @@ class BackendBase(object):
         logging.debug("Popped device from stack: {device}".format(device=device))
 
     def get_current_device(self):
+        """
+        Returns the current device context.
+
+        Returns:
+            str: Name of current device
+        """
         if len(self._device_stack) == 0:
             return self.get_default_device()
         return self._device_stack[-1]
 
     @abstractmethod
+    @contextmanager
     def session(self, allow_soft_placement=False, log_device_placement=False):
+        """
+        session()
+        Assigns a session context to `deepx` functions.
+        """
         pass
-
 
     def initialize(self):
         if not self._initialized:
@@ -106,103 +144,324 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def zeros(self, shape, dtype=None, name=None):
+        """
+        Creates a tensor filled with zeros.
+
+        Args:
+            shape (:obj:`list` of :obj:`int`): The shape of the output tensor.
+            dtype (:obj:`str`, optional): The `dtype` of the output tensor.
+            name (:obj:`str`, optional): The name of the tensor. Defaults to `None`.
+
+        Returns:
+            A tensor filled with zeros with shape `shape`.
+        """
         pass
 
     @uses_device
     @abstractmethod
-    def zeros_like(self, shape, dtype=None, name=None):
+    def zeros_like(self, x, dtype=None, name=None):
+        """
+        Creates a tensor filled with zeros.
+
+        Args:
+            x: An input tensor.
+            dtype (:obj:`str`, optional): The `dtype` of the returned tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            A tensor filled with zeros that has the same shape as `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def ones(self, shape, dtype=None, name=None):
+        """
+        Creates a tensor filled with ones.
+
+        Args:
+            shape (:obj:`list` of :obj:`int`): The shape of the output tensor.
+            dtype (:obj:`str`, optional): The `dtype` of the output tensor.
+            name (:obj:`str`, optional): The name of the tensor. Defaults to `None`.
+
+        Returns:
+            A tensor filled with ones with shape `shape`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def ones_like(self, shape, dtype=None, name=None):
+        """
+        Creates a tensor filled with ones.
+
+        Args:
+            x: An input tensor.
+            dtype (:obj:`str`, optional): The `dtype` of the returned tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            A tensor filled with ones that has the same shape as `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def random_normal(self, shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
+        """
+        Returns a random normal tensor initialization.
+
+        Args:
+            shape (:obj:`list` of :obj:`int`): The shape of the output tensor initialization.
+            mean (:obj:`float`, optional): The mean of the normal distribution.
+            stddev (:obj:`float`, optional): The standard deviation of the normal distribution.
+            dtype (:obj:`str`, optional): The `dtype` of the returned tensor.
+            seed (:obj:`int`, optional): A random seed.
+
+        Returns:
+            A tensor initialization with shape `shape` sampled from a normal distribution
+            with mean `mean` and standard deviation `stddev`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def random_uniform(self, shape, minval=0, maxval=None, dtype=None, seed=None):
+        """
+        Returns a random uniform tensor initialization.
+
+        Args:
+            shape (:obj:`list` of :obj:`int`): The shape of the output tensor initialization.
+            minval (:obj:`float`, optional): The minimum value of the uniform distribution.
+            maxval (:obj:`float`, optional): The maximum value of the uniform distribution.
+            dtype (:obj:`str`, optional): The `dtype` of the returned tensor.
+            seed (:obj:`int`, optional): A random seed.
+
+        Returns:
+            A tensor initialization with shape `shape` sampled from a uniform distribution
+            with minium value `minval` and maximum value `maxval`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def tanh(self, x, name=None):
+        """
+        Returns the hyperbolic tangent of a tensor.
+
+        Args:
+            x: An input tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            The tanh applied elementwise to tensor `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def sigmoid(self, x, name=None):
+        """
+        Returns the sigmoid of a tensor.
+
+        Args:
+            x: An input tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            The sigmoid applied elementwise to tensor `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def relu(self, x, name=None):
+        """
+        Returns the ReLU of a tensor.
+
+        Args:
+            x: An input tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            The rectified-linear unit applied elementwise to tensor `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def softmax(self, x, T=1.0):
+        """
+        Returns the softmax of a tensor.
+
+        Args:
+            x: An input tensor.
+            name (:obj:`str`, optional): The name of the returned tensor. Defaults to `None`.
+
+        Returns:
+            The softmax applied elementwise to tensor `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def dropout(self, x, p, seed=None):
+        """
+        Applies dropout to a tensor.
+
+        Args:
+            x: An input tensor.
+            p: The dropout probability.
+            seed (:obj:`int`, optional): A random seed.
+
+        Returns:
+            A tensor with elements set to 0 with probability `p`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def conv2d(self, x, kernel, strides=(1, 1), border_mode='same',
                image_shape=None, filter_shape=None):
+        """
+        Applies a 2D convolution to an input tensor.
+
+        Args:
+            x: An input tensor with shape `[batch_size, channels, height, width]`.
+            kernel: An input tensor with shape `[channels_out, channels_in, height, width]`.
+            strides: The stride lengths for the dimensions of the input.
+            border_mode: (:obj:`str`, optional): a string from `"same"` or `"valid"`.
+
+        Returns:
+            The tensor resulting from convolving
+            the kernel over the input.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def pool2d(self, x, pool_size, strides=(1, 1),
                border_mode='valid', pool_mode='max'):
+        """
+        Applies a 2D pooling operation to an input tensor.
+
+        Args:
+            x: An input tensor with shape `[batch_size, channels, height, width]`.
+            pool_size: The size of pooling window for each of the two dimensions.
+            strides: The stride lengths for the dimensions of the input.
+            border_mode: (:obj:`str`, optional): a string from `"same"` or `"valid"`. Defaults
+                        to `"valid"`.
+            pool_mode: (:obj:`str`, optional): a string from `"max"` or `"avg"`. Defaults
+                        to `"max"`.
+
+        Returns:
+            The tensor resulting from pooling
+            the input.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def flatten(self, x):
+        """
+        Flatten the inputs along all axes but the first.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            The flattened tensor.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def mean(self, x, axis=None, keepdims=False):
+        """
+        Takes the mean of a tensor along a particular axis (or none).
+
+        Args:
+            x: An input tensor.
+            axis (:obj:`int`, optional): The axis which is reduced. Defaults to all axes.
+            keepdims (:obj:`bool`, optional): Keeps the reduced dimensions if True.
+
+        Returns:
+            The mean of the tensor along the specified axis.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def log(self, x):
+        """
+        Takes the elementwise natural logarithm of a tensor.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            The elementwise log of `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def exp(self, x):
+        """
+        Takes the elementwise exponent of a tensor.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            The elementwise exponent of `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def pow(self, x, a):
+        """
+        Raises a tensor to a power elementwise.
+
+        Args:
+            x: An input tensor.
+            a: A number.
+
+        Returns:
+            The elementwise power of `x` to `a`.
+        """
         pass
 
     @uses_device
     @abstractmethod
-    def sqrt(x):
+    def sqrt(self, x):
+        """
+        Takes the elementwise square root of a tensor.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            the elementwise square root of `x`.
+        """
         pass
 
     @uses_device
     @abstractmethod
-    def categorical_crossentropy(output, target, from_logits=False):
+    def categorical_crossentropy(self, x, target, from_logits=False):
+        """
+        Calculates the cross entropy of a distribution
+        with relation to a target distribution.
+
+        Args:
+            x: An input 2D-tensor of shape `[batch_size, N]`.
+            target: An input 2D-tensor of shape `[batch_size, N]`.
+            from_logits (:obj:`bool`): If true `x` contains unscaled logits
+                                        and if false `x` is softmax probabilities.
+        Returns:
+            A tensor of shape `[batch_size]` with cross entropy between the distributions.
+        """
         pass
 
     @uses_device

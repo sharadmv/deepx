@@ -4,6 +4,7 @@ Ported the backend library from Keras. Thanks a lot to @fchollet for the hard wo
 import os
 import json
 import logging
+from .backend_base import BackendBase
 
 _deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
 if not os.path.exists(_deepx_dir):
