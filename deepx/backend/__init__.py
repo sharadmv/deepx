@@ -48,5 +48,5 @@ try:
     backend.set_epsilon(_epsilon)
     logging.info("Backend: %s", _BACKEND)
 except:
-    logging.info("Failed importing: {backend}".format(backend=_BACKEND))
+    logging.exception("Failed importing: {backend}".format(backend=_BACKEND))
     raise Exception('Import failed: ' + str(_BACKEND))
