@@ -26,7 +26,7 @@ the structure of the network.
 
 .. code-block:: python
 
-    from deepx.nn import Vector, Tanh, Tanh, Softmax
+    from deepx.nn import Vector, Tanh, Softmax
     mlp = Vector(784) >> Tanh(200) >> Tanh(200) >> Softmax(10) 
 
 In order to train this neural network,
@@ -45,7 +45,7 @@ with respect to minibatches of data.
 .. code-block:: python
 
     from deepx.optimizer import Adam
-    adam = Adam(mlp)
+    adam = Adam(loss)
     adam.train(x_batch, y_batch, learning_rate)
 
 Check out the :doc:`tutorial <user/tutorial>` if you want to learn more!

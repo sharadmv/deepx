@@ -96,6 +96,19 @@ by just running `from deepx.nn import *`.
         net1, net2 = Repeat(Tanh(5), 2), Repeat(Relu(5), 2)
         outputs = input >> (net1, net2)
 
+#. A network with dropout.
+
+    .. code-block:: python
+
+        network = Vector(784) >> Tanh(200) >> Dropout(0.5) >> Tanh(200) >> Dropout(0.5) >> Softmax(10)
+
+    or equivalently:
+
+    .. code-block:: python
+
+        network = Vector(784) >> Repeat(Tanh(200) >> Dropout(0.5), 2) >> Softmax(10)
+
+
 To get details about the networks in DeepX,
 please refer to the API docs.
 
@@ -167,6 +180,17 @@ we can optimize.
     optimizer = SGD(loss)
     with T.session():
         optimizer.train(X_train, y_train, learning_rate)
+
+Since loss functions are just
+networks in DeepX, we can compose
+them with the chain operator.
+
+.. code-block:: python
+
+    network = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10)
+    loss1, loss2 = network >> CrossEntropy(), network >> MSE()
+    loss = (loss1, loss2) >> Add() # same as loss1 + loss2
+    optimizer = SGD(loss)
 
 Working with Theano and Tensorflow
 -------------------------------------
