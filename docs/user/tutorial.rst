@@ -30,12 +30,9 @@ DeepX is declarative,
 so it's probably easiest
 to learn by example.
 
-<<<<<<< 541171d05c0def96b5ae139536c5bcf1c3ea82c0
-=======
 For starters, you can import networks
 by just running `from deepx.nn import *`.
 
->>>>>>> added more examples
 #. A multilayer perceptron that classifies MNIST.
 
     .. code-block:: python
@@ -186,8 +183,6 @@ either set the environment variable
 `DEEPX_BACKEND` to one of `tensorflow`
 or `theano`, or edit `~/.deepx/deepx.json`.
 
-<<<<<<< 541171d05c0def96b5ae139536c5bcf1c3ea82c0
-=======
 To obtain the backend graph
 expressions, you can say:
 
@@ -200,27 +195,18 @@ expressions, you can say:
 of the backend expressions for a network,
 since nodes are multiple input/output.
 
->>>>>>> added more examples
 Multiple GPU support
 -----------------------
 
 .. _Tensorflow: https://www.tensorflow.org/versions/r0.10/how_tos/using_gpu/index.html
 
 DeepX borrows the `Tensorflow`_ syntax of
-<<<<<<< 541171d05c0def96b5ae139536c5bcf1c3ea82c0
-selecting devices to store operations.
-=======
 selecting devices to store network outputs.
->>>>>>> added more examples
 
 .. code-block:: python
 
     with T.device('/cpu:0'):
-<<<<<<< 541171d05c0def96b5ae139536c5bcf1c3ea82c0
-        input = Vector(10)
-=======
         input = Vector(784)
->>>>>>> added more examples
 
     with T.device('/gpu:0'):
         output = input >> Tanh(200)
