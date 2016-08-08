@@ -18,10 +18,6 @@ utilization.
 
 Quickstart
 ------------------------------
-Coding and training a neural network
-should be as simple as explaining
-it to someone.
-
 Let's consider the task of building
 a multilayer perceptron (MLP)
 that will classify MNIST digits
@@ -52,9 +48,14 @@ with respect to minibatches of data.
     adam = Adam(mlp)
     adam.train(x_batch, y_batch, learning_rate)
 
-For a more detailed tutorial, check out
-our advanced guide.
+Check out the :doc:`tutorial <user/tutorial>` if you want to learn more!
 
 Otherwise, you can browse the various
 layers, loss functions, and
 optimizers we have implemented so far.
+
+Table of Contents
+=======================
+
+.. toctree::
+    user/tutorial

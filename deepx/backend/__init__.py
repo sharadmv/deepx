@@ -1,5 +1,5 @@
 """
-Ported the backend library from Keras. Thanks a lot to @fchollet for the hard work!
+Used the backend setup from Keras. Thanks a lot to @fchollet for the hard work!
 """
 import os
 import json
