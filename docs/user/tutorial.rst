@@ -30,7 +30,6 @@ DeepX is declarative,
 so it's probably easiest
 to learn by example.
 
-
 #. A multilayer perceptron that classifies MNIST.
 
     .. code-block:: python
@@ -62,7 +61,7 @@ to learn by example.
         Image((1, 28, 28)) >> Convolution((1, 28, 28), (10, 28, 28)) >> Relu() >> Pool((10, 28, 28), (10, 14, 14))
 
 
-#. A network that simply concatenates two vectors.
+#. A network that concatenates two vectors.
 
     .. code-block:: python
 
@@ -73,6 +72,46 @@ to learn by example.
     .. code-block:: python
 
         network = Vector(5) | Vector(5)
+
+#. A network that adds two vectors.
+
+    .. code-block:: python
+
+        network = (Vector(5), Vector(5)) >> Add()
+
+    An alternate way of writing this using operator overloading is
+
+    .. code-block:: python
+
+        network = Vector(5) + Vector(5)
+
+#. Chain a network to several networks.
+
+    .. code-block:: python
+
+        input = Vector(10)
+        net1, net2 = Repeat(Tanh(5), 2), Repeat(Relu(5), 2)
+        outputs = input >> (net1, net2)
+
+
+Running a network
+-------------------
+Given a network, we need to define a session (a la Tensorflow)
+to actually utilize it. 
+Entering a sesssion
+will instantiate weight matrices
+and assign the parameters to devices.
+Doing a forward pass
+of the network is just as simple
+as calling it on a numpy array.
+
+.. code-block:: python
+
+    network = Vector(10) >> Tanh(5) >> Sigmoid(1)
+    with T.session():
+        data = np.ones((1, 10))
+        predictions = network(data)
+
 
 Minimizing loss functions (`deepx.loss`, `deepx.optimize`)
 -------------------------------------------------------------
@@ -121,4 +160,39 @@ we can optimize.
 
     loss = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10) >> CrossEntropy()
     optimizer = SGD(loss)
-    optimizer.train(X_train, y_train, learning_rate)
+    with T.session():
+        optimizer.train(X_train, y_train, learning_rate)
+
+Working with Theano and Tensorflow
+-------------------------------------
+
+DeepX eventually turns a network into a
+symbolic graph expression.
+Currently, DeepX supports
+Theano and Tensorflow symbolic graph
+backends, making it simple to run a
+network on a GPU.
+
+To choose a backend, you can
+either set the environment variable
+`DEEPX_BACKEND` to one of `tensorflow`
+or `theano`, or edit `~/.deepx/deepx.json`.
+
+Multiple GPU support
+-----------------------
+
+.. _Tensorflow: https://www.tensorflow.org/versions/r0.10/how_tos/using_gpu/index.html
+
+DeepX borrows the `Tensorflow`_ syntax of
+selecting devices to store operations.
+
+.. code-block:: python
+
+    with T.device('/cpu:0'):
+        input = Vector(10)
+
+    with T.device('/gpu:0'):
+        output = input >> Tanh(200)
+
+This notation works with both
+Theano and Tensorflow.
