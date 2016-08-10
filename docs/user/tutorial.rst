@@ -107,8 +107,12 @@ by just running `from deepx.nn import *`.
     .. code-block:: python
 
         network = Vector(784) >> Repeat(Tanh(200) >> Dropout(0.5), 2) >> Softmax(10)
+        
+#. A recurrent neural network (LSTM).
 
+    .. code-block:: python
 
+        network = Sequence(Vector(20)) >> LSTM(10) >> LSTM(10)
 To get details about the networks in DeepX,
 please refer to the API docs.
 
