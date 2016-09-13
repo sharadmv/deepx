@@ -10,7 +10,7 @@ from .initialization import initialize_weights
 
 class Layer(Node):
 
-    def __init__(self, weight_init='normal'):
+    def __init__(self, weight_init='default'):
         super(Layer, self).__init__()
         self.weight_init = weight_init
         self.parameters = {}

@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import six
 import tensorflow as tf
@@ -16,7 +17,7 @@ class TensorflowFunction(FunctionBase):
 
     def __call__(self, *inputs):
         feed_dict = self.feed_dict(*inputs)
-        result = self.get_session().run(self.outputs + self.updates, feed_dict=feed_dict)
+        result = self.session.get_current_session().run(self.outputs + self.updates, feed_dict=feed_dict)
         if len(self.outputs) == 1:
             return result[0]
         return result[:len(self.outputs)]
@@ -50,12 +51,18 @@ class TensorflowBackend(BackendBase):
     def _device(self, name):
         return tf.device(name)
 
+    def create_session(self, **kwargs):
+        config_proto = tf.ConfigProto(**kwargs)
+        sess = tf.Session(config=config_proto)
+        self._initialize(sess)
+        return sess
+
     @contextmanager
     def session(self, **kwargs):
         config_proto = tf.ConfigProto(**kwargs)
         with tf.Session(config=config_proto) as sess:
             self._sessions.append(sess)
-            self._initialize()
+            self._initialize(sess)
             yield sess
             self._sessions.pop()
 
@@ -64,10 +71,19 @@ class TensorflowBackend(BackendBase):
             raise Exception('No current session')
         return self._sessions[-1]
 
-    def _initialize(self):
-        self.get_current_session().run(tf.initialize_all_variables())
+    def _initialize(self, sess):
+        sess.run(tf.initialize_all_variables())
 
     # Unified interface
+
+    def shape(self, x):
+        return tf.shape(x)
+
+    def get_value(self, x):
+        return x.eval(session=self.get_current_session())
+
+    def set_value(self, x, value):
+        tf.assign(x, np.asarray(value)).op.run(session=self.get_current_session())
 
     def zeros(self, shape, dtype=None, name=None):
         dtype = dtype or self.floatx()
@@ -90,6 +106,12 @@ class TensorflowBackend(BackendBase):
     def random_uniform(self, shape, minval=0, maxval=None, dtype=None, seed=None):
         dtype = dtype or self.floatx()
         return tf.random_uniform(shape, minval=minval, maxval=maxval, dtype=dtype, seed=seed)
+
+    def random_binomial(self, shape, p=0.5, dtype=None):
+        dtype = dtype or self.floatx()
+        return tf.select(tf.random_uniform(shape, dtype=dtype) <= p,
+                                           tf.ones(shape, dtype=dtype),
+                                           tf.zeros(shape, dtype=dtype))
 
     def tanh(self, x, name=None):
         return tf.tanh(x, name=name)
@@ -182,6 +204,11 @@ class TensorflowBackend(BackendBase):
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
         return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
+
+    def batch_norm(self, x, beta, gamma):
+        mean, variance = tf.nn.moments(x, [0])
+        normed = tf.nn.batch_normalization(tf.identity(x), mean, variance, beta, gamma, self.epsilon())
+        return normed
 
     def log(self, x):
         return tf.log(x)
@@ -278,4 +305,20 @@ class TensorflowBackend(BackendBase):
     def sqr(self, x):
         return tf.square(x)
 
+    def switch(self, condition, then_expression, else_expression):
+        '''Switches between two operations depending on a scalar value (int or bool).
+        Note that both `then_expression` and `else_expression`
+        should be symbolic tensors of the *same shape*.
+        # Arguments
+            condition: scalar tensor.
+            then_expression: TensorFlow operation.
+            else_expression: TensorFlow operation.
+        '''
+        return tf.select(condition, then_expression, else_expression)
+        x_shape = copy.copy(then_expression.get_shape())
+        x = tf.python.control_flow_ops.cond(tf.cast(condition, 'bool'),
+                                            lambda: then_expression,
+                                            lambda: else_expression)
+        x.set_shape(x_shape)
+        return x
 

@@ -6,3 +6,4 @@ from .utility import *
 from .ops import *
 from .dropout import *
 from .residual import *
+from .batch_norm import *

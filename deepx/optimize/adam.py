@@ -10,11 +10,11 @@ class Adam(Optimizer):
         super(Adam, self).__init__(loss, clip_gradients=clip_gradients)
 
     def initialize(self):
-        self.i = T.variable(0)
+        self.i = T.variable(0.0)
         self.b1 = T.variable(self.b1_init, name='beta1')
         self.b2 = T.variable(self.b2_init, name='beta2')
-        self.ms = [T.variable(T.get_value(p) * 0) for p in self.parameters]
-        self.vs = [T.variable(T.get_value(p) * 0) for p in self.parameters]
+        self.ms = [T.variable(T.zeros_like(p)) for p in self.parameters]
+        self.vs = [T.variable(T.zeros_like(p)) for p in self.parameters]
 
     def reset_parameters(self):
         for param in [self.ms, self.vs]:
@@ -22,7 +22,7 @@ class Adam(Optimizer):
                 T.set_value(p, T.get_value(p) * 0)
 
     def get_aux_inputs(self):
-        return [T.placeholder(ndim=0, name='learning_rate')]
+        return [T.scalar(name='learning_rate')]
 
     def updates(self, learning_rate):
 

@@ -10,15 +10,12 @@ def uses_device(method):
 @six.add_metaclass(ABCMeta)
 class FunctionBase(object):
 
-    def __init__(self, backend, inputs, outputs, updates, lazy=True):
-        self.backend = backend
+    def __init__(self, session, inputs, outputs, updates, lazy=True):
+        self.session = session
         self.inputs = inputs
         self.outputs = outputs
         self.updates = updates
         self.lazy = lazy
-
-    def get_session(self):
-        return self.backend.get_current_session()
 
     def feed_dict(self, *inputs):
         return {i: input for i, input in zip(self.inputs, inputs)}
@@ -105,6 +102,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def shape(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
     def zeros(self, shape, dtype=None, name=None):
         pass
 
@@ -135,6 +137,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def random_binomial(self, shape, p=0.5, dtype=None):
+        pass
+
+    @uses_device
+    @abstractmethod
     def tanh(self, x, name=None):
         pass
 
@@ -151,11 +158,6 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def softmax(self, x, T=1.0):
-        pass
-
-    @uses_device
-    @abstractmethod
-    def dropout(self, x, p, seed=None):
         pass
 
     @uses_device
@@ -192,11 +194,6 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
-    def pow(self, x, a):
-        pass
-
-    @uses_device
-    @abstractmethod
     def sqrt(x):
         pass
 
@@ -204,12 +201,6 @@ class BackendBase(object):
     @abstractmethod
     def categorical_crossentropy(output, target, from_logits=False):
         pass
-
-    @uses_device
-    @abstractmethod
-    def concatenate(self, tensors, axis=-1):
-        pass
-
 
     # Tensorflow interface
 
@@ -241,11 +232,6 @@ class BackendBase(object):
     def square(self, x):
         pass
 
-    @uses_device
-    @abstractmethod
-    def clip_by_value(self, x, low, high):
-        pass
-
     # Theano interface
 
     @abstractmethod
@@ -275,11 +261,6 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def dot(self, x, y):
-        pass
-
-    @uses_device
-    @abstractmethod
-    def sparse_dot(self, x, y):
         pass
 
     @abstractmethod
