@@ -254,6 +254,9 @@ class TheanoBackend(BackendBase):
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._shared(initial_value, name=name)
 
+    def get_value(self, variable):
+        return variable.get_value()
+
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         if transpose_a:
             a = a.T

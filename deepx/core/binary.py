@@ -11,7 +11,7 @@ class BinaryOpNode(Node):
     def get_graph_parameters(self):
         if self.frozen:
             return []
-        return self.left.get_graph_parameters() + self.right.get_graph_parameters()
+        return list(self.left.get_graph_parameters()) + list(self.right.get_graph_parameters())
 
     def get_graph_inputs(self):
         inputs = []

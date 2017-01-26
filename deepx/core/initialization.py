@@ -11,6 +11,13 @@ def uniform(shape, **kwargs):
         shape = [shape]
     return T.random_uniform(shape, **kwargs)
 
+def xavier(shape, **kwargs):
+    if isinstance(shape, int):
+        return normal(shape, **kwargs)
+    low = -1*np.sqrt(6.0/(np.sum(shape)))
+    high = 1*np.sqrt(6.0/(np.sum(shape)))
+    return T.random_uniform(shape, minval=low, maxval=high)
+
 lls = locals()
 
 class Initializer(object):

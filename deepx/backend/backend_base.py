@@ -177,6 +177,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def sum(self, x, axis=None, keepdims=False):
+        pass
+
+    @uses_device
+    @abstractmethod
     def mean(self, x, axis=None, keepdims=False):
         pass
 
@@ -210,6 +215,15 @@ class BackendBase(object):
     def concatenate(self, tensors, axis=-1):
         pass
 
+    @uses_device
+    @abstractmethod
+    def sort(self, tensor):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def argmin(self, tensor, axis=0):
+        pass
 
     # Tensorflow interface
 
@@ -220,6 +234,25 @@ class BackendBase(object):
     @abstractmethod
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+
+    @uses_device
+    @abstractmethod
+    def constant(self, value, dtype=None, shape=None):
+        pass
+
+    @abstractmethod
+    def get_value(self, variable):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def gather(self, params, indices):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def gather_nd(self, params, indices):
+        pass
 
     @uses_device
     @abstractmethod
@@ -246,7 +279,21 @@ class BackendBase(object):
     def clip_by_value(self, x, low, high):
         pass
 
+    @uses_device
+    @abstractmethod
+    def pack(self, values, axis=0, name='pack'):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def reduce_max(self, x, axis=None, keepdims=False):
+        pass
+
     # Theano interface
+
+    @abstractmethod
+    def dim(self, x):
+        pass
 
     @abstractmethod
     def scalar(self, name=None, dtype=None):
@@ -294,6 +341,11 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def sqr(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def max(self, x, axis=None, keepdims=False):
         pass
 
 should_decorate = set()

@@ -65,7 +65,7 @@ class TensorflowBackend(BackendBase):
         return self._sessions[-1]
 
     def _initialize(self):
-        self.get_current_session().run(tf.initialize_all_variables())
+        self.get_current_session().run(tf.global_variables_initializer())
 
     # Unified interface
 
@@ -176,6 +176,14 @@ class TensorflowBackend(BackendBase):
     def flatten(self, x):
         return tf.reshape(x, [-1, np.prod(x.get_shape()[1:].as_list())])
 
+    def sum(self, x, axis=None, keepdims=False):
+        if axis is not None and axis < 0:
+            axis = axis % len(x.get_shape())
+        if x.dtype.base_dtype == tf.bool:
+            x = tf.cast(x, self.floatx())
+        return tf.reduce_sum(x, reduction_indices=axis, keep_dims=keepdims)
+
+
     def mean(self, x, axis=None, keepdims=False):
         if axis is not None and axis < 0:
             axis = axis % len(x.get_shape())
@@ -206,14 +214,23 @@ class TensorflowBackend(BackendBase):
             output = tf.clip_by_value(output, tf.cast(self.epsilon(), dtype=self.floatx()),
                                     tf.cast(1.- self.epsilon(), dtype=self.floatx()))
             return - tf.reduce_sum(target * tf.log(output),
-                                   reduction_indices=len(output.get_shape())-1)
+                                   reduction_indices=len(output.get_shape()) - 1)
         else:
             return tf.nn.softmax_cross_entropy_with_logits(output, target)
 
-    def concatenate(self, tensors, axis=-1):
+    def concatenate(self, tensors, axis=-1, concat=False):
+        if concat:
+            return tf.pack(tensors)
         if axis < 0:
             axis = axis % len(tensors[0].get_shape())
         return tf.concat(axis, tensors)
+
+    def sort(self, tensor):
+        values, indices = tf.nn.top_k(-tensor, k=tf.shape(tensor)[0])
+        return -values, indices
+
+    def argmin(self, tensor, axis=0):
+        return tf.argmin(tensor, axis=axis)
 
     # Tensorflow interface
 
@@ -222,6 +239,18 @@ class TensorflowBackend(BackendBase):
 
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+
+    def constant(self, value, dtype=None, shape=None):
+        return tf.constant(value, dtype=dtype, shape=shape)
+
+    def get_value(self, variable):
+        return self.get_current_session().run(variable)
+
+    def gather(self, params, indices):
+        return tf.gather(params, indices)
+
+    def gather_nd(self, params, indices):
+        return tf.gather_nd(params, indices)
 
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         return tf.matmul(a, b, transpose_a=transpose_a, transpose_b=transpose_b, a_is_sparse=a_is_sparse, name=name)
@@ -238,7 +267,16 @@ class TensorflowBackend(BackendBase):
     def clip_by_value(self, x, low, high):
         return tf.clip_by_value(x, low, high)
 
+    def pack(self, values, axis=0, name='pack'):
+        return tf.pack(values, axis=axis, name=name)
+
+    def reduce_max(self, x, axis=None, keep_dims=False):
+        return tf.reduce_max(x, axis=axis, keep_dims=keep_dims)
+
     # Theano interface
+
+    def dim(self, x):
+        return len(x.get_shape())
 
     def scalar(self, name=None, dtype=None, shape=[]):
         dtype = dtype or self.floatx()
@@ -277,3 +315,6 @@ class TensorflowBackend(BackendBase):
 
     def sqr(self, x):
         return tf.square(x)
+
+    def max(self, x, axis=None, keepdims=False):
+        return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
