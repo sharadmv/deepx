@@ -1,4 +1,5 @@
 from ..core import FunctionalNode
+from .ops import Repeat
 
 class Residual(FunctionalNode):
 
@@ -16,3 +17,6 @@ class Residual(FunctionalNode):
 
     def __str__(self):
         return "Residual(%s)" % self.node
+
+def RepeatResidual(node, amount):
+    return Repeat(Residual(node), amount)
