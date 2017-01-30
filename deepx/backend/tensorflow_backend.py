@@ -7,7 +7,6 @@ from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
 
-
 class TensorflowFunction(FunctionBase):
 
     def __init__(self, *args, **kwargs):
@@ -71,13 +70,9 @@ class TensorflowBackend(BackendBase):
             raise Exception('No current session')
         return self._sessions[-1]
 
-<<<<<<< HEAD
-    def _initialize(self):
-        self.get_current_session().run(tf.global_variables_initializer())
-=======
     def _initialize(self, sess):
-        sess.run(tf.initialize_all_variables())
->>>>>>> 816d020b38a606455a6af532ae4d0acc26776685
+        sess.run(tf.local_variables_initializer())
+        sess.run(tf.global_variables_initializer())
 
     # Unified interface
 

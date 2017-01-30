@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-from tqdm import tqdm
 import logging
 logging.basicConfig(level=logging.INFO)
 from deepx.nn import *
@@ -43,3 +42,4 @@ if __name__ == "__main__":
 
         preds = mlp.predict(Xtest).argmax(axis=1)
         print("Error: ", 1 - (preds == labels[test_idx]).sum() / float(N - split))
+    train(100, 0.01)

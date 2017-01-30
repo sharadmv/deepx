@@ -1,8 +1,6 @@
 from abc import abstractmethod
-import numpy as np
 
 from .. import T
-from .exceptions import ShapeOutError
 from .node import Node
 from .data import Data
 from .shape import Shape
@@ -10,17 +8,12 @@ from .initialization import initialize_weights
 
 class Layer(Node):
 
-<<<<<<< HEAD
-    def __init__(self, weight_init='xavier'):
-=======
     def __init__(self, weight_init='default'):
->>>>>>> 816d020b38a606455a6af532ae4d0acc26776685
         super(Layer, self).__init__()
         self.weight_init = weight_init
         self.parameters = {}
 
     def get_outputs(self, input, **kwargs):
-        self.initialize()
         raw_input = input.get_placeholder()
         if input.is_sequence():
             raw_output = self.recurrent_forward(raw_input, **kwargs)

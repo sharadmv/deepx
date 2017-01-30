@@ -36,7 +36,7 @@ class BackendBase(object):
     def __init__(self, use_cudnn=True):
         self._FLOATX = 'float32'
         self._EPSILON = 10e-8
-        self._DEFAULT_DEVICE = '/gpu:0'
+        self._DEFAULT_DEVICE = '/cpu:0'
         self._device_stack = []
         self._initialized = False
         self.use_cudnn = use_cudnn

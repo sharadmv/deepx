@@ -27,4 +27,4 @@ solar-theme==1.3.2
 Sphinx==1.4.5
 traitlets==4.2.2
 wcwidth==0.1.7
-https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-0.10.0rc0-cp27-none-linux_x86_64.whl
+tensorflow==0.12.0
