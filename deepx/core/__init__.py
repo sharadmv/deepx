@@ -1,5 +1,5 @@
 from .node import *
-# from .data import *
+from .data import *
 # from .layer import *
 # from .initialization import initialize_weights, set_default
 # from .exceptions import *

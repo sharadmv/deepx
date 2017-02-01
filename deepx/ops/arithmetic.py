@@ -7,20 +7,8 @@ __all__ = ['Concatenate', 'Max', 'Sum', 'Pow', 'Add', 'Prod', 'Sub', 'Div']
 
 class SimpleOperator(ShapedNode):
 
-    def get_graph_parameters(self):
-        return []
-
-    def get_graph_inputs(self):
-        return []
-
-    def get_graph_updates(self, **kwargs):
-        return []
-
-    def reset_states(self):
-        return
-
-    def reset_state(self, i):
-        return
+    def __init__(self):
+        super(SimpleOperator, self).__init__(None, None)
 
 class Concatenate(SimpleOperator):
 
@@ -124,17 +112,15 @@ class Pow(SimpleOperator):
 
 class ArithmeticOperator(SimpleOperator):
 
-    def get_outputs(self, *inputs, **kwargs):
-        raw_inputs = [d.get_placeholder() for d in inputs]
-        raw_output = six.moves.reduce(self.op, raw_inputs)
-        return [Data(self.get_shapes_out()[0],
-                     placeholder=raw_output)]
+    def forward(self, *inputs, **kwargs):
+        raw_output = six.moves.reduce(self.op, inputs)
+        return [raw_output]
 
     def infer_shape(self):
         shapes_in = self.get_shapes_in()
         if shapes_in is not None:
             shapes_in = sorted(shapes_in, key=lambda x: len(x.get_dim()))
-            self.shapes_out = [shapes_in[0].copy()]
+            self.set_shapes_out([shapes_in[0].copy()])
 
     def __repr__(self):
         return "%s()" % self.op_name

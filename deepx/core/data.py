@@ -1,9 +1,36 @@
 import numpy as np
 
-from .node import Node
+from .node import ShapedNode
 from .shape import Shape
 from .. import util
 
+class Data(ShapedNode):
+
+    def __init__(self, shape, placeholder=None, name=None, is_input=False):
+        super(Data, self).__init__([], [shape])
+        self.placeholder = placeholder or shape.create_placeholder(name=name)
+        self.is_input = is_input
+
+    @property
+    def shape(self):
+        return self.get_shapes_out()[0]
+
+    def infer_shape(self):
+        return
+
+    def forward(self):
+        return [self.placeholder]
+
+    def __repr__(self):
+        return "Data(%s)" % self.shape
+
+class Constant(Data):
+
+    def __init__(self, value):
+        value = np.array(value)
+        super(Constant, self).__init__(Shape(value.shape), placeholder=value)
+
+"""
 class Data(Node):
 
     def __init__(self, shape,
@@ -139,3 +166,4 @@ class Constant(Data):
 
     def get_graph_inputs(self):
         return []
+"""
