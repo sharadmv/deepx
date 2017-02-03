@@ -10,6 +10,9 @@ class SimpleOperator(ShapedNode):
     def __init__(self):
         super(SimpleOperator, self).__init__(None, None)
 
+    def inputs(self):
+        return []
+
 class Concatenate(SimpleOperator):
 
     def get_outputs(self, *inputs, **kwargs):

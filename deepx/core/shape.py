@@ -3,18 +3,23 @@ from .. import T
 class Shape(object):
 
     def __init__(self, dim,
-                 batch_size=None,
+                 batch=False,
                  sequence=False,
-                 max_length=None,
                  dtype=T.floatx()):
-        if isinstance(dim, int):
-            self.dim = (dim,)
-        else:
-            self.dim = dim
-        self.batch_size = batch_size
+        if not (isinstance(dim, list) or isinstance(dim, tuple)):
+            raise Exception("bad shape type")
+        self.dim = list(dim)
+        self.batch = batch
         self.sequence = sequence
-        self.max_length = max_length
         self.dtype = dtype
+
+    def unify(self, other):
+        if other.dim != self.dim:
+            raise Exception("shape mismatch")
+        return self.copy(
+            sequence=other.sequence,
+        )
+
 
     def is_none(self):
         return self.dim is None
@@ -22,14 +27,8 @@ class Shape(object):
     def get_dim(self):
         return self.dim
 
-    def get_batch_size(self):
-        return self.batch_size
-
     def is_sequence(self):
         return self.sequence
-
-    def get_max_length(self):
-        return self.max_length
 
     def get_dtype(self):
         return self.dtype
@@ -37,11 +36,7 @@ class Shape(object):
     def create_placeholder(self, name=None):
         if self.is_none():
             raise TypeError("Cannot create placeholder for Shape(None)")
-        if self.sequence:
-            shape = [self.max_length, self.batch_size] + list(self.dim)
-        else:
-            shape = [self.batch_size] + list(self.dim)
-        return T.placeholder(shape=shape, name=name, dtype=self.dtype)
+        return T.placeholder(shape=self.dim, name=name, dtype=self.dtype)
 
     @classmethod
     def concatenate(self, shape_list):
@@ -62,41 +57,25 @@ class Shape(object):
         return True
 
     def __str__(self):
-        dim = self.dim
-        if len(dim) == 1:
-            dim = self.dim[0]
-        if self.sequence:
-            return "{dim}".format(
-                dim=dim
-            )
         return "{dim}".format(
-             dim=dim
+             dim=self.dim
         )
 
     def __repr__(self):
-        dim = self.dim
-        if len(self.dim) == 1:
-            dim = self.dim[0]
-        if self.sequence:
-            return "<Shape {dim}>".format(
-                dim=dim
-            )
         return "<Shape {dim}>".format(
-            dim=dim
+            dim=self.dim
         )
 
 
     def copy(self,
              dim=None,
-             batch_size=None,
+             batch=None,
              sequence=None,
-             max_length=None,
              dtype=None
              ):
         if dim is None:
             dim = self.dim
         return Shape(dim,
-                     batch_size=batch_size or self.batch_size,
+                     batch=batch if batch is not None else self.batch,
                      sequence=sequence if sequence is not None else self.sequence,
-                     max_length=max_length or self.max_length,
                      dtype=dtype or self.dtype)

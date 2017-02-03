@@ -6,29 +6,56 @@ from .. import util
 
 class Data(ShapedNode):
 
-    def __init__(self, shape, placeholder=None, name=None, is_input=False):
+    def __init__(self, shape, placeholder=None, name=None, is_input=True):
         super(Data, self).__init__([], [shape])
-        self.placeholder = placeholder or shape.create_placeholder(name=name)
+        self.placeholder = placeholder
+        self.name = name
         self.is_input = is_input
+
+    def get_placeholder(self):
+        if self.placeholder is None:
+            self.placeholder = self.shape.create_placeholder(name=self.name)
+        return self.placeholder
+
+    def inputs(self, *inputs):
+        if self.is_input:
+            return [self.get_placeholder()]
+        return []
 
     @property
     def shape(self):
         return self.get_shapes_out()[0]
 
+    @property
+    def batch(self):
+        return self.shape.batch
+
+    @property
+    def sequence(self):
+        return self.shape.sequence
+
     def infer_shape(self):
         return
 
     def forward(self):
-        return [self.placeholder]
+        return [self.get_placeholder()]
 
     def __repr__(self):
         return "Data(%s)" % self.shape
+
+    def copy(self, shape=None, placeholder=None, name=None, is_input=None):
+        return Data(
+            shape if shape is not None else self.shape,
+            placeholder=placeholder if placeholder is not None else self.placeholder,
+            name=name if name is not None else self.name,
+            is_input=is_input if is_input is not None else self.is_input
+        )
 
 class Constant(Data):
 
     def __init__(self, value):
         value = np.array(value)
-        super(Constant, self).__init__(Shape(value.shape), placeholder=value)
+        super(Constant, self).__init__(Shape(value.shape), placeholder=value, is_input=False)
 
 """
 class Data(Node):

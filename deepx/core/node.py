@@ -51,8 +51,12 @@ class Node(object):
     def forward(self, *inputs):
         pass
 
-    def outputs(self, *inputs):
-        return self.forward(*inputs)
+    @abstractmethod
+    def inputs(self):
+        pass
+
+    def feed(self, *feed_values):
+        return { placeholder : value for placeholder, value in zip(self.inputs(), feed_values) }
 
     def __repr__(self):
         return "Node(%u, %u)" % (self.get_num_inputs(), self.get_num_outputs())
@@ -90,6 +94,8 @@ def coerce_node(val):
         return Constant(val)
     elif isinstance(val, list) or isinstance(val, tuple):
         return NodeList(val)
+    elif isinstance(val, Node):
+        return val
     raise Exception("bad node")
 
 class NodeList(Node):
@@ -101,12 +107,23 @@ class NodeList(Node):
     def get_shapes_in(self):
         return self.nodes[0].get_shapes_in()
 
-    def infer_shape(self):
+    def set_shapes_in(self, shape):
         for node in self.nodes:
-            node.infer_shape()
+            node.set_shapes_in(shape)
+
+    def set_shapes_out(self, shapes):
+        for node, shape in zip(self.nodes, shapes):
+            node.set_shapes_out([shape])
 
     def get_shapes_out(self):
         return [shape for node in self.nodes for shape in node.get_shapes_out()]
+
+    def inputs(self):
+        return [a for node in self.nodes for a in node.inputs()]
+
+    def infer_shape(self):
+        for node in self.nodes:
+            node.infer_shape()
 
     def __repr__(self):
         return "[%s]" % ", ".join(map(repr, self.nodes))
@@ -150,6 +167,9 @@ class Chain(Node):
 
     def set_shapes_out(self, shapes_out):
         self.right.set_shapes_out(shapes_out)
+
+    def inputs(self):
+        return self.left.inputs() + self.right.inputs()
 
     def forward(self, *inputs):
         left_out = self.left.forward(*inputs)
