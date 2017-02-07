@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import six
 
 from .. import T
@@ -12,6 +13,7 @@ class SimpleOperator(ShapedNode):
 
     def inputs(self):
         return []
+
 
 class Concatenate(SimpleOperator):
 
@@ -85,33 +87,42 @@ class Max(SimpleOperator):
     def __str__(self):
         return repr(self)
 
-class Pow(SimpleOperator):
+class UnaryOperator(SimpleOperator):
+
+    def forward(self, X):
+        return [self.op(X)]
+
+    @abstractmethod
+    def op(self, X):
+        pass
+
+    def infer_shape(self):
+        shapes_in = self.get_shapes_in()
+        if shapes_in is not None:
+            self.set_shapes_out([shapes_in[0].copy()])
+
+    def __str__(self):
+        return repr(self)
+
+class Pow(UnaryOperator):
 
     def __init__(self, pow):
         super(Pow, self).__init__()
         self.pow = pow
 
-    def get_outputs(self, input, **kwargs):
-        raw_input = input.get_placeholder()
-        raw_output = T.pow(raw_input, self.pow)
-        return [Data(self.get_shapes_out()[0], placeholder=raw_output)]
-
-    def get_num_inputs(self):
-        return 1
-
-    def get_num_outputs(self):
-        return 1
-
-    def infer_shape(self):
-        if self.shapes_in is not None:
-            shape_in = self.shapes_in[0]
-            self.shapes_out = [shape_in.copy()]
+    def op(self, X):
+        return T.pow(X, self.pow)
 
     def __repr__(self):
         return "Pow(%u)" % self.pow
 
-    def __str__(self):
-        return repr(self)
+class Exp(UnaryOperator):
+
+    def op(self, X):
+        return T.exp(X)
+
+    def __repr__(self):
+        return "Exp()"
 
 class ArithmeticOperator(SimpleOperator):
 
@@ -188,7 +199,7 @@ class Index(SimpleOperator):
             )]
 
     def __repr__(self):
-        return "Max()"
+        return "Index()"
 
     def __str__(self):
         return repr(self)

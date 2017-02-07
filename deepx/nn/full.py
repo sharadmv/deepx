@@ -1,6 +1,6 @@
 from .. import T
 
-from ..core import ShapedLayer
+from ..layer import ShapedLayer
 
 class Linear(ShapedLayer):
 
@@ -8,8 +8,8 @@ class Linear(ShapedLayer):
         if not self.is_elementwise():
             dim_in = self.get_dim_in()
             dim_out = self.get_dim_out()
-            self.init_parameter('W', (dim_in, dim_out))
-            self.init_parameter('b', dim_out)
+            self.create_parameter('W', [dim_in, dim_out])
+            self.create_parameter('b', [dim_out])
 
     def activate(self, X):
         if self.is_elementwise():
@@ -36,8 +36,8 @@ class Maxout(Linear):
     def initialize(self):
         dim_in = self.get_dim_in()
         dim_out = self.get_dim_out()
-        self.init_parameter('W', (self.k, dim_in, dim_out))
-        self.init_parameter('b', (self.k, dim_out))
+        self.create_parameter('W', (self.k, dim_in, dim_out))
+        self.create_parameter('b', (self.k, dim_out))
 
     def activate(self, X):
         return T.max(X, axis=1)
@@ -102,7 +102,7 @@ class LeakyRelu(Linear):
 class Tanlu(Linear):
 
     def initialize(self):
-        self.init_parameter('alpha', self.get_dim_out(), value=0.5)
+        self.create_parameter('alpha', self.get_dim_out(), value=0.5)
 
     def activate(self, X):
         alpha = self.get_parameter('alpha')

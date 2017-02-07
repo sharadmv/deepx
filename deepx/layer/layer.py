@@ -1,16 +1,17 @@
 from abc import abstractmethod
 
 from .. import T
-from .node import Node
-from .data import Data
-from .shape import Shape
-from .initialization import initialize_weights
+from ..core import ShapedNode
+from ..core import Data
+from ..core import Shape
+from ..initialization import initialize_weights
 
-class Layer(Node):
+class Layer(ShapedNode):
 
-    def __init__(self, weight_init='default'):
-        super(Layer, self).__init__()
-        self.weight_init = weight_init
+    def __init__(self, initialization=None):
+        super(Layer, self).__init__(None, None)
+        self.initialized = False
+        self.initialization = initialization if initialization is not None else T.get_current_initialization()
         self.parameters = {}
 
     def get_outputs(self, input, **kwargs):
@@ -21,7 +22,9 @@ class Layer(Node):
             raw_output = self.forward(raw_input, **kwargs)
         return [Data(self.get_shapes_out()[0], placeholder=raw_output)]
 
-    @abstractmethod
+    def inputs(self):
+        return []
+
     def forward(self, X):
         pass
 
@@ -48,65 +51,39 @@ class Layer(Node):
     def reset_state(self, i):
         pass
 
-    def reinitialize(self, **kwargs):
-        self.infer_shape()
-        if self.get_shapes_in() is not None and self.get_shapes_out() is not None:
-            self.parameters = {}
-            self.initialize(**kwargs)
-
     # Shape inference
-
-    def set_shapes_in(self, shapes_in):
-        assert len(shapes_in) == 1, "Only 1 input per layer"
-        self.shapes_in = shapes_in
-
-    def set_shapes_out(self, shapes_out):
-        assert len(shapes_out) == 1, "Only 1 output per layer"
-        self.shapes_out = shapes_out
-
-    def get_shapes_in(self):
-        return self.shapes_in
-
-    def get_shapes_out(self):
-        return self.shapes_out
-
-    def get_num_inputs(self):
-        return 1
-
-    def get_num_outputs(self):
-        return 1
 
     @abstractmethod
     def infer(self, shape_in):
         pass
 
     def infer_shape(self):
+        if self.initialized:
+            return
         shapes_in = self.get_shapes_in()
-        shapes_out = self.get_shapes_out()
         if shapes_in is not None:
             predicted_shapes_out = [self.infer(shapes_in[0])]
             self.set_shapes_out(predicted_shapes_out)
+            self.initialize()
+            self.initialized = True
 
     def get_dim_in(self):
         if self.get_shapes_in() is None:
             return None
-        shape_in = self.get_shapes_in()[0].get_dim()
-        if len(shape_in) == 1:
-            return shape_in[0]
-        return shape_in
+        shape_in = self.get_shapes_in()[0]
+        return shape_in.get_dim()[-1]
 
     def get_dim_out(self):
         if self.get_shapes_out() is None:
             return None
-        shape_out = self.get_shapes_out()[0].get_dim()
-        if len(shape_out) == 1:
-            return shape_out[0]
-        return shape_out
+        shape_out = self.get_shapes_out()[0]
+        return shape_out.get_dim()[-1]
 
-    def init_parameter(self, name, shape, value=None):
+    def create_parameter(self, name, shape, value=None):
         if name not in self.parameters:
+            pass
             parameter = T.variable(
-                initialize_weights(shape, self.weight_init, value=value),
+                initialize_weights(self.initialization, shape, value=value),
                 name=name,
             )
             self.parameters[name] = parameter
@@ -155,15 +132,15 @@ class ShapedLayer(Layer):
         self.sparse = sparse
         self._elementwise = elementwise
         if shape_out is not None:
-            shape_in, shape_out = (shape_in, shape_out)
+            pass
         elif shape_in is not None and shape_out is None:
             shape_in, shape_out = None, shape_in
         else:
             self._elementwise = True
         if shape_in is not None:
-            self.set_shapes_in([Shape(shape_in)])
+            self.set_shapes_in([Shape([None, shape_in], batch=True)])
         if shape_out is not None:
-            self.set_shapes_out([Shape(shape_out)])
+            self.set_shapes_out([Shape([None, shape_out], batch=True)])
 
     def is_elementwise(self):
         return self._elementwise
@@ -171,7 +148,7 @@ class ShapedLayer(Layer):
     def infer(self, shape_in):
         if self.is_elementwise():
             return shape_in
-        return shape_in.copy(dim=self.get_dim_out())
+        return shape_in.copy(dim=self.get_shapes_out()[0].get_dim())
 
     def __str__(self):
         if self.is_elementwise():

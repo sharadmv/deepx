@@ -1,4 +1,4 @@
-# from .full import *
+from .full import *
 from .primitives import *
 # from .conv import *
 # from .reshape import *

@@ -37,7 +37,9 @@ class BackendBase(object):
         self._FLOATX = 'float32'
         self._EPSILON = 10e-8
         self._DEFAULT_DEVICE = '/cpu:0'
+        self._DEFAULT_INITIALIZATION = 'glorot_uniform'
         self._device_stack = []
+        self._initialization_stack = []
         self._initialized = False
         self.use_cudnn = use_cudnn
 
@@ -62,6 +64,12 @@ class BackendBase(object):
 
     def set_default_device(self, default_device):
         self._DEFAULT_DEVICE = default_device
+
+    def get_default_initialization(self):
+        return self._DEFAULT_INITIALIZATION
+
+    def set_default_initialization(self, default_initialization):
+        self._DEFAULT_INITIALIZATION = default_initialization
 
     # General methods
 
@@ -117,6 +125,39 @@ class BackendBase(object):
         if len(self._device_stack) == 0:
             return self.get_default_device()
         return self._device_stack[-1]
+
+    @contextmanager
+    def initialization(self, initialization):
+        """
+        initialization(initialization)
+        Assigns an initialization context to `deepx` networks.
+
+        Args:
+            initialization (str): The name of the device
+
+        """
+        self.push_initialization(initialization)
+        yield
+        self.pop_initialization()
+
+    def push_initialization(self, initialization):
+        self._initialization_stack.append(initialization)
+        logging.debug("Pushed initialization onto stack: {initialization}".format(initialization=initialization))
+
+    def pop_initialization(self):
+        initialization = self._initialization_stack.pop()
+        logging.debug("Popped initialization from stack: {initialization}".format(initialization=initialization))
+
+    def get_current_initialization(self):
+        """
+        Returns the current initialization context.
+
+        Returns:
+            str: Name of current initialization
+        """
+        if len(self._initialization_stack) == 0:
+            return self.get_default_initialization()
+        return self._initialization_stack[-1]
 
     @abstractmethod
     @contextmanager
@@ -241,7 +282,7 @@ class BackendBase(object):
 
         Returns:
             A tensor initialization with shape `shape` sampled from a uniform distribution
-            with minium value `minval` and maximum value `maxval`.
+            with minimum value `minval` and maximum value `maxval`.
         """
         pass
 
