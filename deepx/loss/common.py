@@ -1,7 +1,8 @@
 from .. import T
-import tensorflow as tf
 
 from .loss import Loss
+
+__all__ = ["CrossEntropy", "LogLoss", "BinaryCrossEntropy", "MeanSquaredError", "MSE"]
 
 class CrossEntropy(Loss):
 
@@ -22,22 +23,26 @@ class LogLoss(Loss):
             return -T.mean(T.log(ypred))
         return -T.mean(y * T.log(ypred) + (1 - y) * T.log(1 - ypred))
 
-class SampledLogLoss(Loss):
+BinaryCrossEntropy = LogLoss
 
-    def __init__(self, one_ratio, *args, **kwargs):
-        super(SampledLogLoss, self).__init__(*args, **kwargs)
-        self.one_ratio = one_ratio
+# class SampledLogLoss(Loss):
 
-    def loss(self, ypred, y):
-        one_ratio = tf.reducejsum(y) / tf.to_float(tf.size(y))
-        noise = T.random_binomial(T.shape(y), p=one_ratio)
-        cost = y * T.log(ypred) + (1 - y) * T.log(1 - ypred)
-        mask = y + noise > 0
-        mask.set_shape(ypred.get_shape())
-        cost = tf.boolean_mask(cost, mask)
-        return -T.mean(cost)
+    # def __init__(self, one_ratio, *args, **kwargs):
+        # super(SampledLogLoss, self).__init__(*args, **kwargs)
+        # self.one_ratio = one_ratio
 
-class MSE(Loss):
+    # def loss(self, ypred, y):
+        # one_ratio = tf.reducejsum(y) / tf.to_float(tf.size(y))
+        # noise = T.random_binomial(T.shape(y), p=one_ratio)
+        # cost = y * T.log(ypred) + (1 - y) * T.log(1 - ypred)
+        # mask = y + noise > 0
+        # mask.set_shape(ypred.get_shape())
+        # cost = tf.boolean_mask(cost, mask)
+        # return -T.mean(cost)
+
+class MeanSquaredError(Loss):
 
     def loss(self, ypred, y):
         return T.mean(T.pow((ypred - y), 2))
+
+MSE = MeanSquaredError

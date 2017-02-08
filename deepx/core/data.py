@@ -30,6 +30,9 @@ class Data(ShapedNode):
     def batch(self):
         return self.shape.batch
 
+    def is_sequence(self):
+        return self.shape.sequence
+
     @property
     def sequence(self):
         return self.shape.sequence
@@ -37,7 +40,7 @@ class Data(ShapedNode):
     def infer_shape(self):
         return
 
-    def forward(self):
+    def outputs(self):
         return [self.get_placeholder()]
 
     def __repr__(self):

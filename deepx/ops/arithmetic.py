@@ -4,7 +4,7 @@ import six
 from .. import T
 from ..core import ShapedNode, Shape, Data
 
-__all__ = ['Concatenate', 'Max', 'Sum', 'Pow', 'Add', 'Prod', 'Sub', 'Div']
+__all__ = ['Concatenate', 'Max', 'Sum', 'Pow', 'Add', 'Mul', 'Prod', 'Sub', 'Div']
 
 class SimpleOperator(ShapedNode):
 
@@ -126,7 +126,7 @@ class Exp(UnaryOperator):
 
 class ArithmeticOperator(SimpleOperator):
 
-    def forward(self, *inputs, **kwargs):
+    def outputs(self, *inputs, **kwargs):
         raw_output = six.moves.reduce(self.op, inputs)
         return [raw_output]
 
@@ -149,12 +149,14 @@ class Add(ArithmeticOperator):
     def op(x, y):
         return x + y
 
-class Prod(ArithmeticOperator):
-    op_name = 'Prod'
+class Mul(ArithmeticOperator):
+    op_name = 'Mul'
 
     @staticmethod
     def op(x, y):
         return x * y
+
+Prod = Mul
 
 
 class Sub(ArithmeticOperator):

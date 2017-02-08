@@ -1,7 +1,8 @@
 import numpy as np
 
-from .. import backend as T
-from ..core import RecurrentLayer, Shape
+from .. import T
+from ..core import Shape
+from ..layer import RecurrentLayer
 
 class LSTM(RecurrentLayer):
 
@@ -11,15 +12,7 @@ class LSTM(RecurrentLayer):
                  use_output_peep=False,
                  use_forget_peep=False,
                  use_tanh_output=True, **kwargs):
-        super(LSTM, self).__init__(**kwargs)
-        if shape_out is not None:
-            shape_in, shape_out = (shape_in, shape_out)
-        elif shape_in is not None and shape_out is None:
-            shape_in, shape_out = None, shape_in
-        if shape_in is not None:
-            self.set_shapes_in([Shape(shape_in, sequence=True)])
-        if shape_out is not None:
-            self.set_shapes_out([Shape(shape_out, sequence=True)])
+        super(LSTM, self).__init__(shape_in=shape_in, shape_out=shape_out, **kwargs)
 
         self.use_forget_gate = use_forget_gate
         self.use_input_peep = use_input_peep
@@ -35,35 +28,35 @@ class LSTM(RecurrentLayer):
             raise Exception("Need to specify LSTM shape")
 
     def infer(self, shape_in):
-        return shape_in.copy(dim=self.get_dim_out())
+        return shape_in.copy(dim=self.get_shapes_out()[0].get_dim())
 
     def create_lstm_parameters(self, shape_in, shape_out):
-        self.init_parameter('W_ix', (shape_in, shape_out))
-        self.init_parameter('U_ih', (shape_out, shape_out))
-        self.init_parameter('b_i', shape_out)
+        self.create_parameter('W_ix', [shape_in, shape_out])
+        self.create_parameter('U_ih', [shape_out, shape_out])
+        self.create_parameter('b_i', [shape_out])
 
-        self.init_parameter('W_ox', (shape_in, shape_out))
-        self.init_parameter('U_oh', (shape_out, shape_out))
-        self.init_parameter('b_o', shape_out)
+        self.create_parameter('W_ox', [shape_in, shape_out])
+        self.create_parameter('U_oh', [shape_out, shape_out])
+        self.create_parameter('b_o', [shape_out])
 
         if self.use_forget_gate:
-            self.init_parameter('W_fx', (shape_in, shape_out))
-            self.init_parameter('U_fh', (shape_out, shape_out))
-            self.init_parameter('b_f', shape_out)
+            self.create_parameter('W_fx', [shape_in, shape_out])
+            self.create_parameter('U_fh', [shape_out, shape_out])
+            self.create_parameter('b_f', [shape_out])
 
-        self.init_parameter('W_gx', (shape_in, shape_out))
-        self.init_parameter('U_gh', (shape_out, shape_out))
-        self.init_parameter('b_g', shape_out)
+        self.create_parameter('W_gx', [shape_in, shape_out])
+        self.create_parameter('U_gh', [shape_out, shape_out])
+        self.create_parameter('b_g', [shape_out])
 
         if self.use_input_peep:
-            self.init_parameter('P_i', (shape_out, shape_out))
+            self.create_parameter('P_i', [shape_out, shape_out])
         if self.use_output_peep:
-            self.init_parameter('P_o', (shape_out, shape_out))
+            self.create_parameter('P_o', [shape_out, shape_out])
         if self.use_forget_peep:
-            self.init_parameter('P_f', (shape_out, shape_out))
+            self.create_parameter('P_f', [shape_out, shape_out])
 
     def create_initial_state(self, input_data, stateful, shape_index=1):
-        batch_size = self.get_shapes_in()[0].get_batch_size() or T.shape(input_data)[1]
+        batch_size = T.shape(input_data)[1]
         dim_out = self.get_dim_out()
         if stateful:
             if not isinstance(batch_size, int):
@@ -118,29 +111,29 @@ class MaxoutLSTM(LSTM):
         super(MaxoutLSTM, self).__init__(*args, **kwargs)
 
     def create_lstm_parameters(self, shape_in, shape_out):
-        self.init_parameter('W_ix', (shape_in, shape_out))
-        self.init_parameter('U_ih', (shape_out, shape_out))
-        self.init_parameter('b_i', shape_out)
+        self.create_parameter('W_ix', [shape_in, shape_out])
+        self.create_parameter('U_ih', [shape_out, shape_out])
+        self.create_parameter('b_i', [shape_out])
 
-        self.init_parameter('W_ox', (shape_in, shape_out))
-        self.init_parameter('U_oh', (shape_out, shape_out))
-        self.init_parameter('b_o', shape_out)
+        self.create_parameter('W_ox', [shape_in, shape_out])
+        self.create_parameter('U_oh', [shape_out, shape_out])
+        self.create_parameter('b_o', [shape_out])
 
         if self.use_forget_gate:
-            self.init_parameter('W_fx', (shape_in, shape_out))
-            self.init_parameter('U_fh', (shape_out, shape_out))
-            self.init_parameter('b_f', shape_out)
+            self.create_parameter('W_fx', [shape_in, shape_out])
+            self.create_parameter('U_fh', [shape_out, shape_out])
+            self.create_parameter('b_f', [shape_out])
 
-        self.init_parameter('W_gx', (self.k, shape_in, shape_out))
-        self.init_parameter('U_gh', (self.k, shape_out, shape_out))
-        self.init_parameter('b_g', (self.k, shape_out))
+        self.create_parameter('W_gx', [self.k, shape_in, shape_out])
+        self.create_parameter('U_gh', [self.k, shape_out, shape_out])
+        self.create_parameter('b_g', (self.k, [shape_out]))
 
         if self.use_input_peep:
-            self.init_parameter('P_i', (shape_out, shape_out))
+            self.create_parameter('P_i', [shape_out, shape_out])
         if self.use_output_peep:
-            self.init_parameter('P_o', (shape_out, shape_out))
+            self.create_parameter('P_o', [shape_out, shape_out])
         if self.use_forget_peep:
-            self.init_parameter('P_f', (shape_out, shape_out))
+            self.create_parameter('P_f', [shape_out, shape_out])
 
     def step(self, X, states, **kwargs):
         previous_hidden, previous_state = states

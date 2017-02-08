@@ -1,3 +1,4 @@
+import numpy as np
 from .. import T
 
 from ..layer import ShapedLayer
@@ -9,7 +10,7 @@ class Linear(ShapedLayer):
             dim_in = self.get_dim_in()
             dim_out = self.get_dim_out()
             self.create_parameter('W', [dim_in, dim_out])
-            self.create_parameter('b', [dim_out])
+            self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
 
     def activate(self, X):
         if self.is_elementwise():

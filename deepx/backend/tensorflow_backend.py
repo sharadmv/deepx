@@ -79,9 +79,6 @@ class TensorflowBackend(BackendBase):
     def shape(self, x):
         return tf.shape(x)
 
-    def get_value(self, x):
-        return x.eval(session=self.get_current_session())
-
     def set_value(self, x, value):
         tf.assign(x, np.asarray(value)).op.run(session=self.get_current_session())
 
@@ -259,6 +256,16 @@ class TensorflowBackend(BackendBase):
     def argmin(self, tensor, axis=0):
         return tf.argmin(tensor, axis=axis)
 
+    def map(self, function, input):
+        return tf.map_fn(function, input)
+
+    def rnn(self, step_function, input, initial_states):
+        def step(accumulator, value):
+            _, new_accumulator = step_function(value, accumulator)
+            return new_accumulator
+        result = tf.scan(step, input, initial_states)
+        return result
+
     # Tensorflow interface
 
     def placeholder(self, dtype, shape=None, name=None):
@@ -356,3 +363,15 @@ class TensorflowBackend(BackendBase):
             else_expression: TensorFlow operation.
         '''
         return tf.select(condition, then_expression, else_expression)
+
+    def alloc(self, value, shape, unbroadcast=None, dtype=None):
+        dtype = dtype or self.floatx()
+        vals = tf.fill(tf.pack(shape), np.array(value).astype(dtype))
+        new_shape = []
+        for s in shape:
+            if isinstance(s, tf.Tensor):
+                new_shape.append(None)
+            else:
+                new_shape.append(s)
+        vals.set_shape(new_shape)
+        return vals

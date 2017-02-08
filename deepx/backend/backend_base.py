@@ -527,6 +527,16 @@ class BackendBase(object):
         """
         pass
 
+    @uses_device
+    @abstractmethod
+    def concatenate(self, tensors, axis=-1, concat=False):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def rnn(self, step_function, input, initial_states):
+        pass
+
     # Tensorflow interface
 
     @abstractmethod
@@ -643,6 +653,11 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def max(self, x, axis=None, keepdims=False):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def alloc(self, value, shape, unbroadcast=None):
         pass
 
 should_decorate = set()

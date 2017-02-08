@@ -1,10 +1,12 @@
+import numpy as np
 from abc import abstractmethod
 
 from .. import T
 from ..core import ShapedNode
-from ..core import Data
 from ..core import Shape
 from ..initialization import initialize_weights
+
+__all__ = ["Layer", "ShapedLayer"]
 
 class Layer(ShapedNode):
 
@@ -14,24 +16,23 @@ class Layer(ShapedNode):
         self.initialization = initialization if initialization is not None else T.get_current_initialization()
         self.parameters = {}
 
-    def get_outputs(self, input, **kwargs):
-        raw_input = input.get_placeholder()
-        if input.is_sequence():
-            raw_output = self.recurrent_forward(raw_input, **kwargs)
-        else:
-            raw_output = self.forward(raw_input, **kwargs)
-        return [Data(self.get_shapes_out()[0], placeholder=raw_output)]
-
     def inputs(self):
         return []
 
+    def outputs(self, X):
+        shape_in = self.get_shapes_in()[0]
+        if shape_in.sequence:
+            return [self.recurrent_forward(X)]
+        return [self.forward(X)]
+
+    @abstractmethod
     def forward(self, X):
         pass
 
     def recurrent_forward(self, X, **kwargs):
-        def step(X, _):
-            return self.forward(X, **kwargs), []
-        outputs, _ = T.rnn(step, X, [])
+        def step(x):
+            return self.forward(x, **kwargs)
+        outputs = T.map(step, X)
         return outputs
 
     def get_graph_inputs(self):
@@ -79,13 +80,18 @@ class Layer(ShapedNode):
         shape_out = self.get_shapes_out()[0]
         return shape_out.get_dim()[-1]
 
-    def create_parameter(self, name, shape, value=None):
+    def create_parameter(self, name, shape, initial_value=None):
         if name not in self.parameters:
-            pass
-            parameter = T.variable(
-                initialize_weights(self.initialization, shape, value=value),
-                name=name,
-            )
+            if initial_value is None:
+                parameter = T.variable(
+                    initialize_weights(self.initialization, shape),
+                    name=name,
+                )
+            else:
+                parameter = T.variable(
+                    np.array(initial_value).astype(T.floatx()),
+                    name=name,
+                )
             self.parameters[name] = parameter
 
     def get_parameters(self):
@@ -146,8 +152,10 @@ class ShapedLayer(Layer):
         return self._elementwise
 
     def infer(self, shape_in):
+        print(shape_in)
         if self.is_elementwise():
             return shape_in
+        print(shape_in.copy(dim=self.get_shapes_out()[0].get_dim()))
         return shape_in.copy(dim=self.get_shapes_out()[0].get_dim())
 
     def __str__(self):
@@ -155,53 +163,3 @@ class ShapedLayer(Layer):
             return "%s()" % self.__class__.__name__
         return super(ShapedLayer, self).__str__()
 
-class RecurrentLayer(Layer):
-
-    def __init__(self, stateful=False, **kwargs):
-        super(RecurrentLayer, self).__init__(**kwargs)
-        self.stateful = stateful
-
-    def forward(self, X, **kwargs):
-        if not X.is_sequence():
-            raise TypeError("Cannot pass non-sequence into recurrent layer.")
-        return self.recurrent_forward(X)
-
-    def recurrent_forward(self, X, **kwargs):
-        states = self.get_initial_states(input_data=X)
-        def step(X, states):
-            return self.step(X, states, **kwargs)
-        outputs, states = T.rnn(step, X, states)
-        if self.stateful:
-            self.updates = zip(self.states, states)
-        return outputs
-
-    @abstractmethod
-    def step(self, X, states, **kwargs):
-        pass
-
-    @abstractmethod
-    def create_initial_state(self, input_data, stateful, shape_index=1):
-        batch_size = self.get_shapes_in()[0].get_batch_size() or T.shape(input_data)[1]
-        dim_out = self.get_dim_out()
-        if stateful:
-            if not isinstance(batch_size, int):
-                raise TypeError("batch_size must be set for stateful RNN.")
-            return [T.variable(T.zeros((batch_size, dim_out)))]
-        return [T.alloc(0, (batch_size, dim_out), unbroadcast=shape_index)]
-
-    def get_initial_states(self, input_data=None, shape_index=1):
-        if self.states is not None:
-            return self.states
-        states = self.create_initial_state(input_data, self.stateful, shape_index=shape_index)
-        if self.stateful:
-            self.states = states
-        return states
-
-    def reset_states(self):
-        if self.states is not None:
-            for i, _ in enumerate(self.states):
-                self.reset_state(i)
-
-    def reset_state(self, i):
-        if self.states is not None:
-            T.set_value(self.states[i], T.get_value(self.states[i]) * 0)

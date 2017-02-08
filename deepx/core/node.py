@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 from abc import ABCMeta, abstractmethod
 from six import add_metaclass
@@ -42,13 +43,8 @@ class Node(object):
     def get_num_outputs(self):
         return len(self.get_shapes_out())
 
-    def get_outputs(self, inputs):
-        if len(inputs) != self.get_num_inputs():
-            raise Exception("shape mismatch")
-        return self.forward(*inputs)
-
     @abstractmethod
-    def forward(self, *inputs):
+    def outputs(self, *inputs):
         pass
 
     @abstractmethod
@@ -73,6 +69,27 @@ class Node(object):
     def __add__(self, other):
         return self.add(other)
 
+    def __radd__(self, other):
+        return self.add(other)
+
+    def __sub__(self, other):
+        return self.sub(other)
+
+    def __rsub__(self, other):
+        return coerce_node(other).sub(self)
+
+    def __mul__(self, other):
+        return self.mul(other)
+
+    def __rmul__(self, other):
+        return self.mul(other)
+
+    def __truediv__(self, other):
+        return self.div(other)
+
+    def __rtruediv__(self, other):
+        return coerce_node(other).div(self)
+
     def chain(self, node):
         return Chain(self, node)
 
@@ -80,6 +97,21 @@ class Node(object):
         from ..ops import Add
         node = coerce_node(node)
         return (self, node) >> Add()
+
+    def sub(self, node):
+        from ..ops import Sub
+        node = coerce_node(node)
+        return (self, node) >> Sub()
+
+    def mul(self, node):
+        from ..ops import Mul
+        node = coerce_node(node)
+        return (self, node) >> Mul()
+
+    def div(self, node):
+        from ..ops import Div
+        node = coerce_node(node)
+        return (self, node) >> Div()
 
     @abstractmethod
     def infer_shape(self):
@@ -128,8 +160,8 @@ class NodeList(Node):
     def __repr__(self):
         return "[%s]" % ", ".join(map(repr, self.nodes))
 
-    def forward(self, *inputs):
-        return [out for node in self.nodes for out in node.forward(*inputs)]
+    def outputs(self, *inputs):
+        return [out for node in self.nodes for out in node.outputs(*inputs)]
 
 class ShapedNode(Node):
 
@@ -171,9 +203,9 @@ class Chain(Node):
     def inputs(self):
         return self.left.inputs() + self.right.inputs()
 
-    def forward(self, *inputs):
-        left_out = self.left.forward(*inputs)
-        right_out = self.right.forward(*left_out)
+    def outputs(self, *inputs):
+        left_out = self.left.outputs(*inputs)
+        right_out = self.right.outputs(*left_out)
         return right_out
 
     def infer_shape(self):
