@@ -424,6 +424,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def reshape(self, x, shape):
+        pass
+
+    @uses_device
+    @abstractmethod
     def sum(self, x, axis=None, keepdims=False):
         pass
 

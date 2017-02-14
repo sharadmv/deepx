@@ -37,6 +37,14 @@ class Node(object):
     def get_shapes_out(self):
         pass
 
+    @abstractmethod
+    def set_shapes_in(self, shapes_in):
+        pass
+
+    @abstractmethod
+    def set_shapes_out(self, shapes_out):
+        pass
+
     def get_num_inputs(self):
         return len(self.get_shapes_in())
 
@@ -52,6 +60,11 @@ class Node(object):
         pass
 
     def feed(self, *feed_values):
+        num_inputs = len(self.inputs())
+        if len(feed_values) < num_inputs:
+            raise Exception("need to feed more values")
+        if len(feed_values) > num_inputs:
+            raise Exception("fed too many values")
         return { placeholder : value for placeholder, value in zip(self.inputs(), feed_values) }
 
     def __repr__(self):
@@ -90,8 +103,16 @@ class Node(object):
     def __rtruediv__(self, other):
         return coerce_node(other).div(self)
 
+    def overrides_chain(self):
+        return False
+
     def chain(self, node):
+        if node.overrides_chain():
+            return node.rchain(self)
         return Chain(self, node)
+
+    def rchain(self, node):
+        return self.chain(node)
 
     def add(self, node):
         from ..ops import Add
@@ -151,7 +172,13 @@ class NodeList(Node):
         return [shape for node in self.nodes for shape in node.get_shapes_out()]
 
     def inputs(self):
-        return [a for node in self.nodes for a in node.inputs()]
+        inputs = []
+        for node in self.nodes:
+            for input in node.inputs():
+                if input in inputs:
+                    continue
+                inputs.append(input)
+        return inputs
 
     def infer_shape(self):
         for node in self.nodes:
@@ -201,7 +228,13 @@ class Chain(Node):
         self.right.set_shapes_out(shapes_out)
 
     def inputs(self):
-        return self.left.inputs() + self.right.inputs()
+        inputs = []
+        for node in [self.left, self.right]:
+            for input in node.inputs():
+                if input in inputs:
+                    continue
+                inputs.append(input)
+        return inputs
 
     def outputs(self, *inputs):
         left_out = self.left.outputs(*inputs)

@@ -1,47 +1,42 @@
 from abc import abstractmethod
 from .unary import UnaryNode
-from .node import Node
+from .node import ShapedNode
 
 __all__ = ["FunctionalNode", "HOF"]
 
-class FunctionalNode(UnaryNode):
+def HOF(func):
+    def foo(node):
+        return HigherOrderNode(node, func)
+    return foo
 
-    @abstractmethod
-    def func(self, inputs):
-        pass
+class HigherOrderNode(ShapedNode):
 
-    def get_outputs(self, *args, **kwargs):
-        net = self.func(args)
-        return net.get_outputs(**kwargs)
+    def __init__(self, node, func, **kwargs):
+        super(HigherOrderNode, self).__init__(None, None, **kwargs)
+        self.node = node
+        self.func = func
 
-    @abstractmethod
-    def get_shapes_out(self):
-        pass
+    def infer_shape(self):
+        self.node.set_shapes_in(self.get_shapes_in())
+        self.node.infer_shape()
+        self.set_shapes_out(self.node.get_shapes_out())
 
-    @abstractmethod
-    def get_num_outputs(self):
-        pass
+    def inputs(self):
+        return self.node.inputs()
 
-class HigherOrderNode(Node):
+    def outputs(self, *inputs):
+        new_node = self.func(inputs, self.node)
 
-    def __init__(self, hof, *args, **kwargs):
-        super(HigherOrderNode, self).__init__(*args, **kwargs)
-        self.hof = hof
+    def overrides_chain(self):
+        return True
 
-    def get_graph_inputs(self):
-        return []
+    def rchain(self, node):
+        return self.func(node, self.node)
 
-    def get_shapes_out(self):
-        return self.node.get_shapes_out()
+    def forward(self, X):
+        return X
 
-    def func(self, inputs):
-        return self.hof(inputs)
+    def __repr__(self):
+        return "HOF(%s)" % self.node
 
-    def get_num_inputs(self):
-        return 1
-
-    def get_num_outputs(self):
-        return 1
-
-
-HOF = HigherOrderNode
+# HOF = HigherOrderNode

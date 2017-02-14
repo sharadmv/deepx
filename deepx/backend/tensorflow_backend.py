@@ -195,6 +195,9 @@ class TensorflowBackend(BackendBase):
     def flatten(self, x):
         return tf.reshape(x, [-1, np.prod(x.get_shape()[1:].as_list())])
 
+    def reshape(self, x, shape):
+        return tf.reshape(x, shape)
+
     def sum(self, x, axis=None, keepdims=False):
         if axis is not None and axis < 0:
             axis = axis % len(x.get_shape())

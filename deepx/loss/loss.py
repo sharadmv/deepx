@@ -12,8 +12,6 @@ class Loss(ShapedNode):
     def inputs(self):
         if self.get_num_inputs() > 1:
             return []
-        if self.y is None:
-            self.y = self.get_shapes_in()[0].create_placeholder()
         return [self.y]
 
     def outputs(self, *inputs):
@@ -26,7 +24,10 @@ class Loss(ShapedNode):
     # Shape inference
 
     def infer_shape(self):
-        pass
+        if self.get_shapes_in() is None:
+            return
+        if self.get_num_inputs() == 1 and self.y is None:
+            self.y = self.get_shapes_in()[0].create_placeholder()
 
     @abstractmethod
     def loss(self, ypred, y):
