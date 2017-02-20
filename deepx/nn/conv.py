@@ -18,7 +18,7 @@ class Convolution(Layer):
         self.create_parameter('b', [channels_out])
 
     def infer(self, shape_in):
-        dim = shape_in.get_dim()[-3:]
+        dim = shape_in.get_shape()[-3:]
         self.channels_in = dim[0]
         channels_out, kernel_height, kernel_width = self.kernel
         d_in, h_in, w_in = dim
@@ -30,7 +30,7 @@ class Convolution(Layer):
             w_out = w_in - kernel_width + 1
         else:
             raise Exception("Border mode must be {same, valid}.")
-        return shape_in.copy(dim=shape_in.get_dim()[:-3] + [channels_out, h_out, w_out])
+        return shape_in.copy(shape=shape_in.get_shape()[:-3] + [channels_out, h_out, w_out])
 
     def forward(self, X, **kwargs):
         W, b = self.get_parameter_list('W', 'b')
@@ -49,9 +49,9 @@ class Pool(Layer):
         return
 
     def infer(self, shape_in):
-        channels_in, h_in, w_in = shape_in.get_dim()[-3:]
+        channels_in, h_in, w_in = shape_in.get_shape()[-3:]
         k_h, k_w = self.kernel
-        return shape_in.copy(dim=shape_in.get_dim()[:-3] + [
+        return shape_in.copy(shape=shape_in.get_shape()[:-3] + [
             channels_in,
             int(math.ceil(h_in/float(k_h))),
             int(math.ceil(w_in/float(k_w))),
