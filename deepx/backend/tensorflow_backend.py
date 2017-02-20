@@ -106,7 +106,7 @@ class TensorflowBackend(BackendBase):
 
     def random_binomial(self, shape, p=0.5, dtype=None):
         dtype = dtype or self.floatx()
-        return tf.select(tf.random_uniform(shape, dtype=dtype) <= p,
+        return tf.where(tf.random_uniform(shape, dtype=dtype) <= p,
                                            tf.ones(shape, dtype=dtype),
                                            tf.zeros(shape, dtype=dtype))
 
@@ -203,7 +203,7 @@ class TensorflowBackend(BackendBase):
             axis = axis % len(x.get_shape())
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
-        return tf.reduce_sum(x, reduction_indices=axis, keep_dims=keepdims)
+        return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
 
 
     def mean(self, x, axis=None, keepdims=False):
@@ -211,7 +211,7 @@ class TensorflowBackend(BackendBase):
             axis = axis % len(x.get_shape())
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
-        return tf.reduce_mean(x, reduction_indices=axis, keep_dims=keepdims)
+        return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
 
     def batch_norm(self, x, beta, gamma):
         mean, variance = tf.nn.moments(x, [0])
@@ -236,21 +236,21 @@ class TensorflowBackend(BackendBase):
     def categorical_crossentropy(self, output, target, from_logits=False):
         if not from_logits:
             output /= tf.reduce_sum(output,
-                                    reduction_indices=len(output.get_shape())-1,
+                                    axis=len(output.get_shape())-1,
                                     keep_dims=True)
             output = tf.clip_by_value(output, tf.cast(self.epsilon(), dtype=self.floatx()),
                                     tf.cast(1.- self.epsilon(), dtype=self.floatx()))
             return - tf.reduce_sum(target * tf.log(output),
-                                   reduction_indices=len(output.get_shape()) - 1)
+                                   axis=len(output.get_shape()) - 1)
         else:
-            return tf.nn.softmax_cross_entropy_with_logits(output, target)
+            return tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
 
     def concatenate(self, tensors, axis=-1, concat=False):
         if concat:
-            return tf.pack(tensors)
+            return tf.stack(tensors)
         if axis < 0:
             axis = axis % len(tensors[0].get_shape())
-        return tf.concat(axis, tensors)
+        return tf.concat(axis=axis, values=tensors)
 
     def sort(self, tensor):
         values, indices = tf.nn.top_k(-tensor, k=tf.shape(tensor)[0])
@@ -305,7 +305,7 @@ class TensorflowBackend(BackendBase):
         return tf.clip_by_value(x, low, high)
 
     def pack(self, values, axis=0, name='pack'):
-        return tf.pack(values, axis=axis, name=name)
+        return tf.stack(values, axis=axis, name=name)
 
     def reduce_max(self, x, axis=None, keep_dims=False):
         return tf.reduce_max(x, axis=axis, keep_dims=keep_dims)
@@ -365,11 +365,11 @@ class TensorflowBackend(BackendBase):
             then_expression: TensorFlow operation.
             else_expression: TensorFlow operation.
         '''
-        return tf.select(condition, then_expression, else_expression)
+        return tf.where(condition, then_expression, else_expression)
 
     def alloc(self, value, shape, unbroadcast=None, dtype=None):
         dtype = dtype or self.floatx()
-        vals = tf.fill(tf.pack(shape), np.array(value).astype(dtype))
+        vals = tf.fill(tf.stack(shape), np.array(value).astype(dtype))
         new_shape = []
         for s in shape:
             if isinstance(s, tf.Tensor):
