@@ -19,7 +19,7 @@ class Loss(ShapedNode):
             ypred, y = inputs
         else:
             ypred, y = inputs[0], self.y
-        return self.loss(ypred, y)
+        return [self.loss(ypred, y)]
 
     # Shape inference
 
