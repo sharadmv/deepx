@@ -41,6 +41,14 @@ def lecun_uniform(shape):
     scale = np.sqrt(3. / fan_in)
     return uniform(shape, scale)
 
+def xavier(shape, constant=1):
+    """ Xavier initialization of network weights"""
+    fan_in, fan_out = shape
+    low = -constant*np.sqrt(6.0/(fan_in + fan_out))
+    high = constant*np.sqrt(6.0/(fan_in + fan_out))
+    return T.random_uniform((fan_in, fan_out),
+                             minval=low, maxval=high,
+                             dtype=T.floatx())
 
 def glorot_normal(shape):
     fan_in, fan_out = get_fans(shape)
