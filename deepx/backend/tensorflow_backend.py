@@ -26,6 +26,7 @@ class TensorflowBackend(BackendBase):
 
     def __init__(self, **kwargs):
         super(TensorflowBackend, self).__init__(**kwargs)
+        self.core = tf
         self._sessions = []
 
     # General purpose methods
@@ -195,6 +196,10 @@ class TensorflowBackend(BackendBase):
     def flatten(self, x):
         return tf.reshape(x, [-1, np.prod(x.get_shape()[1:].as_list())])
 
+    def split(self, x, num_splits, axis=None):
+        axis = axis % len(x.get_shape())
+        return tf.split(x, num_splits, axis=axis)
+
     def reshape(self, x, shape):
         return tf.reshape(x, shape)
 
@@ -343,6 +348,16 @@ class TensorflowBackend(BackendBase):
 
     def dot(self, x, y):
         return tf.matmul(x, y)
+
+    def outer(self, x, y):
+        if len(x.get_shape()) == 1:
+            x = tf.expand_dims(x, 1)
+        if len(y.get_shape()) == 1:
+            y = tf.expand_dims(y, 0)
+        return tf.matmul(x, y)
+
+    def eye(self, d):
+        return tf.diag(tf.ones(d))
 
     def function(self, inputs, outputs, updates=[]):
         return TensorflowFunction(self, inputs, outputs, updates)

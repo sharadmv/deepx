@@ -44,7 +44,7 @@ def lecun_uniform(shape):
 
 def glorot_normal(shape):
     fan_in, fan_out = get_fans(shape)
-    s = np.sqrt(2. / (fan_in + fan_out))
+    s = np.sqrt(0.1 / (fan_in + fan_out))
     return T.random_normal(shape, s)
 
 

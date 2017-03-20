@@ -424,6 +424,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def split(self, axis, num_splits, x):
+        pass
+
+    @uses_device
+    @abstractmethod
     def reshape(self, x, shape):
         pass
 
@@ -639,6 +644,16 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def dot(self, x, y):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def outer(self, x, y):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def eye(self, d):
         pass
 
     @abstractmethod

@@ -20,8 +20,8 @@ def Sequence(data, max_length=None):
         raise Exception("data is already sequence")
     return data.copy(Shape(shape=[max_length] + shape.get_shape(), sequence=True))
 
-def Value(value, dim, name=None, **kwargs):
-    return Data(Shape(dim), placeholder=value, name=name, **kwargs)
+def Value(value, dim, name=None, batch=None, **kwargs):
+    return Data(Shape(dim, batch=batch), placeholder=value, name=name, **kwargs)
 
 def Batch(data, batch_size=None):
     shape = data.shape

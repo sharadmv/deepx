@@ -2,19 +2,15 @@ from .. import T
 
 class Optimizer(object):
 
-    def __init__(self, loss, clip_gradients=None):
-        self.loss = loss
-        assert self.loss.get_shapes_out()[0].get_dim() == (), "Can only optimize a scalar quantity."
-        # self.loss.initialize()
-
-        self.parameters = self.loss.get_graph_parameters()
+    def __init__(self, network, clip_gradients=None):
+        self.network = network
 
         self.initialize()
 
-        self.aux_inputs = self.get_aux_inputs()
-        self.opt_outputs = [T.mean(a) for a in self.loss.get_graph_outputs()]
+        self.optimization_parameters = self.get_optimization_parameters()
+        self.network_output = self.network.outputs()[0]
 
-        self.grads = self.get_gradient()
+        self.gradients = T.gradients(self.network_outputs[0], self.optimization_parameters)
 
         if clip_gradients is not None:
             c = abs(clip_gradients)

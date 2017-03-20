@@ -1,10 +1,9 @@
 """
-Used the backend setup from Keras. Thanks a lot to @fchollet for the hard work!
+Used the backend initialization script from Keras. Thanks a lot to @fchollet for the hard work!
 """
 import os
 import json
 import logging
-from .backend_base import BackendBase
 
 _deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
 if not os.path.exists(_deepx_dir):
@@ -24,15 +23,16 @@ if os.path.exists(_config_path):
 
     _BACKEND = _backend
 else:
-    # save config file, for easy edition
     _floatx = 'float32'
     _epsilon = 1e-7
-    _backend = 'tensorflow'
+    _backend = _BACKEND
 
-    _config = {'floatx': _floatx,
-               'epsilon': _epsilon,
-               'backend': _backend
-               }
+    _config = {
+        'floatx': _floatx,
+        'epsilon': _epsilon,
+        'backend': _backend
+    }
+
     with open(_config_path, 'w') as f:
         f.write(json.dumps(_config) + '\n')
 

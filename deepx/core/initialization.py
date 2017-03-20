@@ -11,7 +11,7 @@ def uniform(shape, **kwargs):
         shape = [shape]
     return T.random_uniform(shape, **kwargs)
 
-def xavier(shape, val=6.0, constant=1, **kwargs):
+def xavier(shape, val=0.1, constant=1, **kwargs):
     if isinstance(shape, int):
         shape = [shape]
     if len(shape) == 1:
