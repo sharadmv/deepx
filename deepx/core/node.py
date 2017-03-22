@@ -241,6 +241,9 @@ class Chain(Node):
         right_out = self.right.outputs(*left_out)
         return right_out
 
+    def get_parameters(self):
+        return self.left.get_parameters() + self.right.get_parameters()
+
     def infer_shape(self):
         self.left.infer_shape()
         self.right.infer_shape()

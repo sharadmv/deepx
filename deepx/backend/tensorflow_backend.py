@@ -194,7 +194,7 @@ class TensorflowBackend(BackendBase):
         return x
 
     def flatten(self, x):
-        return tf.reshape(x, [-1, np.prod(x.get_shape()[1:].as_list())])
+        return tf.squeeze(x)
 
     def split(self, x, num_splits, axis=None):
         axis = axis % len(x.get_shape())
@@ -350,6 +350,7 @@ class TensorflowBackend(BackendBase):
         return tf.matmul(x, y)
 
     def outer(self, x, y):
+        return x[...,:,None] * y[...,None,:]
         if len(x.get_shape()) == 1:
             x = tf.expand_dims(x, 1)
         if len(y.get_shape()) == 1:
@@ -357,6 +358,8 @@ class TensorflowBackend(BackendBase):
         return tf.matmul(x, y)
 
     def eye(self, d):
+        if not (isinstance(d, list) or isinstance(d, tuple)):
+            d = [d]
         return tf.diag(tf.ones(d))
 
     def function(self, inputs, outputs, updates=[]):

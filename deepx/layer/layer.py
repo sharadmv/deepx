@@ -83,13 +83,13 @@ class Layer(ShapedNode):
             self.parameters[name] = parameter
 
     def get_parameters(self):
-        return self.parameters
+        return list(self.parameters.values())
 
     def get_parameter(self, name):
         return self.parameters[name]
 
     def get_parameter_list(self, *names):
-        return tuple(self.parameters[name] for name in names)
+        return list(self.parameters[name] for name in names)
 
     def get_parameter_value(self, name):
         return T.get_value(self.get_parameter(name))
