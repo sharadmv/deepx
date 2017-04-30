@@ -563,6 +563,10 @@ class BackendBase(object):
         pass
 
     @abstractmethod
+    def get_shape(self, x):
+        pass
+
+    @abstractmethod
     def get_value(self, variable):
         pass
 

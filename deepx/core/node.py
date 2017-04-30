@@ -1,3 +1,6 @@
+import numpy as np
+from ..initialization import initialize_weights
+from .. import T
 import six
 from abc import ABCMeta, abstractmethod
 
@@ -5,17 +8,15 @@ from abc import ABCMeta, abstractmethod
 class Node(object):
 
     def __init__(self):
-        self.shapes_in = None
-        self.shapes_out = None
+        self._initialized = False
+        self.initialization = T.get_current_initialization()
+        self.parameters = {}
 
     def __call__(self, *args):
+        self.infer_shape(*args)
+        if self.is_initialized():
+            self.initialize()
         return self.forward(*args)
-
-    @abstractmethod
-    def forward(self, *args):
-        pass
-
-class Layer(Node):
 
     def create_parameter(self, name, shape, initial_value=None):
         if name not in self.parameters:
@@ -31,23 +32,27 @@ class Layer(Node):
                 )
             self.parameters[name] = parameter
 
-class ShapedLayer(Layer):
+    def get_parameter(self, name):
+        return self.parameters[name]
 
-    def __init__(self, shape_in=None, shape_out=None, elementwise=False,
-                 sparse=False,
-                 **kwargs):
-        super(ShapedLayer, self).__init__(**kwargs)
-        self.sparse = sparse
-        self._elementwise = elementwise
-        if shape_out is not None:
-            self.dim_in, self.dim_out = shape_in, shape_out
-        elif shape_in is not None and shape_out is None:
-            self.dim_in, self.dim_out = None, shape_in
-        else:
-            self._elementwise = True
+    def get_parameters(self):
+        assert self.is_initialized()
+        return list(self.parameters.values())
 
-    def infer_shape(self, X):
+    def get_parameter_list(self, *parameters):
+        return [self.get_parameter(a) for a in parameters]
+
+    def chain(self, right):
+        from .chain import Chain
+        return Chain(self, right)
+
+    def __rshift__(self, right):
+        return self.chain(right)
+
+    @abstractmethod
+    def is_initialized(self):
         pass
 
-    def forward(self, X):
+    @abstractmethod
+    def initialize(self):
         pass

@@ -6,59 +6,80 @@ from .full import Relu
 
 class Convolution(Layer):
 
-    def __init__(self, kernel=(1, 2, 2), border_mode='same'):
+    def __init__(self, kernel=(1, 2, 2), border_mode='same', strides=(1, 1)):
         super(Convolution, self).__init__()
         self.kernel = kernel
         self.border_mode = border_mode
-        self.channels_in = None
+        self.strides = strides
+        self.in_channels = None
+        self.dim_in = self.dim_out = None
 
     def initialize(self):
-        channels_out, kernel_height, kernel_width = self.kernel
-        self.create_parameter('W', [channels_out, self.channels_in, kernel_height, kernel_width])
-        self.create_parameter('b', [channels_out])
+        kernel_height, kernel_width, out_channels = self.kernel
+        self.create_parameter('W', [kernel_height, kernel_width, self.in_channels, out_channels])
+        self.create_parameter('b', [out_channels])
 
-    def infer(self, shape_in):
-        dim = shape_in.get_shape()[-3:]
-        self.channels_in = dim[0]
-        channels_out, kernel_height, kernel_width = self.kernel
-        d_in, h_in, w_in = dim
+    def is_initialized(self):
+        return not (self.dim_in is None or self.dim_out is None)
+
+    def infer_shape(self, X):
+        self.dim_in = T.get_shape(X)[-3:]
+        self.in_channels = self.dim_in[-1]
+        out_channels, kernel_height, kernel_width = self.kernel
+        in_height, in_width = self.dim_in[:2]
         if self.border_mode == 'same':
-            h_out = h_in
-            w_out = w_in
+            out_height = int(math.ceil(float(in_height) / float(self.strides[0])))
+            out_width = int(math.ceil(float(in_width) / float(self.strides[1])))
         elif self.border_mode == 'valid':
-            h_out = h_in - kernel_height + 1
-            w_out = w_in - kernel_width + 1
+            out_height = int(math.ceil(float(in_height - kernel_height + 1) / float(self.strides[0])))
+            out_width  = int(math.ceil(float(in_width - kernel_width + 1) / float(self.strides[1])))
         else:
             raise Exception("Border mode must be {same, valid}.")
-        return shape_in.copy(shape=shape_in.get_shape()[:-3] + [channels_out, h_out, w_out])
+        self.dim_out = [out_height, out_width, out_channels]
 
     def forward(self, X, **kwargs):
         W, b = self.get_parameter_list('W', 'b')
-        return (T.conv2d(X, W, border_mode=self.border_mode)
-                + T.expand_dims(T.expand_dims(T.expand_dims(b, 0), 2), 3))
+        return (T.conv2d(X, W, border_mode=self.border_mode, strides=self.strides)
+                + b[None, None, None])
+
+    def __str__(self):
+        return "Convolution(%s, %s)" % (self.dim_in, self.dim_out)
 
 class Pool(Layer):
 
-    def __init__(self, kernel=(2, 2), stride=2, pool_type='max'):
+    def __init__(self, kernel=(2, 2), strides=(2, 2), pool_type='max', border_mode='same'):
         super(Pool, self).__init__()
         self.kernel = kernel
-        self.stride = stride
+        self.strides = strides
         self.pool_type = pool_type
+        self.border_mode = border_mode
+        self.dim_in = self.dim_out = None
 
     def initialize(self):
-        return
+        pass
 
-    def infer(self, shape_in):
-        channels_in, h_in, w_in = shape_in.get_shape()[-3:]
-        k_h, k_w = self.kernel
-        return shape_in.copy(shape=shape_in.get_shape()[:-3] + [
-            channels_in,
-            int(math.ceil(h_in/float(k_h))),
-            int(math.ceil(w_in/float(k_w))),
-        ])
+    def is_initialized(self):
+        return True
+
+    def infer_shape(self, X):
+        self.dim_in = T.get_shape(X)[-3:]
+        kernel_height, kernel_width = self.kernel
+        in_height, in_width = self.dim_in[:2]
+        if self.border_mode == 'same':
+            out_height = int(math.ceil(float(in_height) / float(self.strides[0])))
+            out_width = int(math.ceil(float(in_width) / float(self.strides[1])))
+        elif self.border_mode == 'valid':
+            out_height = int(math.ceil(float(in_height - kernel_height + 1) / float(self.strides[0])))
+            out_width  = int(math.ceil(float(in_width - kernel_width + 1) / float(self.strides[1])))
+        else:
+            raise Exception("Border mode must be {same, valid}.")
+        self.dim_out = [out_height, out_width, self.dim_in[-1]]
 
     def forward(self, X, **kwargs):
-        return T.pool2d(X, self.kernel, strides=(self.stride, self.stride))
+        return T.pool2d(X, self.kernel, strides=self.strides, border_mode=self.border_mode)
 
-def Conv(conv_kernel, pool_kernel=(2, 2), pool_stride=2, border_mode='same', pool_type='max', activation=Relu):
-    return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> Pool(kernel=pool_kernel, stride=pool_stride)
+    def __str__(self):
+        return "Pool(%s, %s)" % (self.dim_in, self.dim_out)
+
+def Conv(conv_kernel, pool_kernel=(2, 2), pool_strides=(2, 2), border_mode='same', pool_type='max', activation=Relu):
+    return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> Pool(kernel=pool_kernel, strides=pool_strides)

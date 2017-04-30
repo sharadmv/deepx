@@ -43,10 +43,10 @@ def lecun_uniform(shape):
 
 def xavier(shape, constant=1):
     """ Xavier initialization of network weights"""
-    fan_in, fan_out = shape
+    fan_in, fan_out = get_fans(shape)
     low = -constant*np.sqrt(6.0/(fan_in + fan_out))
     high = constant*np.sqrt(6.0/(fan_in + fan_out))
-    return T.random_uniform((fan_in, fan_out),
+    return T.random_uniform(shape,
                              minval=low, maxval=high,
                              dtype=T.floatx())
 

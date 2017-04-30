@@ -6,19 +6,18 @@ from ..layer import ShapedLayer
 class Linear(ShapedLayer):
 
     def initialize(self):
-        if not self.is_elementwise():
-            dim_in = self.get_dim_in()
-            dim_out = self.get_dim_out()
+        if not self.elementwise:
+            dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
             self.create_parameter('W', [dim_in, dim_out])
             self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
 
     def activate(self, X):
-        if self.is_elementwise():
+        if self.elementwise:
             raise Exception("No identity nodes")
         return X
 
     def forward(self, X, **kwargs):
-        if self.is_elementwise():
+        if self.elementwise:
             return self.activate(X)
         W, b = self.get_parameter_list('W', 'b')
         if self.sparse:
@@ -35,8 +34,7 @@ class Maxout(Linear):
         self.k = k
 
     def initialize(self):
-        dim_in = self.get_dim_in()
-        dim_out = self.get_dim_out()
+        dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
         self.create_parameter('W', (self.k, dim_in, dim_out))
         self.create_parameter('b', (self.k, dim_out))
 
@@ -99,13 +97,3 @@ class LeakyRelu(Linear):
 
     def activate(self, X):
         return T.relu(X, alpha=self.alpha)
-
-class Tanlu(Linear):
-
-    def initialize(self):
-        self.create_parameter('alpha', self.get_dim_out(), value=0.5)
-
-    def activate(self, X):
-        alpha = self.get_parameter('alpha')
-        constrained_alpha = T.clip(alpha, 0, 1)
-        return constrained_alpha * T.tanh(X) + (1 - constrained_alpha) * T.relu(X)

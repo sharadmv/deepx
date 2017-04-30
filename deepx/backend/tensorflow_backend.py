@@ -150,10 +150,7 @@ class TensorflowBackend(BackendBase):
             x = tf.cast(x, 'float32')
             kernel = tf.cast(kernel, 'float32')
 
-        x = tf.transpose(x, (0, 2, 3, 1))
-        kernel = tf.transpose(kernel, (2, 3, 1, 0))
         x = tf.nn.conv2d(x, kernel, strides, padding=padding)
-        x = tf.transpose(x, (0, 3, 1, 2))
 
         if self.floatx() == 'float64':
             x = tf.cast(x, 'float64')
@@ -180,21 +177,21 @@ class TensorflowBackend(BackendBase):
         if self.floatx() == 'float64':
             x = tf.cast(x, 'float32')
 
-        x = tf.transpose(x, (0, 2, 3, 1))
         if pool_mode == 'max':
             x = tf.nn.max_pool(x, pool_size, strides, padding=padding)
         elif pool_mode == 'avg':
             x = tf.nn.avg_pool(x, pool_size, strides, padding=padding)
         else:
             raise Exception('Invalid pooling mode: ' + str(pool_mode))
-        x = tf.transpose(x, (0, 3, 1, 2))
 
         if self.floatx() == 'float64':
             x = tf.cast(x, 'float64')
         return x
 
-    def flatten(self, x):
-        return tf.squeeze(x)
+    def flatten(self, x, leading=1):
+        leading_dim = self.shape(x)[:leading]
+        new_shape = tf.concat([leading_dim, [-1]], 0)
+        return tf.reshape(x, new_shape)
 
     def split(self, x, num_splits, axis=None):
         axis = axis % len(x.get_shape())
@@ -284,6 +281,9 @@ class TensorflowBackend(BackendBase):
 
     def constant(self, value, dtype=None, shape=None):
         return tf.constant(value, dtype=dtype, shape=shape)
+
+    def get_shape(self, x):
+        return [a.value for a in x.get_shape()]
 
     def get_value(self, variable):
         return self.get_current_session().run(variable)
