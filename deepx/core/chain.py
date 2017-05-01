@@ -8,6 +8,8 @@ class Chain(Node):
         super(Chain, self).__init__()
         self.left, self.right = left, right
         self.infer_shape(self.get_dim_in())
+        if self.is_initialized():
+            self.initialize()
 
     def forward(self, *args):
         return self.right(self.left(*args))

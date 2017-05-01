@@ -2,14 +2,14 @@ from setuptools import setup, find_packages
 
 required = []
 recommended = {
-    'tensorflow': ['tensorflow==0.12.0'],
+    'tensorflow': ['tensorflow==1.0.1'],
     'theano': ['Theano==0.9.0b1'],
     'mxnet': [],
 }
 
 setup(
     name = "deepx",
-    version = "0.3.1",
+    version = "0.3.2",
     author = "Sharad Vikram",
     author_email = "sharad.vikram@gmail.com",
     description = "A basic deep learning library.",
