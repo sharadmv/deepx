@@ -18,8 +18,15 @@ class Reshape(Layer):
     def initialize(self):
         pass
 
-    def infer_shape(self, X):
-        self.dim_in = T.get_shape(X)[self.leading:]
+    def get_dim_in(self):
+        return self.dim_in
+
+    def get_dim_out(self):
+        return self.dim_out
+
+    def infer_shape(self, shape):
+        if shape is None: return
+        self.dim_in = shape[self.leading - 1:]
 
     def forward(self, X, **kwargs):
         return T.reshape(X, [-1] * self.leading + self.dim_out)
@@ -37,11 +44,18 @@ class Flatten(Layer):
     def is_initialized(self):
         return True
 
+    def get_dim_in(self):
+        return self.dim_in
+
+    def get_dim_out(self):
+        return self.dim_out
+
     def initialize(self):
         pass
 
-    def infer_shape(self, X):
-        self.dim_in = T.get_shape(X)[self.leading:]
+    def infer_shape(self, shape):
+        if shape is None: return
+        self.dim_in = shape[self.leading - 1:]
         self.dim_out = [np.prod(self.dim_in)]
 
     def forward(self, X, **kwargs):

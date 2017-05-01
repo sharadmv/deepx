@@ -32,17 +32,19 @@ class ShapedLayer(Layer):
         return self.elementwise or not (self.dim_in is None or self.dim_out is None)
 
     def get_dim_in(self):
-        return self.dim_in[0]
+        return self.dim_in
 
     def get_dim_out(self):
-        return self.dim_out[0]
+        return self.dim_out
 
-    def infer_shape(self, X):
-        shape = T.get_shape(X)
+    def infer_shape(self, shape):
+        if shape is None: return
+        if self.elementwise:
+            self.dim_in = shape
+            self.dim_out = shape
+            return
         if self.dim_in is None:
-            self.dim_in = shape[-1:]
-        if self.dim_out is None and self.elementwise:
-            self.dim_out = self.dim_in
+            self.dim_in = shape
 
     def __str__(self):
         name = self.__class__.__name__

@@ -13,9 +13,12 @@ class Node(object):
         self.parameters = {}
 
     def __call__(self, *args):
-        self.infer_shape(*args)
+        if self.get_dim_in() is None:
+            self.infer_shape(*map(lambda x: T.get_shape(x)[1:], args))
         if self.is_initialized():
             self.initialize()
+        else:
+            raise Exception('Not enough information to initialize network')
         return self.forward(*args)
 
     def create_parameter(self, name, shape, initial_value=None):
@@ -55,4 +58,12 @@ class Node(object):
 
     @abstractmethod
     def initialize(self):
+        pass
+
+    @abstractmethod
+    def get_dim_in(self):
+        pass
+
+    @abstractmethod
+    def get_dim_out(self):
         pass

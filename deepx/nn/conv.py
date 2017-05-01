@@ -14,6 +14,12 @@ class Convolution(Layer):
         self.in_channels = None
         self.dim_in = self.dim_out = None
 
+    def get_dim_in(self):
+        return self.dim_in
+
+    def get_dim_out(self):
+        return self.dim_out
+
     def initialize(self):
         kernel_height, kernel_width, out_channels = self.kernel
         self.create_parameter('W', [kernel_height, kernel_width, self.in_channels, out_channels])
@@ -22,10 +28,11 @@ class Convolution(Layer):
     def is_initialized(self):
         return not (self.dim_in is None or self.dim_out is None)
 
-    def infer_shape(self, X):
-        self.dim_in = T.get_shape(X)[-3:]
+    def infer_shape(self, shape):
+        if shape is None: return
+        self.dim_in = shape[-3:]
         self.in_channels = self.dim_in[-1]
-        out_channels, kernel_height, kernel_width = self.kernel
+        kernel_height, kernel_width, out_channels = self.kernel
         in_height, in_width = self.dim_in[:2]
         if self.border_mode == 'same':
             out_height = int(math.ceil(float(in_height) / float(self.strides[0])))
@@ -55,14 +62,21 @@ class Pool(Layer):
         self.border_mode = border_mode
         self.dim_in = self.dim_out = None
 
+    def get_dim_in(self):
+        return self.dim_in
+
+    def get_dim_out(self):
+        return self.dim_out
+
     def initialize(self):
         pass
 
     def is_initialized(self):
         return True
 
-    def infer_shape(self, X):
-        self.dim_in = T.get_shape(X)[-3:]
+    def infer_shape(self, shape):
+        if shape is None: return
+        self.dim_in = shape[-3:]
         kernel_height, kernel_width = self.kernel
         in_height, in_width = self.dim_in[:2]
         if self.border_mode == 'same':
