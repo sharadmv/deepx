@@ -40,7 +40,8 @@ class Node(object):
 
     def get_parameters(self):
         assert self.is_initialized()
-        return list(self.parameters.values())
+        keys = sorted(list(self.parameters.keys()))
+        return [self.parameters[a] for a in keys]
 
     def get_parameter_list(self, *parameters):
         return [self.get_parameter(a) for a in parameters]

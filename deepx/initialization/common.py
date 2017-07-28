@@ -31,10 +31,11 @@ def get_fans(shape, dim_ordering='th'):
 def uniform(shape, scale=0.05):
     return T.random_uniform(shape, minval=-scale, maxval=scale)
 
-
 def normal(shape, scale=0.05):
-    return T.random_normal(shape, mean=0.0, cov=scale)
+    return T.random_normal(shape, mean=0.0, stddev=scale)
 
+def truncated_normal(shape, scale=0.05):
+    return T.random_truncated_normal(shape, mean=0.0, stddev=scale)
 
 def lecun_uniform(shape):
     fan_in, fan_out = get_fans(shape)

@@ -66,6 +66,10 @@ class TensorflowBackend(BackendBase):
             yield sess
             self._sessions.pop()
 
+    def interactive_session(self, **kwargs):
+        config_proto = tf.ConfigProto(**kwargs)
+        return tf.InteractiveSession(config=config_proto)
+
     def get_current_session(self):
         if len(self._sessions) == 0:
             raise Exception('No current session')
@@ -76,6 +80,9 @@ class TensorflowBackend(BackendBase):
         sess.run(tf.global_variables_initializer())
 
     # Unified interface
+
+    def cast(self, x, dtype):
+        return tf.cast(x, dtype)
 
     def shape(self, x):
         return tf.shape(x)
@@ -101,6 +108,10 @@ class TensorflowBackend(BackendBase):
         dtype = dtype or self.floatx()
         return tf.random_normal(shape, mean=mean, stddev=stddev, dtype=dtype, seed=seed)
 
+    def random_truncated_normal(self, shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
+        dtype = dtype or self.floatx()
+        return tf.truncated_normal(shape, mean=mean, stddev=stddev, dtype=dtype, seed=seed)
+
     def random_uniform(self, shape, minval=0, maxval=None, dtype=None, seed=None):
         dtype = dtype or self.floatx()
         return tf.random_uniform(shape, minval=minval, maxval=maxval, dtype=dtype, seed=seed)
@@ -117,7 +128,7 @@ class TensorflowBackend(BackendBase):
     def sigmoid(self, x, name=None):
         return tf.sigmoid(x, name=name)
 
-    def relu(self, x, name=None):
+    def relu(self, x, alpha=0., name=None):
         return tf.nn.relu(x, name=name)
 
     def softmax(self, x, T=1.0):
@@ -247,12 +258,8 @@ class TensorflowBackend(BackendBase):
         else:
             return tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
 
-    def concatenate(self, tensors, axis=-1, concat=False):
-        if concat:
-            return tf.stack(tensors)
-        if axis < 0:
-            axis = axis % len(tensors[0].get_shape())
-        return tf.concat(axis=axis, values=tensors)
+    def concatenate(self, tensors, axis=-1):
+        return tf.concat(tensors, axis=axis)
 
     def sort(self, tensor):
         values, indices = tf.nn.top_k(-tensor, k=tf.shape(tensor)[0])
@@ -271,6 +278,17 @@ class TensorflowBackend(BackendBase):
         result = tf.scan(step, input, initial_states)
         return result
 
+    def logdet(self, A):
+        term = tf.log(tf.matrix_diag_part(tf.cholesky(A)))
+        return 2 * tf.reduce_sum(term, -1)
+
+    def einsum(self, subscripts, *operands):
+        return tf.einsum(subscripts, *operands)
+
+    def cholesky(self, A, lower=True):
+        assert lower is True
+        return tf.cholesky(A)
+
     # Tensorflow interface
 
     def placeholder(self, dtype, shape=None, name=None):
@@ -278,6 +296,9 @@ class TensorflowBackend(BackendBase):
 
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+
+    def to_float(self, x):
+        return tf.cast(x, self.floatx())
 
     def constant(self, value, dtype=None, shape=None):
         return tf.constant(value, dtype=dtype, shape=shape)
@@ -288,6 +309,9 @@ class TensorflowBackend(BackendBase):
     def get_value(self, variable):
         return self.get_current_session().run(variable)
 
+    def concat(self, values, axis=-1):
+        return tf.concat(values, axis=axis)
+
     def gather(self, params, indices):
         return tf.gather(params, indices)
 
@@ -296,6 +320,12 @@ class TensorflowBackend(BackendBase):
 
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         return tf.matmul(a, b, transpose_a=transpose_a, transpose_b=transpose_b, a_is_sparse=a_is_sparse, name=name)
+
+    def matrix_transpose(self, a):
+        return tf.matrix_transpose(a)
+
+    def matrix_inverse(self, a):
+        return tf.matrix_inverse(a)
 
     def expand_dims(self, x, dim=-1):
         return tf.expand_dims(x, dim)
@@ -314,6 +344,12 @@ class TensorflowBackend(BackendBase):
 
     def reduce_max(self, x, axis=None, keep_dims=False):
         return tf.reduce_max(x, axis=axis, keep_dims=keep_dims)
+
+    def reduce_logsumexp(self, x, axis=None, keep_dims=False):
+        return tf.reduce_logsumexp(x, axis=axis, keep_dims=keep_dims)
+
+    def matrix_solve(self, matrix, rhs, adjoint=None):
+        return tf.matrix_solve(matrix, rhs, adjoint=adjoint)
 
     # Theano interface
 
@@ -343,6 +379,9 @@ class TensorflowBackend(BackendBase):
     def shared(self, value, name=None):
         return self._variable(initial_value=value, name=name)
 
+    def arange(self, start, stop=None, step=None):
+        return self.range(start, stop=stop, step=step)
+
     def sparse_dot(self, x, y):
         return tf.sparse_tensor_dense_matmul(x, y)
 
@@ -351,11 +390,6 @@ class TensorflowBackend(BackendBase):
 
     def outer(self, x, y):
         return x[...,:,None] * y[...,None,:]
-        if len(x.get_shape()) == 1:
-            x = tf.expand_dims(x, 1)
-        if len(y.get_shape()) == 1:
-            y = tf.expand_dims(y, 0)
-        return tf.matmul(x, y)
 
     def eye(self, d):
         if not (isinstance(d, list) or isinstance(d, tuple)):
@@ -373,6 +407,9 @@ class TensorflowBackend(BackendBase):
 
     def max(self, x, axis=None, keepdims=False):
         return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
+
+    def logsumexp(self, x, axis=None, keepdims=False):
+        return tf.reduce_logsumexp(x, axis=axis, keep_dims=keepdims)
 
     def switch(self, condition, then_expression, else_expression):
         '''Switches between two operations depending on a scalar value (int or bool).
@@ -396,3 +433,26 @@ class TensorflowBackend(BackendBase):
                 new_shape.append(s)
         vals.set_shape(new_shape)
         return vals
+
+    def range(self, limit, delta=1):
+        return tf.range(limit, delta=delta)
+
+    def solve(self, a, b):
+        return tf.matrix_solve(a, b)
+
+    # Science methods
+
+    def gammaln(self, x):
+        return tf.lgamma(x)
+
+    def multigammaln(self, a, p):
+        p = self.to_float(p)
+        p_ = self.cast(p, 'int32')
+        a = a[..., None]
+        i = self.to_float(self.range(1, p_ + 1))
+        term1 = p * (p - 1) / 4. * self.log(np.pi)
+        term2 = self.gammaln(a - (i - 1) / 2.)
+        return term1 + self.sum(term2, axis=-1)
+
+    def digamma(self, a):
+        return tf.digamma(a)

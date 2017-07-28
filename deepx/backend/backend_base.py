@@ -168,6 +168,10 @@ class BackendBase(object):
         """
         pass
 
+    @abstractmethod
+    def interactive_session(self, **kwargs):
+        pass
+
     def initialize(self):
         if not self._initialized:
             self._initialize()
@@ -178,6 +182,11 @@ class BackendBase(object):
         pass
 
     # Unified interface
+
+    @uses_device
+    @abstractmethod
+    def cast(self, x, dtype):
+        pass
 
     @uses_device
     @abstractmethod
@@ -272,6 +281,25 @@ class BackendBase(object):
     def random_uniform(self, shape, minval=0, maxval=None, dtype=None, seed=None):
         """
         Returns a random uniform tensor initialization.
+
+        Args:
+            shape (:obj:`list` of :obj:`int`): The shape of the output tensor initialization.
+            minval (:obj:`float`, optional): The minimum value of the uniform distribution.
+            maxval (:obj:`float`, optional): The maximum value of the uniform distribution.
+            dtype (:obj:`str`, optional): The `dtype` of the returned tensor.
+            seed (:obj:`int`, optional): A random seed.
+
+        Returns:
+            A tensor initialization with shape `shape` sampled from a uniform distribution
+            with minimum value `minval` and maximum value `maxval`.
+        """
+        pass
+
+    @uses_device
+    @abstractmethod
+    def random_truncated_normal(self, shape, minval=0, maxval=None, dtype=None, seed=None):
+        """
+        Returns a random truncated_normal tensor initialization.
 
         Args:
             shape (:obj:`list` of :obj:`int`): The shape of the output tensor initialization.
@@ -539,12 +567,27 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
-    def concatenate(self, tensors, axis=-1, concat=False):
+    def concatenate(self, tensors, axis=-1):
         pass
 
     @uses_device
     @abstractmethod
     def rnn(self, step_function, input, initial_states):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def logdet(self, A):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def einsum(self, subscripts, *operands):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def cholesky(self, A, lower=True):
         pass
 
     # Tensorflow interface
@@ -556,6 +599,11 @@ class BackendBase(object):
     @abstractmethod
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+
+    @uses_device
+    @abstractmethod
+    def to_float(self, x):
+        pass
 
     @uses_device
     @abstractmethod
@@ -572,6 +620,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def concat(self, values, axis=-1):
+        pass
+
+    @uses_device
+    @abstractmethod
     def gather(self, params, indices):
         pass
 
@@ -583,6 +636,16 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def matrix_transpose(self, a):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def matrix_inverse(self, a):
         pass
 
     @uses_device
@@ -615,6 +678,16 @@ class BackendBase(object):
     def reduce_max(self, x, axis=None, keepdims=False):
         pass
 
+    @uses_device
+    @abstractmethod
+    def reduce_logsumexp(self, x, axis=None, keepdims=False):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def matrix_solve(self, matrix, rhs, adjoint=None):
+        pass
+
     # Theano interface
 
     @abstractmethod
@@ -643,6 +716,11 @@ class BackendBase(object):
 
     @abstractmethod
     def shared(self, value, name=None):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def arange(self, start, stop=None, step=None):
         pass
 
     @uses_device
@@ -681,7 +759,40 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def logsumexp(self, x, axis=None, keepdims=False):
+        pass
+
+    @uses_device
+    @abstractmethod
     def alloc(self, value, shape, unbroadcast=None):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def range(self, limit, delta=1):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def solve(self, a, b):
+        pass
+
+
+    # Science methods
+
+    @uses_device
+    @abstractmethod
+    def gammaln(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def multigammaln(self, a, p):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def digamma(self, a):
         pass
 
 should_decorate = set()
@@ -696,4 +807,3 @@ class DeviceDecorator(ABCMeta):
             if method_name in should_decorate:
                 setattr(cls, method_name, cls.use_device(method))
         type.__init__(cls, name, bases, dct)
-
