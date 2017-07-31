@@ -68,7 +68,9 @@ class TensorflowBackend(BackendBase):
 
     def interactive_session(self, **kwargs):
         config_proto = tf.ConfigProto(**kwargs)
-        return tf.InteractiveSession(config=config_proto)
+        sess = tf.InteractiveSession(config=config_proto)
+        self._initialize(sess)
+        return sess
 
     def get_current_session(self):
         if len(self._sessions) == 0:
@@ -80,6 +82,7 @@ class TensorflowBackend(BackendBase):
         sess.run(tf.global_variables_initializer())
 
     # Unified interface
+
 
     def cast(self, x, dtype):
         return tf.cast(x, dtype)
@@ -296,6 +299,9 @@ class TensorflowBackend(BackendBase):
 
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
+
+    def assign(self, a, b):
+        return tf.assign(a, b)
 
     def to_float(self, x):
         return tf.cast(x, self.floatx())

@@ -600,6 +600,10 @@ class BackendBase(object):
     def variable(self, initial_value=None, trainable=True, name=None):
         return self._variable(initial_value=initial_value, trainable=trainable, name=name)
 
+    @abstractmethod
+    def assign(self, a, b):
+        pass
+
     @uses_device
     @abstractmethod
     def to_float(self, x):

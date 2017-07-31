@@ -29,7 +29,7 @@ class NormalInverseWishart(ExponentialFamily):
         return self.pack([
             -1 / 2. * sigma_inv,                 # -\frac{1}{2} \Sigma^{-1}
             h,                                   # \Sigma^{-1} \mu
-            -1 / 2. * T.reduce_sum(mu * h, -1), # -\frac{1}{2} \mu^T \Sigma^{-1} \mu
+            -1 / 2. * T.sum(mu * h, -1), # -\frac{1}{2} \mu^T \Sigma^{-1} \mu
             -1 / 2. * T.logdet(sigma)              # -\frac{1}{2} \log |\Sigma|
         ])
 
@@ -43,7 +43,7 @@ class NormalInverseWishart(ExponentialFamily):
         g3 = -0.5 * (T.matmul(mu0[..., None, :], g2[..., None]) + T.to_float(d) / kappa[..., None])[..., 0, 0]
         g4 = 0.5 * (T.to_float(d) * T.log(2.)
                      - T.logdet(S)
-                     + T.reduce_sum(T.digamma((nu[...,None] - T.to_float(T.range(d)[None,...]))/2.), -1))
+                     + T.sum(T.digamma((nu[...,None] - T.to_float(T.range(d)[None,...]))/2.), -1))
         return self.pack([g1, g2, g3, g4])
 
     def log_h(self, x):
