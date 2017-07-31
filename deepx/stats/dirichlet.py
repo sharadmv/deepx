@@ -27,7 +27,7 @@ class Dirichlet(ExponentialFamily):
 
     def log_z(self):
         alpha = self.get_parameters('regular')
-        return T.reduce_sum(T.gammaln(alpha), -1) - T.gammaln(T.sum(alpha, -1))
+        return T.sum(T.gammaln(alpha), -1) - T.gammaln(T.sum(alpha, -1))
 
     @classmethod
     def natural_to_regular(cls, eta):
