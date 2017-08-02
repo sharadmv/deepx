@@ -125,6 +125,10 @@ class TensorflowBackend(BackendBase):
                                            tf.ones(shape, dtype=dtype),
                                            tf.zeros(shape, dtype=dtype))
 
+    def random_gamma(self, shape, alpha, beta=None):
+        return tf.random_gamma(shape, alpha, beta=beta)
+        pass
+
     def tanh(self, x, name=None):
         return tf.tanh(x, name=name)
 
@@ -409,6 +413,9 @@ class TensorflowBackend(BackendBase):
     def sqr(self, x):
         return tf.square(x)
 
+    def argmax(self, x, axis=None):
+        return tf.argmax(x, axis=axis)
+
     def max(self, x, axis=None, keepdims=False):
         return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
 
@@ -443,6 +450,9 @@ class TensorflowBackend(BackendBase):
 
     def solve(self, a, b):
         return tf.matrix_solve(a, b)
+
+    def one_hot(self, indices, depth):
+        return tf.one_hot(indices, depth)
 
     # Science methods
 

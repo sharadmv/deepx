@@ -1,6 +1,6 @@
 from .. import T
 
-from .common import ExponentialFamily
+from .exponential import ExponentialFamily
 
 class Bernoulli(ExponentialFamily):
 

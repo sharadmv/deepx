@@ -1,11 +1,14 @@
 from .. import T
 
-from .common import ExponentialFamily
+from .exponential import ExponentialFamily
 
 class Dirichlet(ExponentialFamily):
 
     def sample(self, num_samples=1):
-        raise NotImplementedError
+        a = self.get_parameters('regular')
+        sample_shape = T.concat([[num_samples], T.shape(a)[:-1]], 0)
+        gamma_samples = T.random_gamma(sample_shape, a, T.ones_like(a))
+        return gamma_samples / T.sum(gamma_samples, -1)[..., None]
 
     def log_likelihood(self, x):
         raise NotImplementedError

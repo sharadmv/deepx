@@ -321,6 +321,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def random_gamma(self, shape, alpha, beta=None):
+        pass
+
+    @uses_device
+    @abstractmethod
     def tanh(self, x, name=None):
         """
         Returns the hyperbolic tangent of a tensor.
@@ -758,6 +763,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def argmax(self, x, axis=None, keepdims=False):
+        pass
+
+    @uses_device
+    @abstractmethod
     def max(self, x, axis=None, keepdims=False):
         pass
 
@@ -781,6 +791,10 @@ class BackendBase(object):
     def solve(self, a, b):
         pass
 
+    @uses_device
+    @abstractmethod
+    def one_hot(self, indices, depth):
+        pass
 
     # Science methods
 

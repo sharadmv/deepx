@@ -1,6 +1,7 @@
 from .. import T
 
-from .common import ExponentialFamily
+from .exponential import ExponentialFamily
+from .gumbel import Gumbel
 
 class Categorical(ExponentialFamily):
 
@@ -17,7 +18,10 @@ class Categorical(ExponentialFamily):
         return self.get_parameters('regular')
 
     def sample(self, num_samples=1):
-        raise NotImplementedError
+        a = self.get_parameters('natural')
+        d = T.shape(a)[-1]
+        gumbel_noise = Gumbel(T.zeros_like(a), T.ones_like(a)).sample(num_samples)
+        return T.one_hot(T.argmax(a[None] + gumbel_noise, -1), d)
 
     @classmethod
     def regular_to_natural(cls, pi):

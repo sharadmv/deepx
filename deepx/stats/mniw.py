@@ -1,6 +1,6 @@
 from .. import T
 
-from .common import ExponentialFamily
+from .exponential import ExponentialFamily
 
 __all__ = ["MatrixNormalInverseWishart", "MNIW"]
 
