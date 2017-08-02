@@ -215,8 +215,6 @@ class TensorflowBackend(BackendBase):
         return tf.reshape(x, shape)
 
     def sum(self, x, axis=None, keepdims=False):
-        if axis is not None and axis < 0:
-            axis = axis % len(x.get_shape())
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
         return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
