@@ -11,7 +11,11 @@ class Bernoulli(ExponentialFamily):
         return self.get_parameters('regular')
 
     def sample(self, num_samples=1):
-        raise NotImplementedError
+        p = self.get_parameters('regular')
+        sample_shape = T.concat([[num_samples], T.shape(p)], 0)
+        noise = T.random_uniform(sample_shape)
+        sample = T.switch(noise - p[None] < 0, T.ones(sample_shape), T.zeros(sample_shape))
+        return sample
 
     def regular_to_natural(cls, regular_parameters):
         raise NotImplementedError

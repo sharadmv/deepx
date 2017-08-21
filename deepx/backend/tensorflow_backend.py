@@ -6,6 +6,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
+from tensorflow.python.ops.distributions.util import fill_lower_triangular
 
 class TensorflowFunction(FunctionBase):
 
@@ -326,17 +327,29 @@ class TensorflowBackend(BackendBase):
     def gather_nd(self, params, indices):
         return tf.gather_nd(params, indices)
 
+    def equal(self, x, y):
+        return tf.equal(x, y)
+
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         return tf.matmul(a, b, transpose_a=transpose_a, transpose_b=transpose_b, a_is_sparse=a_is_sparse, name=name)
 
     def matrix_transpose(self, a):
         return tf.matrix_transpose(a)
 
+    def matrix_diag(self, a):
+        return tf.matrix_diag(a)
+
+    def lower_triangular(self, a):
+        return fill_lower_triangular(a)
+
     def matrix_inverse(self, a):
         return tf.matrix_inverse(a)
 
     def expand_dims(self, x, dim=-1):
         return tf.expand_dims(x, dim)
+
+    def tile(self, input, multiples):
+        return tf.tile(input, multiples)
 
     def gradients(self, loss, variables):
         return tf.gradients(loss, variables)

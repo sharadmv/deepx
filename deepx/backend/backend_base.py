@@ -644,6 +644,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def equal(self, x, y):
+        pass
+
+    @uses_device
+    @abstractmethod
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         pass
 
@@ -654,12 +659,27 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def matrix_diag(self, a):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def lower_triangular(self, a):
+        pass
+
+    @uses_device
+    @abstractmethod
     def matrix_inverse(self, a):
         pass
 
     @uses_device
     @abstractmethod
     def expand_dims(self, x, dim=-1):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def tile(self, input, multiples):
         pass
 
     @uses_device
