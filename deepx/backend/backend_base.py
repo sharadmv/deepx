@@ -195,6 +195,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def abs(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
     def zeros(self, shape, dtype=None, name=None):
         """
         Creates a tensor filled with zeros.
@@ -582,6 +587,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def while_loop(self, condition, body, loop_vars, **kwargs):
+        pass
+
+    @uses_device
+    @abstractmethod
     def logdet(self, A):
         pass
 
@@ -645,6 +655,11 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def equal(self, x, y):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def logical_and(self, x, y):
         pass
 
     @uses_device

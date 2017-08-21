@@ -91,6 +91,9 @@ class TensorflowBackend(BackendBase):
     def shape(self, x):
         return tf.shape(x)
 
+    def abs(self, x):
+        return tf.abs(x)
+
     def set_value(self, x, value):
         tf.assign(x, np.asarray(value)).op.run(session=self.get_current_session())
 
@@ -284,6 +287,9 @@ class TensorflowBackend(BackendBase):
         result = tf.scan(step, input, initial_states)
         return result
 
+    def while_loop(self, condition, body, loop_vars, **kwargs):
+        return tf.while_loop(condition, body, loop_vars)
+
     def logdet(self, A):
         term = tf.log(tf.matrix_diag_part(tf.cholesky(A)))
         return 2 * tf.reduce_sum(term, -1)
@@ -329,6 +335,9 @@ class TensorflowBackend(BackendBase):
 
     def equal(self, x, y):
         return tf.equal(x, y)
+
+    def logical_and(self, x, y):
+        return tf.logical_and(x, y)
 
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         return tf.matmul(a, b, transpose_a=transpose_a, transpose_b=transpose_b, a_is_sparse=a_is_sparse, name=name)
@@ -412,7 +421,8 @@ class TensorflowBackend(BackendBase):
     def outer(self, x, y):
         return x[...,:,None] * y[...,None,:]
 
-    def eye(self, d):
+    def eye(self, d, batch_shape=None):
+        return tf.eye(d, batch_shape=batch_shape)
         if not (isinstance(d, list) or isinstance(d, tuple)):
             d = [d]
         return tf.diag(tf.ones(d))
