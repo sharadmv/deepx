@@ -1,12 +1,14 @@
 from .. import T
 
-from .exponential import ExponentialFamily
+from .common import ExponentialFamily
 
 class Dirichlet(ExponentialFamily):
 
     def sample(self, num_samples=1):
         a = self.get_parameters('regular')
-        sample_shape = T.concat([[num_samples], T.shape(a)[:-1]], 0)
+        if isinstance(num_samples, int):
+            num_samples = [num_samples]
+        sample_shape = T.concat([num_samples, T.shape(a)[:-1]], 0)
         gamma_samples = T.random_gamma(sample_shape, a, T.ones_like(a))
         return gamma_samples / T.sum(gamma_samples, -1)[..., None]
 

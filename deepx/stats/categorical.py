@@ -1,6 +1,7 @@
+import numpy as np
 from .. import T
 
-from .exponential import ExponentialFamily
+from .common import ExponentialFamily
 from .gumbel import Gumbel
 
 class Categorical(ExponentialFamily):
@@ -17,7 +18,7 @@ class Categorical(ExponentialFamily):
     def expected_sufficient_statistics(self):
         return self.get_parameters('regular')
 
-    def sample(self, num_samples=1):
+    def sample(self, num_samples=1, temperature=None):
         a = self.get_parameters('natural')
         d = T.shape(a)[-1]
         gumbel_noise = Gumbel(T.zeros_like(a), T.ones_like(a)).sample(num_samples)
@@ -32,7 +33,8 @@ class Categorical(ExponentialFamily):
         return T.exp(natural_parameters)
 
     def log_likelihood(self, x):
-        raise NotImplementedError
+        a = self.get_parameters('natural')
+        return T.sum(a * x, -1)
 
     def log_z(self):
         p = self.get_parameters('natural')

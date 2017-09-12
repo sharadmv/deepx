@@ -195,6 +195,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def rank(self, x):
+        pass
+
+    @uses_device
+    @abstractmethod
     def abs(self, x):
         pass
 
@@ -475,6 +480,10 @@ class BackendBase(object):
     def sum(self, x, axis=None, keepdims=False):
         pass
 
+    @abstractmethod
+    def prod(self, x, axis=None, keepdims=False):
+        pass
+
     @uses_device
     @abstractmethod
     def mean(self, x, axis=None, keepdims=False):
@@ -587,6 +596,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def scan(self, fn, elems, initializer=None):
+        pass
+
+    @uses_device
+    @abstractmethod
     def while_loop(self, condition, body, loop_vars, **kwargs):
         pass
 
@@ -680,6 +694,11 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def lower_triangular(self, a):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def kronecker(self, a, b):
         pass
 
     @uses_device

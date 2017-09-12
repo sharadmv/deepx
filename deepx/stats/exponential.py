@@ -1,43 +1,39 @@
-from abc import abstractmethod
+from .. import T
 
-from .common import Distribution
+from .common import ExponentialFamily
 
-class ExponentialFamily(Distribution):
+class Exponential(ExponentialFamily):
 
-    def __init__(self, parameters, parameter_type='regular'):
-        self._parameter_cache = {}
-        self._parameter_cache[parameter_type] = parameters
+    def expected_value(self):
+        return 1 / self.get_parameters('regular')
 
-    @classmethod
-    def regular_to_natural(cls, regular_parameters):
-        raise NotImplementedError
-
-    @classmethod
-    def natural_to_regular(cls, natural_parameters):
-        raise NotImplementedError
-
-    @abstractmethod
-    def log_z(self):
-        pass
-
-    @abstractmethod
     def log_h(self, x):
-        pass
+        return T.zeros(T.shape(x)[:-1])
 
-    @abstractmethod
     def sufficient_statistics(self, x):
-        pass
+        return x
 
-    @abstractmethod
     def expected_sufficient_statistics(self):
-        pass
+        return 1 / self.get_parameters('regular')
 
-    def get_parameters(self, parameter_type):
-        if parameter_type not in self._parameter_cache:
-            if parameter_type == 'regular':
-                self._parameter_cache['regular'] = self.natural_to_regular(self.get_parameters('natural'))
-            elif parameter_type == 'natural':
-                self._parameter_cache['natural'] = self.regular_to_natural(self.get_parameters('regular'))
-            elif parameter_type == 'packed':
-                self._parameter_cache['packed'] = self.natural_to_packed(self.get_parameters('natural'))
-        return self._parameter_cache[parameter_type]
+    def sample(self, num_samples=1):
+        l = self.get_parameters('regular')
+        sample_shape = T.concat([[num_samples], T.shape(l)])
+        noise = T.random_uniform(sample_shape)
+        return -T.log(noise) / l[None]
+
+    @classmethod
+    def regular_to_natural(cls, l):
+        return -l
+
+    @classmethod
+    def natural_to_regular(cls, eta):
+        return -eta
+
+    def log_likelihood(self, x):
+        l = self.get_parameters('regular')
+        return T.sum(T.log(l) - x * l,  T.range(-T.rank(l), 0, 1))
+
+    def log_z(self):
+        l = self.get_parameters('regular')
+        return -T.log(l)

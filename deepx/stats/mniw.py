@@ -1,6 +1,6 @@
 from .. import T
 
-from .exponential import ExponentialFamily
+from .common import ExponentialFamily
 
 __all__ = ["MatrixNormalInverseWishart", "MNIW"]
 
@@ -17,11 +17,13 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         S, M0, V, nu = regular_parameters
         V_inv = T.matrix_inverse(V)
         M0V_1 = T.matmul(V_inv, T.matrix_transpose(M0))
+        shape = T.to_float(T.shape(M0))
+        a, b = shape[-1], shape[-2]
         return [
             S + T.matmul(M0, M0V_1),
             T.matrix_transpose(M0V_1),
             V_inv,
-            nu
+            nu + a + b + 1
         ]
 
     @classmethod
@@ -29,12 +31,14 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         A, B, V_inv, nu = natural_parameters
         V = T.matrix_inverse(V_inv)
         M0 = T.matmul(B, V)
+        shape = T.to_float(T.shape(M0))
+        a, b = shape[-1], shape[-2]
         S = A - T.matmul(B, T.matrix_transpose(M0))
         return([
             S,
             M0,
             V,
-            nu
+            nu - a - b - 1
         ])
 
     def log_likelihood(self, x):
@@ -68,11 +72,11 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         s = T.shape(V)[-1]
         d = T.shape(S)[-1]
         return [
-            -nu / 2. * S_inv,
-            nu * S_inv_M0,
-            -nu / 2. * T.matmul(T.matrix_transpose(M0), S_inv_M0) - T.to_float(s) / 2. * V,
+            -nu[..., None, None] / 2. * S_inv,
+            nu[..., None, None] * S_inv_M0,
+            -nu[..., None, None] / 2. * T.matmul(T.matrix_transpose(M0), S_inv_M0) - T.to_float(s) / 2. * V,
             0.5 * (T.to_float(d) * T.log(2.) - T.logdet(S))
-                + T.reduce_sum(T.digamma((nu[...,None] - T.to_float(T.range(d)[None,...]))/2.), -1)
+                + T.sum(T.digamma((nu[..., None] - T.to_float(T.range(d)[None,...]))/2.), -1)
         ]
 
 MNIW = MatrixNormalInverseWishart

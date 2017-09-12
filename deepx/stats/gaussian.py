@@ -1,7 +1,7 @@
 from .. import T
 import numpy as np
 
-from .exponential import ExponentialFamily
+from .common import ExponentialFamily
 from .niw import NIW
 
 class Gaussian(ExponentialFamily):

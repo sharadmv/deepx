@@ -2,7 +2,7 @@ import numpy as np
 
 from .. import T
 
-from .exponential import ExponentialFamily
+from .common import ExponentialFamily
 
 __all__ = ["NormalInverseWishart", "NIW"]
 

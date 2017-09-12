@@ -91,6 +91,9 @@ class TensorflowBackend(BackendBase):
     def shape(self, x):
         return tf.shape(x)
 
+    def rank(self, x):
+        return tf.rank(x)
+
     def abs(self, x):
         return tf.abs(x)
 
@@ -227,6 +230,8 @@ class TensorflowBackend(BackendBase):
             x = tf.cast(x, self.floatx())
         return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
 
+    def prod(self, x, axis=None, keepdims=False):
+        return tf.reduce_prod(x, axis=axis, keep_dims=keepdims)
 
     def mean(self, x, axis=None, keepdims=False):
         if axis is not None and axis < 0:
@@ -290,7 +295,11 @@ class TensorflowBackend(BackendBase):
     def while_loop(self, condition, body, loop_vars, **kwargs):
         return tf.while_loop(condition, body, loop_vars)
 
+    def scan(self, fn, elems, initializer=None):
+        return tf.scan(fn, elems, initializer=initializer, back_prop=True)
+
     def logdet(self, A):
+        A = (A + self.matrix_transpose(A)) / 2.
         term = tf.log(tf.matrix_diag_part(tf.cholesky(A)))
         return 2 * tf.reduce_sum(term, -1)
 
@@ -347,6 +356,45 @@ class TensorflowBackend(BackendBase):
 
     def matrix_diag(self, a):
         return tf.matrix_diag(a)
+
+    def kronecker(self, A, B):
+        def fix_shape(tf_shape):
+            return tuple(int(dim) for dim in tf_shape)
+
+        def concat_blocks(blocks, validate_dims=True):
+            """Takes 2d grid of blocks representing matrices and concatenates to single
+            matrix (aka ArrayFlatten)"""
+
+            if validate_dims:
+                col_dims = np.array([[int(b.shape[1]) for b in row] for row in blocks])
+                col_sums = col_dims.sum(1)
+                assert (col_sums[0] == col_sums).all()
+                row_dims = np.array([[int(b.shape[0]) for b in row] for row in blocks])
+                row_sums = row_dims.sum(0)
+                assert (row_sums[0] == row_sums).all()
+
+            block_rows = [tf.concat(row, axis=1) for row in blocks]
+            return tf.concat(block_rows, axis=0)
+
+        def chunks(l, n):
+            for i in range(0, len(l), n):
+                yield l[i:i + n]
+
+
+        Arows, Acols = fix_shape(A.shape)
+        Brows, Bcols = fix_shape(B.shape)
+        Crows = Arows*Brows
+
+        temp = tf.reshape(A, [-1, 1, 1])*tf.expand_dims(B, 0)
+        Bshape = tf.constant((Brows, Bcols))
+
+        slices = [tf.reshape(s, Bshape) for s in tf.split(temp, Crows)]
+
+        grid = list(chunks(slices, Acols))
+        assert len(grid) == Arows
+        result = concat_blocks(grid, validate_dims=True)
+
+        return result
 
     def lower_triangular(self, a):
         return fill_lower_triangular(a)
@@ -468,8 +516,10 @@ class TensorflowBackend(BackendBase):
         vals.set_shape(new_shape)
         return vals
 
-    def range(self, limit, delta=1):
-        return tf.range(limit, delta=delta)
+    def range(self, start, limit=None, delta=1):
+        if limit is None:
+            return tf.range(start, delta=delta)
+        return tf.range(start, limit, delta=delta)
 
     def solve(self, a, b):
         return tf.matrix_solve(a, b)
