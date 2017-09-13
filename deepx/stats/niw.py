@@ -40,10 +40,10 @@ class NormalInverseWishart(ExponentialFamily):
         S_inv = T.matrix_inverse(S)
         g1 = -0.5 * nu[..., None, None] * S_inv
         g2 = nu[..., None] * T.matmul(S_inv, mu0[..., None])[..., 0]
-        g3 = -0.5 * (T.matmul(mu0[..., None, :], g2[..., None]) + T.to_float(d) / kappa[..., None])[..., 0, 0]
-        g4 = 0.5 * (T.to_float(d) * T.log(2.)
+        g3 = -0.5 * (T.matmul(mu0[..., None, :], g2[..., None]) + T.cast(d, T.dtype(S)) / kappa[..., None])[..., 0, 0]
+        g4 = 0.5 * (T.cast(d, T.dtype(S)) * T.cast(T.log(2.), T.dtype(S))
                      - T.logdet(S)
-                     + T.sum(T.digamma((nu[...,None] - T.to_float(T.range(d)[None,...]))/2.), -1))
+                     + T.sum(T.digamma((nu[...,None] - T.cast(T.range(d)[None,...], T.dtype(S)))/2.), -1))
         return self.pack([g1, g2, g3, g4])
 
     def log_h(self, x):
@@ -76,8 +76,8 @@ class NormalInverseWishart(ExponentialFamily):
     def pack(cls, parameters):
         A, b, kappa, nu = parameters
         leading_dim, D = T.shape(b)[:-1], T.shape(b)[-1]
-        z1 = T.zeros(T.concat([leading_dim, [D, 1]], 0))
-        z2 = T.zeros(T.concat([leading_dim, [1, 1]], 0))
+        z1 = T.zeros(T.concat([leading_dim, [D, 1]], 0), dtype=T.dtype(A))
+        z2 = T.zeros(T.concat([leading_dim, [1, 1]], 0), dtype=T.dtype(A))
         b = b[...,None]
         kappa, nu = (
             T.reshape(kappa,

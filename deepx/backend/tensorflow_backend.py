@@ -88,6 +88,9 @@ class TensorflowBackend(BackendBase):
     def cast(self, x, dtype):
         return tf.cast(x, dtype)
 
+    def dtype(self, x):
+        return x.dtype
+
     def shape(self, x):
         return tf.shape(x)
 

@@ -31,7 +31,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         A, B, V_inv, nu = natural_parameters
         V = T.matrix_inverse(V_inv)
         M0 = T.matmul(B, V)
-        shape = T.to_float(T.shape(M0))
+        shape = T.cast(T.shape(M0), T.dtype(A))
         a, b = shape[-1], shape[-2]
         S = A - T.matmul(B, T.matrix_transpose(M0))
         return([
@@ -46,7 +46,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
 
     def log_z(self):
         S, M0, V, nu = self.get_parameters('regular')
-        shape = T.shape(M0)
+        shape = T.cast(T.shape(M0), T.dtype(S))
         d, s = shape[-2], shape[-1]
         return (nu / 2. * (T.to_float(d) * T.log(2.) - T.logdet(S))
                 + T.multigammaln(nu / 2., d)
@@ -74,9 +74,9 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         return [
             -nu[..., None, None] / 2. * S_inv,
             nu[..., None, None] * S_inv_M0,
-            -nu[..., None, None] / 2. * T.matmul(T.matrix_transpose(M0), S_inv_M0) - T.to_float(s) / 2. * V,
-            0.5 * (T.to_float(d) * T.log(2.) - T.logdet(S))
-                + T.sum(T.digamma((nu[..., None] - T.to_float(T.range(d)[None,...]))/2.), -1)
+            -nu[..., None, None] / 2. * T.matmul(T.matrix_transpose(M0), S_inv_M0) - T.cast(s, T.dtype(V)) / 2. * V,
+            0.5 * (T.cast(d, T.dtype(S)) * T.cast(T.log(2.), T.dtype(S)) - T.logdet(S))
+                + T.sum(T.digamma((nu[..., None] - T.cast(T.range(d)[None,...], T.dtype(S)))/2.), -1)
         ]
 
 MNIW = MatrixNormalInverseWishart

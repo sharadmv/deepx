@@ -188,6 +188,10 @@ class BackendBase(object):
     def cast(self, x, dtype):
         pass
 
+    @abstractmethod
+    def dtype(self, x):
+        pass
+
     @uses_device
     @abstractmethod
     def shape(self, x):
