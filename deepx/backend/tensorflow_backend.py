@@ -358,43 +358,14 @@ class TensorflowBackend(BackendBase):
         return tf.matrix_diag(a)
 
     def kronecker(self, A, B):
-        def fix_shape(tf_shape):
-            return tuple(int(dim) for dim in tf_shape)
-
-        def concat_blocks(blocks, validate_dims=True):
-            """Takes 2d grid of blocks representing matrices and concatenates to single
-            matrix (aka ArrayFlatten)"""
-
-            if validate_dims:
-                col_dims = np.array([[int(b.shape[1]) for b in row] for row in blocks])
-                col_sums = col_dims.sum(1)
-                assert (col_sums[0] == col_sums).all()
-                row_dims = np.array([[int(b.shape[0]) for b in row] for row in blocks])
-                row_sums = row_dims.sum(0)
-                assert (row_sums[0] == row_sums).all()
-
-            block_rows = [tf.concat(row, axis=1) for row in blocks]
-            return tf.concat(block_rows, axis=0)
-
-        def chunks(l, n):
-            for i in range(0, len(l), n):
-                yield l[i:i + n]
-
-
-        Arows, Acols = fix_shape(A.shape)
-        Brows, Bcols = fix_shape(B.shape)
-        Crows = Arows*Brows
-
-        temp = tf.reshape(A, [-1, 1, 1])*tf.expand_dims(B, 0)
-        Bshape = tf.constant((Brows, Bcols))
-
-        slices = [tf.reshape(s, Bshape) for s in tf.split(temp, Crows)]
-
-        grid = list(chunks(slices, Acols))
-        assert len(grid) == Arows
-        result = concat_blocks(grid, validate_dims=True)
-
-        return result
+        C = (A[..., None, None] * B[..., None, None, :, :])
+        blocks = [
+            tf.unstack(a, axis=-3 % len(a.shape)) for a in
+            tf.unstack(C, axis=-4 % len(C.shape))
+        ]
+        return tf.concat([
+            tf.concat(a, -1) for a in blocks
+        ], -2)
 
     def lower_triangular(self, a):
         return fill_lower_triangular(a)
