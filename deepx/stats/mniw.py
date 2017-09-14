@@ -17,7 +17,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         S, M0, V, nu = regular_parameters
         V_inv = T.matrix_inverse(V)
         M0V_1 = T.matmul(V_inv, T.matrix_transpose(M0))
-        shape = T.to_float(T.shape(M0))
+        shape = T.cast(T.shape(M0), T.dtype(S))
         a, b = shape[-1], shape[-2]
         return [
             S + T.matmul(M0, M0V_1),
