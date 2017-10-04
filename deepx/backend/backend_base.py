@@ -36,7 +36,7 @@ class BackendBase(object):
     def __init__(self, use_cudnn=True):
         self._FLOATX = 'float32'
         self._EPSILON = 10e-8
-        self._DEFAULT_DEVICE = '/cpu:0'
+        self._DEFAULT_DEVICE = self.cpu(0)
         self._DEFAULT_INITIALIZATION = 'glorot_uniform'
         self._device_stack = []
         self._initialization_stack = []
@@ -81,6 +81,15 @@ class BackendBase(object):
         A decorator that will force the output of a function to
         belong to a certain device context.
         """
+        pass
+
+
+    @abstractmethod
+    def cpu(self, id=0):
+        pass
+
+    @abstractmethod
+    def gpu(self, id=0):
         pass
 
     @contextmanager
@@ -683,6 +692,11 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def trace(self, a):
         pass
 
     @uses_device

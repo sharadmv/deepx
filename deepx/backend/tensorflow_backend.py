@@ -41,6 +41,12 @@ class TensorflowBackend(BackendBase):
             return result
         return func
 
+    def cpu(self, id=0):
+        return 'cpu/:%u' % id
+
+    def gpu(self, id=0):
+        return 'cpu/:%u' % id
+
     def _placeholder(self, dtype=None, shape=None, name=None):
         with self._device(self.get_current_device()):
             return tf.placeholder(dtype, shape=shape, name=name)
@@ -354,11 +360,29 @@ class TensorflowBackend(BackendBase):
     def matmul(self, a, b, transpose_a=False, transpose_b=False, a_is_sparse=False, b_is_sparse=False, name=None):
         return tf.matmul(a, b, transpose_a=transpose_a, transpose_b=transpose_b, a_is_sparse=a_is_sparse, name=name)
 
+    def trace(self, a):
+        return tf.trace(a)
+
     def matrix_transpose(self, a):
         return tf.matrix_transpose(a)
 
     def matrix_diag(self, a):
         return tf.matrix_diag(a)
+
+    def vec(self, A):
+        A = self.matrix_transpose(A)
+        leading_dim = self.shape(A)[:-2]
+        return self.reshape(A, self.concat([
+            leading_dim,
+            [-1]
+        ], 0))
+
+    def unvec(self, v, m, n):
+        leading_dim = self.shape(v)[:-1]
+        return self.matrix_transpose(self.reshape(v, self.concat([
+            leading_dim,
+            [n, m]
+        ], 0)))
 
     def kronecker(self, A, B):
         C = (A[..., None, None] * B[..., None, None, :, :])
@@ -369,6 +393,38 @@ class TensorflowBackend(BackendBase):
         return tf.concat([
             tf.concat(a, -1) for a in blocks
         ], -2)
+
+    def block_sum(self, X, m, n):
+        leading_dim = self.shape(X)[:-2]
+        block_sum = self.zeros(self.concat([leading_dim, [m, m]], 0))
+        for i in range(n):
+            block_sum += X[..., i*m:(i+1)*m, i*m:(i+1)*m]
+        return block_sum
+
+    def block_trace(self, X, m, n):
+        blocks = []
+        for i in range(n):
+            blocks.append([])
+            for j in range(n):
+                block = self.trace(X[..., i*m:(i+1)*m, j*m:(j+1)*m])
+                blocks[-1].append(block)
+        return self.pack([
+            self.pack([
+                b for b in block
+            ])
+            for block in blocks
+        ])
+
+    def kronecker_vec(self, X, m, n):
+        leading_dim = tf.shape(X)[:-2]
+        blocks = []
+        for i in range(n):
+            blocks.append([])
+            for j in range(m):
+                idx = i * m + j
+                block = tf.matrix_transpose(tf.reshape(X[..., idx, :], tf.concat([leading_dim, [n, m]], 0)))
+                blocks[-1].append(block)
+        return tf.concat([tf.concat(b, -2) for b in blocks], -1)
 
     def lower_triangular(self, a):
         return fill_lower_triangular(a)

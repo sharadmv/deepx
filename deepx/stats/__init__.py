@@ -5,6 +5,7 @@ from .categorical import Categorical
 from .bernoulli import Bernoulli
 from .mniw import MNIW
 from .mn import MN
+from .iw import IW
 from .gumbel import Gumbel
 from .exponential import Exponential
 from .util import kl_divergence

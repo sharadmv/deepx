@@ -5,11 +5,15 @@ import os
 import json
 import logging
 
+BACKENDS = {
+    'mxnet', 'tensorflow', 'theano'
+}
+
 _deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
 if not os.path.exists(_deepx_dir):
     os.makedirs(_deepx_dir)
 
-_BACKEND = 'tensorflow'
+DEFAULT_BACKEND = 'tensorflow'
 
 _config_path = os.path.expanduser(os.path.join('~', '.deepx', 'deepx.json'))
 if os.path.exists(_config_path):
@@ -18,8 +22,8 @@ if os.path.exists(_config_path):
     assert _floatx in {'float32', 'float64'}
     _epsilon = _config.get('epsilon', None)
     assert type(_epsilon) == float
-    _backend = _config.get('backend', _BACKEND)
-    assert _backend in {'theano', 'tensorflow'}
+    _backend = _config.get('backend', DEFAULT_BACKEND)
+    assert _backend in BACKENDS
 
     _BACKEND = _backend
 else:
@@ -38,7 +42,7 @@ else:
 
 if 'DEEPX_BACKEND' in os.environ:
     _backend = os.environ['DEEPX_BACKEND']
-    assert _backend in {'theano', 'tensorflow'}
+    assert _backend in BACKENDS
     _BACKEND = _backend
 
 try:
@@ -46,6 +50,8 @@ try:
         from .theano_backend import TheanoBackend as Backend
     elif _BACKEND == 'tensorflow':
         from .tensorflow_backend import TensorflowBackend as Backend
+    elif _BACKEND == 'mxnet':
+        from .mxnet_backend import MXNetBackend as Backend
     else:
         raise Exception('Unknown backend: ' + str(_BACKEND))
     backend = Backend()
