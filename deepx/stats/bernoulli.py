@@ -7,6 +7,9 @@ class Bernoulli(ExponentialFamily):
     def __init__(self, *args, **kwargs):
         super(Bernoulli, self).__init__(*args, **kwargs)
 
+    def get_param_dim(self):
+        return 1
+
     def expected_value(self):
         return self.get_parameters('regular')
 

@@ -701,6 +701,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def transpose(self, a, perm=None):
+        pass
+
+    @uses_device
+    @abstractmethod
     def matrix_transpose(self, a):
         pass
 

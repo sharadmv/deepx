@@ -9,6 +9,9 @@ __all__ = ["MatrixNormal", "MN"]
 
 class MatrixNormal(ExponentialFamily):
 
+    def get_param_dim(self):
+        return 2
+
     def expected_value(self):
         raise NotImplementedError()
 
@@ -33,8 +36,9 @@ class MatrixNormal(ExponentialFamily):
         eta1, eta2 = Gaussian.unpack(self.get_parameters('natural'))
         eta1_inv = T.matrix_inverse(eta1)
         d = T.to_float(T.shape(eta2)[-1])
+        quad_term = T.sum(eta2 * T.sum(eta1_inv * eta2[..., None, :], -1), -1)
         return (d * 0.5 * T.log(2 * np.pi)
-                - 0.25 * T.einsum('ia,iab,ib->i', eta2, eta1_inv, eta2)
+                - 0.25 * quad_term
                 - 0.5 * T.logdet(-2 * eta1))
 
     def log_h(self, x):

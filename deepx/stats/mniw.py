@@ -6,6 +6,9 @@ __all__ = ["MatrixNormalInverseWishart", "MNIW"]
 
 class MatrixNormalInverseWishart(ExponentialFamily):
 
+    def get_param_dim(self):
+        return [2, 2, 2, 0]
+
     def expected_value(self):
         raise NotImplementedError()
 

@@ -4,6 +4,9 @@ from .common import ExponentialFamily
 
 class Exponential(ExponentialFamily):
 
+    def get_param_dim(self):
+        return 1
+
     def expected_value(self):
         return 1 / self.get_parameters('regular')
 

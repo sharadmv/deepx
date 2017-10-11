@@ -8,6 +8,9 @@ __all__ = ["NormalInverseWishart", "NIW"]
 
 class NormalInverseWishart(ExponentialFamily):
 
+    def get_param_dim(self):
+        return 2
+
     def sample(self, num_samples=1):
         raise NotImplementedError
 

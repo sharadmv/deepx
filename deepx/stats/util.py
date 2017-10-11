@@ -1,22 +1,24 @@
 from .. import T
 
-def kl_divergence(p, q):
-    p_param, q_param = p.get_parameters('natural'), q.get_parameters('natural')
-    p_dim, q_dim = len(T.get_shape(p_param)), len(T.get_shape(q_param))
+def coerce_param(p_param, q_param):
+    if isinstance(p_param, list):
+        return list(map(list, zip(*[coerce_param(a, b) for a, b in zip(p_param, q_param)])))
+    dim_p = len(T.get_shape(p_param))
+    dim_q = len(T.get_shape(q_param))
+    while dim_p > dim_q:
+        q_param = q_param[None]
+        dim_q += 1
+    while dim_q > dim_p:
+        p_param = p_param[None]
+        dim_p += 1
+    return p_param, q_param
+
+def kl_divergence(p, q, param_dim=2):
+    dist = p.__class__
+    p_param, q_param = coerce_param(p.get_parameters('natural'), q.get_parameters('natural'))
+    p, q = dist(p_param, 'natural'), dist(q_param, 'natural')
     p_stats = p.expected_sufficient_statistics()
     p_log_z, q_log_z = p.log_z(), q.log_z()
-    if p_dim == 1:
-        p_param = p_param[None]
-        p_stats = p_stats[None]
-        p_log_z = p_log_z[None]
-        p_dim = 2
-    while p_dim > q_dim:
-        q_param = q_param[None]
-        q_log_z = q_log_z[None]
-        q_dim = len(T.get_shape(q_param))
-    while q_dim > p_dim:
-        p_param = p_param[None]
-        p_stats = p_stats[None]
-        p_log_z = p_log_z[None]
-        p_dim = len(T.get_shape(p_param))
-    return T.sum((p_param - q_param) * p_stats, axis=list(range(1, p_dim))) - p_log_z + q_log_z
+    if isinstance(p_param, list):
+        return sum([T.sum((a - b) * c, axis=list(range(-p_d, 0))) for a, b, c, p_d in zip(p_param, q_param, p_stats, param_dim)]) - p_log_z + q_log_z
+    return T.sum((p_param - q_param) * p_stats, axis=list(range(-param_dim, 0))) - p_log_z + q_log_z

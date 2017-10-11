@@ -6,6 +6,9 @@ __all__ = ["InverseWishart", "IW"]
 
 class InverseWishart(ExponentialFamily):
 
+    def get_param_dim(self):
+        return [2, 0]
+
     def sample(self, num_samples=1):
         raise NotImplementedError
 
@@ -13,7 +16,9 @@ class InverseWishart(ExponentialFamily):
         raise NotImplementedError
 
     def expected_value(self):
-        raise NotImplementedError
+        S, nu = self.get_parameters('regular')
+        D = T.to_float(T.shape(S)[-1])
+        return S / (nu[..., None, None] - D - 1)
 
     def sufficient_statistics(self, sigma):
         sigma_inv = T.matrix_inverse(sigma)
@@ -29,7 +34,7 @@ class InverseWishart(ExponentialFamily):
         g1 = -0.5 * nu[..., None, None] * S_inv
         g2 = 0.5 * (T.cast(d, T.dtype(S)) * T.cast(T.log(2.), T.dtype(S))
                      - T.logdet(S)
-                     + T.sum(T.digamma((nu[...,None] - T.cast(T.range(d)[None,...], T.dtype(S)))/2.), -1))
+                     + T.sum(T.digamma((nu[...,None] - T.cast(T.range(d), T.dtype(S)))/2.), -1))
         return [g1, g2]
 
     def log_h(self, x):

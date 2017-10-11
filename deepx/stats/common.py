@@ -24,6 +24,10 @@ class ExponentialFamily(Distribution):
         self._parameter_cache = {}
         self._parameter_cache[parameter_type] = parameters
 
+    @abstractmethod
+    def get_param_dim(self):
+        pass
+
     @classmethod
     def regular_to_natural(cls, regular_parameters):
         raise NotImplementedError

@@ -6,6 +6,9 @@ from .niw import NIW
 
 class Gaussian(ExponentialFamily):
 
+    def get_param_dim(self):
+        return 2
+
     def expected_value(self):
         sigma, mu = self.get_parameters('regular')
         return mu
@@ -40,7 +43,8 @@ class Gaussian(ExponentialFamily):
         J = -2 * neghalfJ
         L = T.cholesky(J)
         noise = T.matrix_solve(T.matrix_transpose(L), T.random_normal(sample_shape))
-        return T.matrix_solve(J, h[..., None])[..., 0][...,None,:] + T.matrix_transpose(noise)
+        noise = T.transpose(noise, T.concat([[T.rank(noise) - 1], T.range(0, T.rank(noise) - 1)], 0))
+        return T.matrix_solve(J, h[..., None])[..., 0][None] + noise
 
     @classmethod
     def regular_to_natural(cls, regular_parameters):

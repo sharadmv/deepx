@@ -5,6 +5,9 @@ from .common import Distribution
 
 class Gumbel(Distribution):
 
+    def get_param_dim(self):
+        return 1
+
     def __init__(self, m, b):
         if isinstance(m, int) or isinstance(m, float):
             m = T.to_float(T.constant(m))

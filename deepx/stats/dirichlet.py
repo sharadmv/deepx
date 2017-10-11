@@ -4,6 +4,9 @@ from .common import ExponentialFamily
 
 class Dirichlet(ExponentialFamily):
 
+    def get_param_dim(self):
+        return 1
+
     def sample(self, num_samples=1):
         a = self.get_parameters('regular')
         if isinstance(num_samples, int):

@@ -25,11 +25,10 @@ if os.path.exists(_config_path):
     _backend = _config.get('backend', DEFAULT_BACKEND)
     assert _backend in BACKENDS
 
-    _BACKEND = _backend
 else:
     _floatx = 'float32'
     _epsilon = 1e-7
-    _backend = _BACKEND
+    _backend = DEFAULT_BACKEND
 
     _config = {
         'floatx': _floatx,
@@ -43,8 +42,8 @@ else:
 if 'DEEPX_BACKEND' in os.environ:
     _backend = os.environ['DEEPX_BACKEND']
     assert _backend in BACKENDS
-    _BACKEND = _backend
 
+_BACKEND = _backend
 try:
     if _BACKEND == 'theano':
         from .theano_backend import TheanoBackend as Backend

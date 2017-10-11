@@ -363,6 +363,9 @@ class TensorflowBackend(BackendBase):
     def trace(self, a):
         return tf.trace(a)
 
+    def transpose(self, a, perm=None):
+        return tf.transpose(a, perm=perm)
+
     def matrix_transpose(self, a):
         return tf.matrix_transpose(a)
 

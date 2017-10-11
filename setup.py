@@ -9,7 +9,7 @@ recommended = {
 
 setup(
     name = "deepx",
-    version = "0.3.10",
+    version = "0.3.14",
     author = "Sharad Vikram",
     author_email = "sharad.vikram@gmail.com",
     description = "A basic deep learning library.",

@@ -9,6 +9,9 @@ class Categorical(ExponentialFamily):
     def expected_value(self):
         raise NotImplementedError
 
+    def get_param_dim(self):
+        return 1
+
     def log_h(self, x):
         return T.zeros(T.shape(x)[:-1])
 
