@@ -1,4 +1,5 @@
 import copy
+import logging
 import numpy as np
 import six
 import tensorflow as tf
@@ -315,8 +316,26 @@ class TensorflowBackend(BackendBase):
     def einsum(self, subscripts, *operands):
         return tf.einsum(subscripts, *operands)
 
-    def cholesky(self, A, lower=True):
+    def cholesky(self, A, lower=True, warn=False, correct=True):
         assert lower is True
+
+        def correction(A):
+            A_new, del_ = A.copy(), 1e-4
+            while True:
+                try:
+                    np.linalg.cholesky(A_new)
+                    break
+                except np.linalg.linalg.LinAlgError:
+                    if warn:
+                        logging.warn('[Cholesky] singular matrix, adding diagonal {}'.format(del_))
+                    A_new = A + del_ * np.eye(A.shape[-1])
+                    del_ *= 2
+            return A_new
+
+        if correct:
+            shape = A.get_shape()
+            A = tf.py_func(correction, [A], A.dtype)
+            A.set_shape(shape)
         return tf.cholesky(A)
 
     # Tensorflow interface
