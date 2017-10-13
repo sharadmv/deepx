@@ -39,7 +39,7 @@ class MatrixNormal(ExponentialFamily):
         quad_term = T.sum(eta2 * T.sum(eta1_inv * eta2[..., None, :], -1), -1)
         return (d * 0.5 * T.log(2 * np.pi)
                 - 0.25 * quad_term
-                - 0.5 * T.logdet(-2 * eta1))
+                - 0.5 * T.logdet(-2 * eta1, warn=True))
 
     def log_h(self, x):
         raise NotImplementedError

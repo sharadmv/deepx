@@ -308,9 +308,9 @@ class TensorflowBackend(BackendBase):
     def scan(self, fn, elems, initializer=None):
         return tf.scan(fn, elems, initializer=initializer, back_prop=True)
 
-    def logdet(self, A):
+    def logdet(self, A, **kwargs):
         A = (A + self.matrix_transpose(A)) / 2.
-        term = tf.log(tf.matrix_diag_part(tf.cholesky(A)))
+        term = tf.log(tf.matrix_diag_part(self.cholesky(A, **kwargs)))
         return 2 * tf.reduce_sum(term, -1)
 
     def einsum(self, subscripts, *operands):
@@ -328,7 +328,7 @@ class TensorflowBackend(BackendBase):
                 except np.linalg.linalg.LinAlgError:
                     if warn:
                         logging.warn('[Cholesky] singular matrix, adding diagonal {}'.format(del_))
-                    A_new = A + del_ * np.eye(A.shape[-1])
+                    A_new = A + del_ * np.eye(A.shape[-1]).astype(self.floatx())
                     del_ *= 2
             return A_new
 
