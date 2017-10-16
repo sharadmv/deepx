@@ -191,6 +191,27 @@ class TensorflowBackend(BackendBase):
             x = tf.cast(x, 'float64')
         return x
 
+    def conv2d_transpose(self, x, kernel, dim_out, strides=(1, 1), border_mode='same'):
+        if border_mode == 'same':
+            padding = 'SAME'
+        elif border_mode == 'valid':
+            padding = 'VALID'
+        else:
+            raise Exception('Invalid border mode: ' + str(border_mode))
+
+        output_shape = [self.shape(x)[0]] + list(dim_out)
+        strides = (1,) + strides + (1,)
+
+        if self.floatx() == 'float64':
+            x = tf.cast(x, 'float32')
+            kernel = tf.cast(kernel, 'float32')
+
+        x = tf.nn.conv2d_transpose(x, kernel, output_shape, strides, padding=padding)
+
+        if self.floatx() == 'float64':
+            x = tf.cast(x, 'float64')
+        return x
+
     def pool2d(self, x, pool_size, strides=(1, 1),
                border_mode='valid', pool_mode='max'):
         '''
