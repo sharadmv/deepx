@@ -337,11 +337,12 @@ class TensorflowBackend(BackendBase):
     def einsum(self, subscripts, *operands):
         return tf.einsum(subscripts, *operands)
 
-    def cholesky(self, A, lower=True, warn=False, correct=True):
+    def cholesky(self, A, lower=True, warn=False, correct=False):
         assert lower is True
 
         def correction(A):
             A_new, del_ = A.copy(), 1e-4
+            return A
             while True:
                 try:
                     np.linalg.cholesky(A_new)
