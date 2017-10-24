@@ -8,4 +8,5 @@ from .mn import MN
 from .iw import IW
 from .gumbel import Gumbel
 from .exponential import Exponential
+from .common import Distribution
 from .util import kl_divergence

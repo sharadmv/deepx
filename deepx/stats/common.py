@@ -23,6 +23,7 @@ class ExponentialFamily(Distribution):
     def __init__(self, parameters, parameter_type='regular'):
         self._parameter_cache = {}
         self._parameter_cache[parameter_type] = parameters
+        super(ExponentialFamily, self).__init__()
 
     @abstractmethod
     def get_param_dim(self):

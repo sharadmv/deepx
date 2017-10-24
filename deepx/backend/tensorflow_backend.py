@@ -337,12 +337,19 @@ class TensorflowBackend(BackendBase):
     def einsum(self, subscripts, *operands):
         return tf.einsum(subscripts, *operands)
 
-    def cholesky(self, A, lower=True, warn=False, correct=False):
+    def cholesky(self, A, lower=True, warn=False, correct=True):
         assert lower is True
+
+        # Gradient through py_func adapted from https://gist.github.com/harpone/3453185b41d8d985356cbe5e57d67342
+        def py_func(func, inp, Tout, stateful=True, name=None, grad=None):
+            rnd_name = 'PyFuncGrad' + str(np.random.randint(0, 1E+8))
+            tf.RegisterGradient(rnd_name)(grad)
+            g = tf.get_default_graph()
+            with g.gradient_override_map({'PyFunc': rnd_name, 'PyFuncStateless': rnd_name}):
+                return tf.py_func(func, inp, Tout, stateful=stateful, name=name)
 
         def correction(A):
             A_new, del_ = A.copy(), 1e-4
-            return A
             while True:
                 try:
                     np.linalg.cholesky(A_new)
@@ -354,9 +361,13 @@ class TensorflowBackend(BackendBase):
                     del_ *= 2
             return A_new
 
+        def _correction_grad(op, grad):
+            A = op.inputs[0]
+            return grad
+
         if correct:
             shape = A.get_shape()
-            A = tf.py_func(correction, [A], A.dtype)
+            A = py_func(correction, [A], A.dtype, grad=_correction_grad)
             A.set_shape(shape)
         return tf.cholesky(A)
 
