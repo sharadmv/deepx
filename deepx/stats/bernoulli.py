@@ -28,7 +28,7 @@ class Bernoulli(ExponentialFamily):
 
     def log_likelihood(self, x):
         p = self.get_parameters('regular')
-        return T.sum(x * T.log(T.epsilon() + p) + (1.0 - x) * T.log(T.epsilon() + 1.0 - p))
+        return T.sum(x * T.log(T.epsilon() + p) + (1.0 - x) * T.log(T.epsilon() + 1.0 - p), -1)
 
     def log_z(self):
         raise NotImplementedError

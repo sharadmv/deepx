@@ -1,3 +1,5 @@
-from ..core import HOF
-
-Residual = HOF(lambda a, b: (a >> b) + a)
+def Residual(node):
+    def ResidualNode(x):
+        return x + node(x)
+    ResidualNode.__name__ = 'Residual(%s)' % str(node)
+    return ResidualNode
