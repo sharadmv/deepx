@@ -8,10 +8,11 @@ class Chain(Node):
         super(Chain, self).__init__()
         self.left, self.right = left, right
         self.infer_shape(self.get_dim_in())
-        # if self.is_initialized():
-            # self.initialize()
 
     def forward(self, *args):
+        left_out = self.left(*args)
+        if isinstance(left_out, tuple):
+            return self.right(*left_out)
         return self.right(self.left(*args))
 
     def infer_shape(self, shape):
@@ -35,7 +36,7 @@ class Chain(Node):
         return self.left.get_parameters() + self.right.get_parameters()
 
     def __repr__(self):
-        return "%s >> %s" % (self.left, self.right)
+        return "%s >> %s" % (str(self.left), str(self.right))
 
     def __str__(self):
         return repr(self)

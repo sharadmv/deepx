@@ -50,8 +50,30 @@ class Node(object):
         from .chain import Chain
         return Chain(self, right)
 
+    def add(self, right):
+        from ..ops import Add
+        return (self, right) >> Add()
+
     def __rshift__(self, right):
         return self.chain(right)
+
+    def __rrshift__(self, right):
+        from .chain import Chain
+        if isinstance(right, tuple):
+            from .node_list import NodeTuple
+            return Chain(NodeTuple(right), self)
+        return Chain(right, self)
+
+    def __add__(self, right):
+        return self.add(right)
+
+    @abstractmethod
+    def forward(self, *args):
+        pass
+
+    @abstractmethod
+    def infer_shape(self, *shapes_in):
+        pass
 
     @abstractmethod
     def is_initialized(self):
