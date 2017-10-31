@@ -13,11 +13,15 @@ class SimpleOperator(Node):
         self.dim_in = None
         self.dim_out = None
 
-    def infer_shape(self, *input_shapes):
+    def infer_shape(self, input_shapes):
         if len(input_shapes) == 0 or input_shapes[0] == None:
             return
-        self.dim_in = input_shapes[0]
-        self.dim_out = input_shapes[0]
+        if isinstance(input_shapes, tuple):
+            self.dim_in = input_shapes[0]
+            self.dim_out = input_shapes[0]
+        else:
+            self.dim_in = input_shapes
+            self.dim_out = input_shapes
 
     def is_initialized(self):
         return True
