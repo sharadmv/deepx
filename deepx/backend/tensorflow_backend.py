@@ -7,7 +7,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
-from tensorflow.python.ops.distributions.util import fill_lower_triangular
+from tensorflow.contrib.distributions import fill_triangular
 
 class TensorflowFunction(FunctionBase):
 
@@ -482,7 +482,7 @@ class TensorflowBackend(BackendBase):
         return tf.concat([tf.concat(b, -2) for b in blocks], -1)
 
     def lower_triangular(self, a):
-        return fill_lower_triangular(a)
+        return fill_triangular(a)
 
     def matrix_inverse(self, a):
         return tf.matrix_inverse(a)

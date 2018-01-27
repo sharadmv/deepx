@@ -79,7 +79,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
             nu[..., None, None] * S_inv_M0,
             -nu[..., None, None] / 2. * T.matmul(T.matrix_transpose(M0), S_inv_M0) - T.cast(s, T.dtype(V)) / 2. * V,
             0.5 * (T.cast(d, T.dtype(S)) * T.cast(T.log(2.), T.dtype(S)) - T.logdet(S))
-                + T.sum(T.digamma((nu[..., None] - T.cast(T.range(d)[None,...], T.dtype(S)))/2.), -1)
+                + T.sum(T.digamma((nu[..., None] - T.cast(T.range(d)[None], T.dtype(S)))/2.), [-1, -2])
         ]
 
 MNIW = MatrixNormalInverseWishart

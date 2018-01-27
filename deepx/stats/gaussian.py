@@ -23,7 +23,7 @@ class Gaussian(ExponentialFamily):
 
     def log_h(self, x):
         d = T.to_float(T.shape(x)[-1])
-        return -0.5 * d * T.log(2 * np.pi)
+        return 0.5 * d * T.log(2 * np.pi)
 
     def sufficient_statistics(self, x):
         return self.pack([
@@ -38,6 +38,14 @@ class Gaussian(ExponentialFamily):
         return self.pack([eta1, eta2])
 
     def sample(self, num_samples=1):
+        sigma, mu = self.get_parameters('regular')
+
+        L = T.cholesky(sigma)
+        sample_shape = T.concat([[num_samples], T.shape(mu)], 0)
+        noise = T.random_normal(sample_shape)
+        L = T.tile(L[None], T.concat([[num_samples], T.ones([T.rank(sigma)], dtype=np.int32)]))
+        return mu[None] + T.matmul(L, noise[..., None])[..., 0]
+
         neghalfJ, h = self.unpack(self.get_parameters('natural'))
         sample_shape = T.concat([T.shape(h), [num_samples]], 0)
         J = -2 * neghalfJ
