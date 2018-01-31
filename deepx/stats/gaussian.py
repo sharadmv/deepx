@@ -89,3 +89,7 @@ class Gaussian(ExponentialFamily):
             return 0.5 * T.einsum('a,ab,b->', mu, sigma_inv, mu) + 0.5 * T.logdet(sigma)
         elif len(mu_shape) == 2:
             return 0.5 * T.einsum('ia,iab,ib->i', mu, sigma_inv, mu) + 0.5 * T.logdet(sigma)
+        elif len(mu_shape) == 3:
+            return 0.5 * T.einsum('tia,tiab,tib->ti', mu, sigma_inv, mu) + 0.5 * T.logdet(sigma)
+        else:
+            raise Exception()
