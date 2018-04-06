@@ -259,17 +259,17 @@ class TensorflowBackend(BackendBase):
     def sum(self, x, axis=None, keepdims=False):
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
-        return tf.reduce_sum(x, axis=axis, keep_dims=keepdims)
+        return tf.reduce_sum(x, axis=axis, keepdims=keepdims)
 
     def prod(self, x, axis=None, keepdims=False):
-        return tf.reduce_prod(x, axis=axis, keep_dims=keepdims)
+        return tf.reduce_prod(x, axis=axis, keepdims=keepdims)
 
     def mean(self, x, axis=None, keepdims=False):
         if axis is not None and axis < 0:
             axis = axis % len(x.get_shape())
         if x.dtype.base_dtype == tf.bool:
             x = tf.cast(x, self.floatx())
-        return tf.reduce_mean(x, axis=axis, keep_dims=keepdims)
+        return tf.reduce_mean(x, axis=axis, keepdims=keepdims)
 
     def batch_norm(self, x, beta, gamma):
         mean, variance = tf.nn.moments(x, [0])
@@ -295,7 +295,7 @@ class TensorflowBackend(BackendBase):
         if not from_logits:
             output /= tf.reduce_sum(output,
                                     axis=len(output.get_shape())-1,
-                                    keep_dims=True)
+                                    keepdims=True)
             output = tf.clip_by_value(output, tf.cast(self.epsilon(), dtype=self.floatx()),
                                     tf.cast(1.- self.epsilon(), dtype=self.floatx()))
             return - tf.reduce_sum(target * tf.log(output),
@@ -389,7 +389,7 @@ class TensorflowBackend(BackendBase):
         return tf.constant(value, dtype=dtype, shape=shape)
 
     def get_shape(self, x):
-        return [a.value for a in x.get_shape()]
+        return [a.value for a in tf.convert_to_tensor(x).get_shape()]
 
     def get_value(self, variable):
         return self.get_current_session().run(variable)
@@ -502,14 +502,23 @@ class TensorflowBackend(BackendBase):
     def clip_by_value(self, x, low, high):
         return tf.clip_by_value(x, low, high)
 
-    def pack(self, values, axis=0, name='pack'):
+    def stack(self, values, axis=0, name='stack'):
         return tf.stack(values, axis=axis, name=name)
 
-    def reduce_max(self, x, axis=None, keep_dims=False):
-        return tf.reduce_max(x, axis=axis, keep_dims=keep_dims)
+    def unstack(self, values, num=None, axis=0, name='unstack'):
+        return tf.unstack(values, num=num, axis=axis, name=name)
 
-    def reduce_logsumexp(self, x, axis=None, keep_dims=False):
-        return tf.reduce_logsumexp(x, axis=axis, keep_dims=keep_dims)
+    def pack(self, *args, **kwargs):
+        return self.stack(*args, **kwargs)
+
+    def unpack(self, *args, **kwargs):
+        return self.unstack(*args, **kwargs)
+
+    def reduce_max(self, x, axis=None, keepdims=False):
+        return tf.reduce_max(x, axis=axis, keepdims=keepdims)
+
+    def reduce_logsumexp(self, x, axis=None, keepdims=False):
+        return tf.reduce_logsumexp(x, axis=axis, keepdims=keepdims)
 
     def matrix_solve(self, matrix, rhs, adjoint=None):
         return tf.matrix_solve(matrix, rhs, adjoint=adjoint)
@@ -552,6 +561,8 @@ class TensorflowBackend(BackendBase):
         return tf.matmul(x, y)
 
     def outer(self, x, y):
+        if len(x.get_shape()) == 0:
+            return x * y
         return x[...,:,None] * y[...,None,:]
 
     def eye(self, d, batch_shape=None):
@@ -573,10 +584,10 @@ class TensorflowBackend(BackendBase):
         return tf.argmax(x, axis=axis)
 
     def max(self, x, axis=None, keepdims=False):
-        return tf.reduce_max(x, axis=axis, keep_dims=keepdims)
+        return tf.reduce_max(x, axis=axis, keepdims=keepdims)
 
     def logsumexp(self, x, axis=None, keepdims=False):
-        return tf.reduce_logsumexp(x, axis=axis, keep_dims=keepdims)
+        return tf.reduce_logsumexp(x, axis=axis, keepdims=keepdims)
 
     def switch(self, condition, then_expression, else_expression):
         '''Switches between two operations depending on a scalar value (int or bool).

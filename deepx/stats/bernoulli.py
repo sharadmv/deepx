@@ -21,10 +21,10 @@ class Bernoulli(ExponentialFamily):
         return sample
 
     def regular_to_natural(cls, regular_parameters):
-        raise NotImplementedError
+        return T.log(regular_parameters / (1 - regular_parameters))
 
-    def natural_to_regular(cls, natural_parameters):
-        raise NotImplementedError
+    def natural_to_regular(cls, eta):
+        return T.exp(eta) / (1 + T.exp(eta))
 
     def log_likelihood(self, x):
         p = self.get_parameters('regular')

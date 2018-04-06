@@ -22,6 +22,8 @@ class Linear(ShapedLayer):
         W, b = self.get_parameter_list('W', 'b')
         if self.sparse:
             return self.activate(T.sparse_dot(X, W) + b)
+        if len(T.get_shape(X)) == 1:
+            return self.activate((X[None]@W)[0] + b)
         return self.activate(T.dot(X, W) + b)
 
 class Maxout(Linear):

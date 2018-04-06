@@ -136,8 +136,9 @@ class Deconvolution(Layer):
 
     def forward(self, X, **kwargs):
         W, b = self.get_parameter_list('W', 'b')
-        return (T.conv2d_transpose(X, W, self.dim_out, border_mode=self.border_mode, strides=self.strides)
+        result = (T.conv2d_transpose(X, W, self.dim_out, border_mode=self.border_mode, strides=self.strides)
                 + b[None, None, None])
+        return result
 
     def __str__(self):
         return "Deconvolution(%s, %s)" % (self.dim_in, self.dim_out)
