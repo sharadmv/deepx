@@ -1,5 +1,7 @@
 import math
 
+import numpy as np
+
 from .. import T
 from ..layer import Layer
 from .full import Relu
@@ -143,8 +145,55 @@ class Deconvolution(Layer):
     def __str__(self):
         return "Deconvolution(%s, %s)" % (self.dim_in, self.dim_out)
 
+class SpatialSoftmax(Layer):
+    def __init__(self):
+        super(SpatialSoftmax, self).__init__()
+        self.dim_in = self.dim_out = None
+
+    def get_dim_in(self):
+        return self.dim_in
+
+    def get_dim_out(self):
+        return self.dim_out
+
+    def initialize(self):
+        h, w = self.in_height, self.in_width
+        x_map = np.empty((h, w))
+        y_map = np.empty((h, w))
+
+        for i in range(self.in_height):
+            for j in range(self.in_width):
+                x_map[i, j], y_map[i, j] = (i - h / 2.0) / h, (j - w / 2.0) / w
+
+        self.x_map = T.reshape(T.constant(x_map, dtype=T.floatx()), [h * w])
+        self.y_map = T.reshape(T.constant(y_map, dtype=T.floatx()), [h * w])
+
+    def is_initialized(self):
+        return not (self.dim_in is None or self.dim_out is None)
+
+    def infer_shape(self, shape):
+        if shape is None: return
+        self.dim_in = self.in_height, self.in_width, self.in_channels = shape[-3:]
+        self.dim_out = [self.in_channels * 2]
+
+    def forward(self, X, **kwargs):
+        h, w, c = self.in_height, self.in_width, self.in_channels
+        features = T.reshape(T.transpose(X, perm=[0, 3, 1, 2]), [-1, h * w])
+        softmax = T.softmax(features)
+        fp_x = T.sum(T.mul(self.x_map, softmax), axis=[1], keepdims=True)
+        fp_y = T.sum(T.mul(self.y_map, softmax), axis=[1], keepdims=True)
+        return T.reshape(T.concat([fp_x, fp_y], axis=1), [-1, c * 2])
+
+    def __str__(self):
+        return "Spatial(%s, %s)" % (self.dim_in, self.dim_out)
+
+
 def Conv(conv_kernel, pool_kernel=(2, 2), pool_strides=(2, 2), border_mode='same', pool_type='max', activation=Relu):
     return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> Pool(kernel=pool_kernel, strides=pool_strides)
 
 def Deconv(deconv_kernel, border_mode='same', strides=(2, 2), activation=Relu):
     return Deconvolution(deconv_kernel, border_mode=border_mode, strides=strides) >> activation()
+
+def SpatialConv(conv_kernel, pool_kernel=(2, 2), pool_strides=(2, 2), border_mode='same', pool_type='max', activation=Relu):
+    return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> SpatialSoftmax()
+
