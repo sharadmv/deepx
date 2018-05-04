@@ -74,9 +74,9 @@ class TensorflowBackend(BackendBase):
             yield sess
             self._sessions.pop()
 
-    def interactive_session(self, **kwargs):
+    def interactive_session(self, graph=None, **kwargs):
         config_proto = tf.ConfigProto(**kwargs)
-        sess = tf.InteractiveSession(config=config_proto)
+        sess = tf.InteractiveSession(config=config_proto, graph=graph)
         self._initialize(sess)
         return sess
 
