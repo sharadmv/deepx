@@ -285,6 +285,9 @@ class TensorflowBackend(BackendBase):
     def pow(self, x, a):
         return tf.pow(x, a)
 
+    def mul(self, x, y):
+        return tf.multiply(x, y)
+
     def sqrt(self, x):
         x = tf.clip_by_value(x,
                              tf.cast(0., dtype=self.floatx()),
