@@ -28,6 +28,10 @@ Our model acts like a normal Tensorflow/Theano function.
 >>> import tensorflow as tf
 >>> net(tf.ones((10, 784)))
 ```
+To get the weights out of the network, we can just say:
+```python
+>>> net.get_parameters()
+```
 
 We can also use a convolutional neural network for classification and it'll work exactly the same!
 ```python
