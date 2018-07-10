@@ -29,4 +29,14 @@ Our model acts like a normal Tensorflow/Theano function.
 >>> net(tf.ones((10, 784)))
 ```
 
+We can also use a convolutional neural network for classification and it'll work exactly the same!
+```python
+>>> net = (Reshape([28, 28, 1])
+            >> nn.Conv([2, 2, 64])
+            >> nn.Conv([2, 2, 32])
+            >> nn.Conv([2, 2, 16])
+            >> nn.Flatten() >> nn.Relu(200) >> nn.Relu(200) >> Softmax(10))
+```
+
+
 That's it, we're done!
