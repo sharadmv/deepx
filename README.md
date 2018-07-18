@@ -20,42 +20,27 @@ Let's consider the task of classifying MNIST with a multilayer perceptron (MLP).
 
 ```python
 >>> from deepx.nn import *
->>> mlp = Vector(784) >> Tanh(200) >> Tanh(200) >> Softmax(10)
+>>> net = Relu(200) >> Relu(200) >> Softmax(10)
 ```
-Another way of writing the same net would be:
+
+Our model acts like a normal Tensorflow/Theano function.
 ```python
->>> mlp = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10)
+>>> import tensorflow as tf
+>>> net(tf.ones((10, 784)))
 ```
-
-Our model has a `predict` method, which allows us to pass data through the network. Let's test it with
-some dummy data:
+To get the weights out of the network, we can just say:
 ```python
-
->>> mlp(np.ones((10, 784)))
+>>> net.get_parameters()
 ```
 
-10 is our batch size in this example.
-
-Sweet! We now have an model that can predict MNIST classes! To start learning the parameters
-of our model, we first want to define a loss function. Let's use cross entropy loss.
-
+We can also use a convolutional neural network for classification and it'll work exactly the same!
 ```python
->>> from deepx.loss import *
->>> loss = mlp >> CrossEntropy()
+>>> net = (Reshape([28, 28, 1])
+            >> Conv([2, 2, 64])
+            >> Conv([2, 2, 32])
+            >> Conv([2, 2, 16])
+            >> Flatten() >> Relu(200) >> Relu(200) >> Softmax(10))
 ```
 
-Finally, we want to set up an optimization algorithm to minimize loss. An optimization algorithm takes in
-a model and a loss function.
-
-```python
->>> from deepx.optimize import *
->>> rmsprop = RMSProp(loss)
-```
-
-Finally, to perform gradient descent updates, we just call the `train` method of `rmsprop`.
-
-```python
->>> rmsprop.train(X_batch, y_batch, learning_rate)
-```
 
 That's it, we're done!
