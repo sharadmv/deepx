@@ -30,7 +30,7 @@ class Node(object):
                 )
             else:
                 parameter = T.variable(
-                    np.array(initial_value, dtype=T.floatx()),
+                    np.array(initial_value, dtype=T.floatx(as_string=True)),
                     name=name,
                 )
             self.parameters[name] = parameter

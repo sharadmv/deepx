@@ -6,7 +6,7 @@ import json
 import logging
 
 BACKENDS = {
-    'mxnet', 'tensorflow', 'theano'
+    'pytorch', 'tensorflow', 'theano'
 }
 
 _deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
@@ -46,11 +46,12 @@ if 'DEEPX_BACKEND' in os.environ:
 _BACKEND = _backend
 try:
     if _BACKEND == 'theano':
+        raise Exception("Theano backend no longer supported.")
         from .theano_backend import TheanoBackend as Backend
     elif _BACKEND == 'tensorflow':
-        from .tensorflow_backend import TensorflowBackend as Backend
-    elif _BACKEND == 'mxnet':
-        from .mxnet_backend import MXNetBackend as Backend
+        from .tensorflow import TensorflowBackend as Backend
+    elif _BACKEND == 'pytorch':
+        from .pytorch import PyTorchBackend as Backend
     else:
         raise Exception('Unknown backend: ' + str(_BACKEND))
     backend = Backend()

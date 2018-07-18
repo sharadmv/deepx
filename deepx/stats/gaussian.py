@@ -43,7 +43,7 @@ class Gaussian(ExponentialFamily):
         L = T.cholesky(sigma)
         sample_shape = T.concat([[num_samples], T.shape(mu)], 0)
         noise = T.random_normal(sample_shape)
-        L = T.tile(L[None], T.concat([[num_samples], T.ones([T.rank(sigma)], dtype=np.int32)]))
+        L = T.tile(L[None], T.concat([[num_samples], T.ones([T.rank(sigma)], dtype=T.int32)]))
         return mu[None] + T.matmul(L, noise[..., None])[..., 0]
 
         neghalfJ, h = self.unpack(self.get_parameters('natural'))
@@ -93,3 +93,8 @@ class Gaussian(ExponentialFamily):
             return 0.5 * T.einsum('tia,tiab,tib->ti', mu, sigma_inv, mu) + 0.5 * T.logdet(sigma)
         else:
             raise Exception()
+
+    def entropy(self):
+        sigma, mu = self.get_parameters('regular')
+        d = T.to_float(T.shape(mu)[-1])
+        return 0.5 * T.logdet(sigma) + d / 2. * (1 + T.log(2 * np.pi))

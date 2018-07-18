@@ -51,7 +51,7 @@ class BackendBase(object):
     def set_epsilon(self, e):
         self._EPSILON = e
 
-    def floatx(self):
+    def floatx(self, as_string=False):
         return self._FLOATX
 
     def set_floatx(self, floatx):
@@ -90,6 +90,16 @@ class BackendBase(object):
 
     @abstractmethod
     def gpu(self, id=0):
+        pass
+
+    @property
+    @abstractmethod
+    def int32(self):
+        pass
+
+    @property
+    @abstractmethod
+    def float32(self):
         pass
 
     @contextmanager
