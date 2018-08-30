@@ -22,7 +22,7 @@ class LDS(ExponentialFamily):
         raise NotImplementedError
 
     def expected_sufficient_statistics(self):
-        raise NotImplementedError
+        return T.gradients(self.log_z(), self.get_parameters('natural'))
 
     def sample(self, num_samples=1):
         raise NotImplementedError
@@ -39,9 +39,29 @@ class LDS(ExponentialFamily):
         raise NotImplementedError
 
     def log_z(self):
+        #TODO: need to support batches?
+        def step(prev, elems):
+            t_, pred_potential = prev
+            pred_potential_expand = (
+                vs([
+                  hs([pred_potential[:ds, :ds], T.zeros((ds, ds)), pred_potential[:ds, ds:]]),
+                  T.zeros((ds, 2 * ds + 1)),
+                  hs([pred_potential[ds:, :ds], T.zeros((1, ds)), pred_potential[ds:, ds:]]),
+                ])
+            )
+            filter_natparam = natparam[t_, :, :] + pred_potential_expand
+            A, B, C = filter_natparam[:ds, :ds], filter_natparam[:ds, ds:], filter_natparam[ds:, ds:]
+            schur_comp = C - T.matmul(t(B), T.matrix_solve(A, B))
+            norm = 0.5 * T.logdet(-2 * filter_natparam[:ds, :ds]) + T.to_float(ds / 2) * T.log(2 * np.pi)
+            next_pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm
+            next_pred_potential.set_shape(pred_potential.get_shape())
+            return t_ + 1, next_pred_potential
+
         natparam = self.get_parameters('natural')
-        leading_dim = T.shape(natparam)[:-2]
-        return T.zeros(leading_dim)
+        H, ds = T.shape(natparam)[0], (T.shape(natparam)[1] - 1) // 2
+        _, pred_potentials = T.scan(step, (T.zeros(H, dtype=T.int32), T.zeros((H, ds+1, ds+1))),
+                                 (0, T.zeros((ds+1, ds+1))))
+        return pred_potentials[-1, -1, -1]
 
     def construct_natparam(self, parameters):
         if len(parameters) == 3:
@@ -91,6 +111,7 @@ class LDS(ExponentialFamily):
                 ])
             )
             return prior_natparam + dynamics_natparam + potentials_natparam
+
 
 hs = lambda x: T.concat(x, -1)
 vs = lambda x: T.concat(x, -2)
