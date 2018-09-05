@@ -7,13 +7,12 @@ from .gaussian import Gaussian
 class LDS(ExponentialFamily):
 
     def __init__(self, parameters):
-        super(LDS, self).__init__(self.construct_natparam(parameters), 'natural')
+        super(LDS, self).__init__(self._construct_natparam(parameters), 'natural')
+        self._parameter_cache['internal'] = parameters
+        self._cached = {}
 
     def get_param_dim(self):
         return 3
-
-    def expected_value(self):
-        raise NotImplementedError
 
     def log_h(self, x):
         return T.zeros(T.shape(x)[:-1])
@@ -21,12 +20,106 @@ class LDS(ExponentialFamily):
     def sufficient_statistics(self, x):
         raise NotImplementedError
 
+    def log_z(self):
+        if not 'log_z' in self._cached:
+            def step(prev, elems):
+                t_, pred_potential = prev
+                pred_potential_expand = (
+                    vs([
+                      hs([pred_potential[:, :ds, :ds], T.zeros((N, ds, ds)), pred_potential[:, :ds, ds:]]),
+                      T.zeros((N, ds, 2 * ds + 1)),
+                      hs([pred_potential[:, ds:, :ds], T.zeros((N, 1, ds)), pred_potential[:, ds:, ds:]]),
+                    ])
+                )
+                filter_natparam = natparam[:, t_] + pred_potential_expand
+                A, B, C = filter_natparam[:, :ds, :ds], filter_natparam[:, :ds, ds:], filter_natparam[:, ds:, ds:]
+                schur_comp = C - T.matmul(t(B), T.matrix_solve(A, B))
+                norm = 0.5 * T.logdet(-2 * filter_natparam[:, :ds, :ds]) + T.to_float(ds / 2) * T.log(2 * np.pi)
+                next_pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm[..., None, None]
+                next_pred_potential.set_shape(pred_potential.get_shape())
+                return t_ + 1, next_pred_potential
+
+            natparam = self.get_parameters('natural')
+            N, H, ds = T.shape(natparam)[0], T.shape(natparam)[1], (T.shape(natparam)[2] - 1) // 2
+            _, pred_potentials = T.scan(step,
+                                        (T.zeros(H, dtype=T.int32), T.zeros((H, N, ds+1, ds+1))),
+                                        (0, T.zeros((N, ds+1, ds+1))))
+            self._cached['log_z'] = T.sum(pred_potentials[-1, :, -1, -1])
+        return self._cached['log_z']
+
     def expected_sufficient_statistics(self):
-        ess = T.gradients(self.log_z(), self.get_parameters('natural'))[0]
-        return (ess + T.matrix_transpose(ess)) / 2.0
+        if not 'expected_sufficient_statistics' in self._cached:
+            ess = T.gradients(self.log_z(), self.get_parameters('natural'))[0]
+            self._cached['expected_sufficient_statistics'] = (ess + T.matrix_transpose(ess)) / 2.0
+        return self._cached['expected_sufficient_statistics']
+
+    def expected_value(self):
+        ess = self.expected_sufficient_statistics()
+        ds = (T.shape(ess)[-1] - 1) // 2
+        return ess[..., :ds, -1]
+
+    def filter(self, smooth=False):
+        if not 'filtered' in self._cached:
+            parameters = self.get_parameters('internal')
+            assert len(parameters) == 4, 'missing state node potentials?'
+            (A, B, Q), prior, potentials, actions = parameters
+            Q_inv = T.matrix_inverse(Q)
+            A, B, Q, Q_inv = tuple(map(
+                lambda x: T.core.pad(x, [[0, 1], [0, 0], [0, 0]]),
+                (A, B, Q, Q_inv)
+            ))
+            N, H, ds = T.shape(potentials[1])[0], T.shape(potentials[1])[1], T.shape(potentials[1])[2]
+
+            J_22 = Q_inv
+            J_12 = -T.einsum('tba,tbc->tac', A, J_22)
+            J_21 = T.matrix_transpose(J_12)
+            J_11 = -T.einsum('tab,tbc->tac', J_12, A)
+            h2 = T.einsum('ita,tba,tbc->tic', actions, B, J_22)
+            h1 = -T.einsum('tia,tab->tib', h2, A)
+            self._cached['info_params'] = (J_11, J_12, J_22, h1, h2)
+
+            potentials = (T.transpose(potentials[0], [1, 0, 2, 3]), T.transpose(potentials[1], [1, 0, 2]))
+
+            def kalman_filter(previous, potential):
+                t_, _, prev = previous
+                J_tt = prev[0] + potential[0]
+                h_tt = prev[1] + potential[1]
+                mat_inv = T.einsum('ab,ibc->iac', J_21[t_], T.matrix_inverse(J_tt + J_11[t_][None]))
+                J_t1_t = J_22[t_][None] - T.einsum('iab,bc->iac', mat_inv, J_12[t_])
+                h_t1_t = h2[t_] - T.einsum('iab,ib->ib', mat_inv, h_tt + h1[t_])
+
+                return t_ + 1, (J_tt, h_tt), (J_t1_t, h_t1_t)
+
+            _, filtered, _ = T.scan(kalman_filter, potentials,
+                                    (0,
+                                     (T.eye(ds, batch_shape=[N]) * 1e-4, T.zeros([N, ds])),
+                                     (T.eye(ds, batch_shape=[N]) * 1e-4, T.zeros([N, ds])))
+            )
+            filtered = (T.transpose(filtered[0], [1, 0, 2, 3]), T.transpose(filtered[1], [1, 0, 2]))
+            self._cached['filtered'] = filtered
+        else:
+            filtered = self._cached['filtered']
+
+        return Gaussian([
+            T.matrix_inverse(filtered[0]),
+            T.matrix_solve(filtered[0], filtered[1][..., None])[..., 0]
+        ])
 
     def sample(self, num_samples=1):
-        raise NotImplementedError
+        filter_dist = self.filter()
+        filter_sample = filter_dist.sample(num_samples=num_samples)
+        H = filter_sample.get_shape()[2]
+        sample = filter_sample[..., -1:, :]
+        J11, J12, J22, h1, h2 = self._cached['info_params']
+        Jtt, htt = self._cached['filtered']
+        for t_ in range(H - 1)[::-1]:
+            J_t = T.tile((Jtt[:, t_] + J11[t_])[None], [num_samples, 1, 1, 1])
+            h_t = htt[:, t_] + h1[t_] - T.einsum('nia,ab->nib', sample[..., 0, :], t(J12)[t_])
+            dist_t = Gaussian([
+                T.matrix_inverse(J_t), T.matrix_solve(J_t, h_t[..., None])[..., 0]
+            ])
+            sample = T.concat([dist_t.sample()[0][..., None, :], sample], axis=-2)
+        return sample
 
     @classmethod
     def regular_to_natural(cls, l):
@@ -39,33 +132,7 @@ class LDS(ExponentialFamily):
     def log_likelihood(self, x):
         raise NotImplementedError
 
-    def log_z(self):
-        #TODO: need to support batches?
-        def step(prev, elems):
-            t_, pred_potential = prev
-            pred_potential_expand = (
-                vs([
-                  hs([pred_potential[:ds, :ds], T.zeros((ds, ds)), pred_potential[:ds, ds:]]),
-                  T.zeros((ds, 2 * ds + 1)),
-                  hs([pred_potential[ds:, :ds], T.zeros((1, ds)), pred_potential[ds:, ds:]]),
-                ])
-            )
-            filter_natparam = natparam[t_, :, :] + pred_potential_expand
-            A, B, C = filter_natparam[:ds, :ds], filter_natparam[:ds, ds:], filter_natparam[ds:, ds:]
-            schur_comp = C - T.matmul(t(B), T.matrix_solve(A, B))
-            norm = 0.5 * T.logdet(-2 * filter_natparam[:ds, :ds]) + T.to_float(ds / 2) * T.log(2 * np.pi)
-            next_pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm
-            next_pred_potential.set_shape(pred_potential.get_shape())
-            return t_ + 1, next_pred_potential
-
-        natparam = self.get_parameters('natural')
-        H, ds = T.shape(natparam)[0], (T.shape(natparam)[1] - 1) // 2
-        _, pred_potentials = T.scan(step,
-                                    (T.zeros(H, dtype=T.int32), T.zeros((H, ds+1, ds+1))),
-                                    (0, T.zeros((ds+1, ds+1))))
-        return pred_potentials[-1, -1, -1]
-
-    def construct_natparam(self, parameters):
+    def _construct_natparam(self, parameters):
         if len(parameters) == 3:
             (A, B, Q), prior, actions = parameters
             potentials = None
@@ -79,39 +146,45 @@ class LDS(ExponentialFamily):
         B_shape = T.shape(B)
         H, ds, da = B_shape[0], B_shape[1], B_shape[2]
         H = H + 1
+        N = T.shape(actions)[0]
 
         A, B, Q, Q_inv, Q_inv_A, Q_inv_B = tuple(map(
-            lambda x: T.core.pad(x, [[0, 1], [0, 0], [0, 0]])
-        , (A, B, Q, Q_inv, Q_inv_A, Q_inv_B)))
+            lambda x: T.core.pad(x, [[0, 1], [0, 0], [0, 0]]),
+            (A, B, Q, Q_inv, Q_inv_A, Q_inv_B)
+        ))
         logdetQ = T.concat([logdetQ, T.zeros(1)])
 
         prior_eta1, prior_eta2 = Gaussian.unpack(prior.get_parameters('natural'))
         prior_natparam = T.core.pad(
-          vs([
-              hs([prior_eta1, T.zeros([ds, ds]), prior_eta2[..., None]]),
-              T.zeros([ds, 2 * ds + 1]),
-              hs([prior_eta2[None], T.zeros([1, ds]), T.to_float(-prior.log_z())[None, None]]),
-          ])[None]
-        , [[0, H - 1], [0, 0], [0, 0]])
-        QBa = T.einsum('tab,tb->ta', Q_inv_B, actions)[..., None]
-        AQBa = T.einsum('tba,tbc->tac', A, QBa)
+            vs([
+                hs([prior_eta1, T.zeros([ds, ds]), prior_eta2[..., None]]),
+                T.zeros([ds, 2 * ds + 1]),
+                hs([prior_eta2[None], T.zeros([1, ds]), T.to_float(-prior.log_z())[None, None]]),
+            ])[None],
+            [[0, H - 1], [0, 0], [0, 0]]
+        )
+        h2 = T.einsum('tab,itb->ita', Q_inv_B, actions)[..., None]
+        h1 = -T.einsum('tba,itbc->itac', A, h2)
+        J11 = -T.tile(T.einsum('tba,tbc->tac', A, Q_inv_A)[None], [N, 1, 1, 1])
+        J12 = T.tile(t(Q_inv_A)[None], [N, 1, 1, 1])
+        J22 = -T.tile(Q_inv[None], [N, 1, 1, 1])
         dynamics_natparam = 0.5 * (
             vs([
-                hs([-T.einsum('tba,tbc->tac', A, Q_inv_A), t(Q_inv_A), -AQBa]),
-                hs([Q_inv_A                              , -Q_inv    , QBa]),
-                hs([-t(AQBa)                             , t(QBa)    , -T.einsum('ta,tba,tbc->tc', actions, B, QBa)[..., None]
-                                                                       - logdetQ[..., None, None]]),
+                hs([J11,    J12,   h1]),
+                hs([t(J12), J22,   h2]),
+                hs([t(h1),  t(h2), -T.einsum('ita,tba,itbc->itc', actions, B, h2)[..., None]
+                                   - logdetQ[..., None, None]]),
             ])
         )
         if potentials is None:
-            return prior_natparam + dynamics_natparam
+            return (prior_natparam + dynamics_natparam)[None]
         else:
-            potential_eta1, potential_eta2 = Gaussian.unpack(potentials.get_parameters('natural'))
+            N = T.shape(potentials[0])[0]
             potentials_natparam = (
                 vs([
-                  hs([potential_eta1, T.zeros([H, ds, ds]), potential_eta2[..., None]]),
-                  T.zeros([H, ds, 2 * ds + 1]),
-                  hs([potential_eta2[..., None, :], T.zeros([H, 1, ds]), T.to_float(-potentials.log_z())[..., None, None]]),
+                  hs([potentials[0], T.zeros([N, H, ds, ds]), potentials[1][..., None]]),
+                  T.zeros([N, H, ds, 2 * ds + 1]),
+                  hs([potentials[1][..., None, :], T.zeros([N, H, 1, ds]), T.to_float(-potentials[2])[..., None, None]]),
                 ])
             )
             return prior_natparam + dynamics_natparam + potentials_natparam
