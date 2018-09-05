@@ -6,10 +6,22 @@ from .gaussian import Gaussian
 
 class LDS(ExponentialFamily):
 
-    def __init__(self, parameters):
-        super(LDS, self).__init__(self._construct_natparam(parameters), 'natural')
-        self._parameter_cache['internal'] = parameters
+    def __init__(self, parameters, parameter_type='internal'):
+        if parameter_type == 'internal':
+            natparam = self._construct_natparam(parameters)
+            self.needs_internal_params = False
+        elif parameter_type == 'natural':
+            natparam = parameters
+            self.needs_internal_params = True
+        else:
+            raise NotImplementedError
+        super(LDS, self).__init__(natparam, 'natural')
+        if parameter_type == 'internal':
+            self._parameter_cache['internal'] = parameters
         self._cached = {}
+
+    def set_internal_params(self, params):
+        self._parameter_cache['internal'] = params
 
     def get_param_dim(self):
         return 3
@@ -22,8 +34,12 @@ class LDS(ExponentialFamily):
 
     def log_z(self):
         if not 'log_z' in self._cached:
-            def step(prev, elems):
-                t_, pred_potential = prev
+            natparam = self.get_parameters('natural')
+            N, ds = T.shape(natparam)[0], (T.shape(natparam)[2] - 1) // 2
+            H = self._parameter_cache['internal'][0][0].get_shape()[0] + 1
+            pred_potential = T.zeros((N, ds+1, ds+1))
+
+            for t_ in range(H):
                 pred_potential_expand = (
                     vs([
                       hs([pred_potential[:, :ds, :ds], T.zeros((N, ds, ds)), pred_potential[:, :ds, ds:]]),
@@ -35,16 +51,9 @@ class LDS(ExponentialFamily):
                 A, B, C = filter_natparam[:, :ds, :ds], filter_natparam[:, :ds, ds:], filter_natparam[:, ds:, ds:]
                 schur_comp = C - T.matmul(t(B), T.matrix_solve(A, B))
                 norm = 0.5 * T.logdet(-2 * filter_natparam[:, :ds, :ds]) + T.to_float(ds / 2) * T.log(2 * np.pi)
-                next_pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm[..., None, None]
-                next_pred_potential.set_shape(pred_potential.get_shape())
-                return t_ + 1, next_pred_potential
+                pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm[..., None, None]
 
-            natparam = self.get_parameters('natural')
-            N, H, ds = T.shape(natparam)[0], T.shape(natparam)[1], (T.shape(natparam)[2] - 1) // 2
-            _, pred_potentials = T.scan(step,
-                                        (T.zeros(H, dtype=T.int32), T.zeros((H, N, ds+1, ds+1))),
-                                        (0, T.zeros((N, ds+1, ds+1))))
-            self._cached['log_z'] = T.sum(pred_potentials[-1, :, -1, -1])
+            self._cached['log_z'] = T.sum(pred_potential[:, -1, -1])
         return self._cached['log_z']
 
     def expected_sufficient_statistics(self):
@@ -78,7 +87,7 @@ class LDS(ExponentialFamily):
             h1 = -T.einsum('tia,tab->tib', h2, A)
             self._cached['info_params'] = (J_11, J_12, J_22, h1, h2)
 
-            potentials = (T.transpose(potentials[0], [1, 0, 2, 3]), T.transpose(potentials[1], [1, 0, 2]))
+            potentials = (-2 * T.transpose(potentials[0], [1, 0, 2, 3]), T.transpose(potentials[1], [1, 0, 2]))
 
             def kalman_filter(previous, potential):
                 t_, _, prev = previous
@@ -108,11 +117,11 @@ class LDS(ExponentialFamily):
     def sample(self, num_samples=1):
         filter_dist = self.filter()
         filter_sample = filter_dist.sample(num_samples=num_samples)
-        H = filter_sample.get_shape()[2]
         sample = filter_sample[..., -1:, :]
         J11, J12, J22, h1, h2 = self._cached['info_params']
         Jtt, htt = self._cached['filtered']
-        for t_ in range(H - 1)[::-1]:
+        H = self._parameter_cache['internal'][0][0].get_shape()[0]
+        for t_ in range(H)[::-1]:
             J_t = T.tile((Jtt[:, t_] + J11[t_])[None], [num_samples, 1, 1, 1])
             h_t = htt[:, t_] + h1[t_] - T.einsum('nia,ab->nib', sample[..., 0, :], t(J12)[t_])
             dist_t = Gaussian([
@@ -177,7 +186,7 @@ class LDS(ExponentialFamily):
             ])
         )
         if potentials is None:
-            return (prior_natparam + dynamics_natparam)[None]
+            return (prior_natparam + dynamics_natparam)
         else:
             N = T.shape(potentials[0])[0]
             potentials_natparam = (
