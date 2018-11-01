@@ -68,7 +68,8 @@ class LDS(ExponentialFamily):
         return ess[..., :ds, -1]
 
     def filter(self, smooth=False):
-        if not 'filtered' in self._cached:
+        key = 'smoothed' if smooth else 'filtered'
+        if not key in self._cached:
             parameters = self.get_parameters('internal')
             assert len(parameters) == 4, 'missing state node potentials?'
             (A, B, Q), prior, potentials, actions = parameters
@@ -105,13 +106,36 @@ class LDS(ExponentialFamily):
                                      (T.eye(ds, batch_shape=[N]) * 1e-4, T.zeros([N, ds])))
             )
             filtered = (T.transpose(filtered[0], [1, 0, 2, 3]), T.transpose(filtered[1], [1, 0, 2]))
-            self._cached['filtered'] = filtered
+
+            if smooth:
+                def kalman_smooth(previous, potential):
+                    t_, prev = previous
+
+                    mat_inv = T.einsum('ab,ibc->iac', J_21[t_], T.matrix_inverse(potential[0] + J_11[t_][None]))
+                    J_t1_t = J_22[t_][None] - T.einsum('iab,bc->iac', mat_inv, J_12[t_])
+                    h_t1_t = h2[t_] - T.einsum('iab,ib->ib', mat_inv, potential[1] + h1[t_])
+
+                    mat_inv = T.einsum('ab,ibc->iac', J_12[t_], T.matrix_inverse(prev[0] - J_t1_t + J_22[t_][None]))
+                    J_tT = potential[0] + J_11[t_][None] - T.einsum('ab,ibc,dc->iad', J_12[t_], mat_inv, J_12[t_])
+                    h_tT = potential[1] + h1[t_] - T.einsum('ab,ibc,ic->ia', J_12[t_], mat_inv, prev[1] - h_t1_t + h2[t_])
+                    return t_ + 1, (J_tT, h_tT)
+                _, smoothed = T.core.scan(kalman_smooth,
+                                          (filtered[0][:-1], filtered[1][:-1]),
+                                          (0, (filtered[0][-1], filtered[1][-1])),
+                                          reverse=True)
+                smoothed = (
+                    T.concatenate([smoothed[0], filtered[0][-1:]], 0),
+                    T.concatenate([smoothed[1], filtered[1][-1:]], 0),
+                )
+            else:
+                smoothed = filtered
+            self._cached[key] = smoothed
         else:
-            filtered = self._cached['filtered']
+            smoothed = self._cached[key]
 
         return Gaussian([
-            T.matrix_inverse(filtered[0]),
-            T.matrix_solve(filtered[0], filtered[1][..., None])[..., 0]
+            T.matrix_inverse(smoothed[0]),
+            T.matrix_solve(smoothed[0], smoothed[1][..., None])[..., 0]
         ])
 
     def sample(self, num_samples=1):
