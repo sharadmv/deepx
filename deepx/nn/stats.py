@@ -66,4 +66,4 @@ class IdentityVariance(ShapedLayer):
 
     def forward(self, X):
         batch_shape = T.shape(X)[:-1]
-        return stats.Gaussian([1e-4 * T.eye(self.dim_out[0], batch_shape=batch_shape), X])
+        return stats.Gaussian([self.variance * T.eye(self.dim_out[0], batch_shape=batch_shape), X])
