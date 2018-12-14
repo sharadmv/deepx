@@ -7,3 +7,4 @@ from .reshape import *
 # from .dropout import *
 from .residual import *
 # from .batch_norm import *
+from .stats import *

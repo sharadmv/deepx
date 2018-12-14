@@ -2,7 +2,7 @@
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
-DeepX supports both [Theano](http://deeplearning.net/software/theano/) and [Tensorflow](http://www.tensorflow.org).
+DeepX supports both  [Tensorflow](http://www.tensorflow.org) and [PyTorch](https://pytorch.org/).
 
 Installation
 ====================================
@@ -23,7 +23,7 @@ Let's consider the task of classifying MNIST with a multilayer perceptron (MLP).
 >>> net = Relu(200) >> Relu(200) >> Softmax(10)
 ```
 
-Our model acts like a normal Tensorflow/Theano function.
+Our model behaves like a function.
 ```python
 >>> import tensorflow as tf
 >>> net(tf.ones((10, 784)))
