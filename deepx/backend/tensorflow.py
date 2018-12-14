@@ -67,16 +67,16 @@ class TensorflowBackend(BackendBase):
     def _device(self, name):
         return tf.device(name)
 
-    def create_session(self, **kwargs):
+    def create_session(self, graph=None, **kwargs):
         config_proto = tf.ConfigProto(**kwargs)
-        sess = tf.Session(config=config_proto)
+        sess = tf.Session(graph=graph, config=config_proto)
         self._initialize(sess)
         return sess
 
     @contextmanager
-    def session(self, **kwargs):
+    def session(self, graph=None, **kwargs):
         config_proto = tf.ConfigProto(**kwargs)
-        with tf.Session(config=config_proto) as sess:
+        with tf.Session(graph=graph, config=config_proto) as sess:
             self._sessions.append(sess)
             self._initialize(sess)
             yield sess

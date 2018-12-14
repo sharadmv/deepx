@@ -67,6 +67,15 @@ class Node(object):
     def __add__(self, right):
         return self.add(right)
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop('parameters')
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.parameters = {}
+
     @abstractmethod
     def forward(self, *args):
         pass
