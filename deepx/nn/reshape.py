@@ -2,15 +2,9 @@ import numpy as np
 
 from .. import T
 
-from ..layer import Layer
+from ..layer import Layer, ShapedLayer
 
-class Reshape(Layer):
-
-    def __init__(self, dim_out, leading=1):
-        super(Reshape, self).__init__()
-        self.dim_in = None
-        self.dim_out = dim_out
-        self.leading = leading
+class Reshape(ShapedLayer):
 
     def is_initialized(self):
         return True
@@ -25,11 +19,10 @@ class Reshape(Layer):
         return self.dim_out
 
     def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = shape[self.leading - 1:]
+        pass
 
     def forward(self, X, **kwargs):
-        return T.reshape(X, [-1] * self.leading + self.dim_out)
+        return T.reshape(X, [-1] + self.dim_out)
 
     def __str__(self):
         return "Reshape(%s, %s)" % (self.dim_in, self.dim_out)

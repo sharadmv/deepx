@@ -7,7 +7,7 @@ class Linear(ShapedLayer):
 
     def initialize(self):
         if not self.elementwise:
-            dim_in, dim_out = self.get_dim_in()[0], self.get_dim_out()[0]
+            dim_in, dim_out = self.get_dim_in()[-1], self.get_dim_out()[-1]
             self.create_parameter('W', [dim_in, dim_out])
             self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
 
@@ -36,7 +36,7 @@ class Maxout(Linear):
         self.k = k
 
     def initialize(self):
-        dim_in, dim_out = self.get_dim_in()[0], self.get_dim_out()[0]
+        dim_in, dim_out = self.get_dim_in()[-1], self.get_dim_out()[-1]
         self.create_parameter('W', (self.k, dim_in, dim_out))
         self.create_parameter('b', (self.k, dim_out))
 

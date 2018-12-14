@@ -2,7 +2,7 @@ from .. import T
 import numpy as np
 
 from .common import ExponentialFamily
-from .niw import NIW
+from . import util
 
 class Gaussian(ExponentialFamily):
 
@@ -74,11 +74,11 @@ class Gaussian(ExponentialFamily):
         eta1, eta2 = natural_parameters
         d = T.shape(eta2)[:-1]
         eta3 = eta4 = T.zeros(d)
-        return NIW.pack([eta1, eta2, eta3, eta4])
+        return util.pack([eta1, eta2, eta3, eta4])
 
     @classmethod
     def unpack(cls, packed_parameters):
-        eta1, eta2, _, _ = NIW.unpack(packed_parameters)
+        eta1, eta2, _, _ = util.unpack(packed_parameters)
         return [eta1, eta2]
 
     def log_z(self):

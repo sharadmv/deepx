@@ -435,6 +435,12 @@ class TensorflowBackend(BackendBase):
     def matrix_diag(self, a):
         return tf.matrix_diag(a)
 
+    def set_diag(self, input, diagonal):
+        return tf.linalg.set_diag(input, diagonal)
+
+    def band_part(self, input, num_lower, num_upper):
+        return tf.linalg.band_part(input, num_lower, num_upper)
+
     def vec(self, A):
         A = self.matrix_transpose(A)
         leading_dim = self.shape(A)[:-2]
@@ -451,6 +457,11 @@ class TensorflowBackend(BackendBase):
         ], 0)))
 
     def kronecker(self, A, B):
+        # try:
+            # import kfac
+            # return kfac.utils.kronecker_product(A, B)
+        # except ModuleNotFoundError:
+            # raise Exception("Can't import kfac")
         C = (A[..., None, None] * B[..., None, None, :, :])
         blocks = [
             tf.unstack(a, axis=-3 % len(a.shape)) for a in

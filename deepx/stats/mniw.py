@@ -1,6 +1,8 @@
 from .. import T
 
 from .common import ExponentialFamily
+from .iw import IW
+from .mn import MN
 
 __all__ = ["MatrixNormalInverseWishart", "MNIW"]
 
@@ -10,10 +12,21 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         return [2, 2, 2, 0]
 
     def expected_value(self):
-        raise NotImplementedError()
+        S, M0, V, nu = self.get_parameters('regular')
+        return IW([S, nu]).expected_value(), M0
 
     def sample(self, num_samples=1):
-        raise NotImplementedError()
+        S, M0, V, nu = self.get_parameters('regular')
+        sigma_sample = IW([S, nu]).sample(num_samples=num_samples)
+        S_dim = list(S.get_shape()[-2:])
+        V_dim = list(V.get_shape()[-2:])
+        tiled_M0 = T.tile(M0[None], T.concatenate([[num_samples], T.cast(T.ones(T.rank(M0)), T.int32)]))
+        tiled_V = T.tile(V[None], T.concatenate([[num_samples], T.cast(T.ones(T.rank(V)), T.int32)]))
+        sigma_sample.set_shape(list(sigma_sample.get_shape()[:-2]) + S_dim)
+        tiled_V.set_shape(list(tiled_V.get_shape()[:-2]) + V_dim)
+        M_sample = MN([tiled_M0, sigma_sample, tiled_V]).sample()[0]
+        M_sample = T.reshape(M_sample, T.concatenate([[num_samples], T.shape(M0)]))
+        return sigma_sample, M_sample
 
     @classmethod
     def regular_to_natural(cls, regular_parameters):
@@ -48,7 +61,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         pass
 
     def log_z(self):
-        S, M0, V, nu = self.get_parameters('regular')
+        S, M0, V, nu = self.natural_to_regular(self.get_parameters('natural'))
         shape = T.cast(T.shape(M0), T.dtype(S))
         d, s = shape[-2], shape[-1]
         return (nu / 2. * (T.to_float(d) * T.log(2.) - T.logdet(S))
@@ -69,6 +82,7 @@ class MatrixNormalInverseWishart(ExponentialFamily):
         ]
 
     def expected_sufficient_statistics(self):
+        return T.grad(self.log_z(), self.get_parameters('natural'))
         S, M0, V, nu = self.get_parameters('regular')
         S_inv = T.matrix_inverse(S)
         S_inv_M0 = T.matrix_solve(S, M0)

@@ -726,6 +726,16 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def set_diag(self, input, diagonal):
+        pass
+
+    @uses_device
+    @abstractmethod
+    def band_part(self, input, num_lower, num_upper):
+        pass
+
+    @uses_device
+    @abstractmethod
     def lower_triangular(self, a):
         pass
 

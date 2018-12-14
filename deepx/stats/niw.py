@@ -3,6 +3,9 @@ import numpy as np
 from .. import T
 
 from .common import ExponentialFamily
+from .iw import IW
+from .gaussian import Gaussian
+from . import util
 
 __all__ = ["NormalInverseWishart", "NIW"]
 
@@ -12,7 +15,11 @@ class NormalInverseWishart(ExponentialFamily):
         return 2
 
     def sample(self, num_samples=1):
-        raise NotImplementedError
+        S, mu0, kappa, nu = self.get_parameters('regular')
+        sigma = IW([S, nu]).sample(num_samples=num_samples)
+        tiled_mu0 = T.tile((1 / kappa * mu0)[None], T.concatenate([[num_samples], T.cast(T.ones(T.rank(mu0)), T.int32)]))
+        mu = Gaussian([sigma, tiled_mu0]).sample()[0]
+        return [sigma, mu]
 
     def log_likelihood(self, x):
         stats = self.sufficient_statistics(x)
@@ -23,7 +30,9 @@ class NormalInverseWishart(ExponentialFamily):
         return log_h + exponent_term - log_z
 
     def expected_value(self):
-        raise NotImplementedError
+        S, mu0, kappa, nu = self.get_parameters('regular')
+        e_sigma = IW([S, nu]).expected_value()
+        return e_sigma, mu0
 
     def sufficient_statistics(self, x):
         sigma, mu = x
@@ -64,9 +73,10 @@ class NormalInverseWishart(ExponentialFamily):
     @classmethod
     def regular_to_natural(cls, regular_parameters):
         S, mu0, kappa, nu = regular_parameters
+        d = T.shape(mu0)[-1]
         b = T.expand_dims(kappa, -1) * mu0
         A = S + T.outer(b, mu0)
-        return cls.pack([A, b, kappa, nu])
+        return cls.pack([A, b, kappa, nu + T.to_float(d) + 1])
 
     @classmethod
     def natural_to_regular(cls, natural_parameters):
@@ -77,28 +87,9 @@ class NormalInverseWishart(ExponentialFamily):
 
     @classmethod
     def pack(cls, parameters):
-        A, b, kappa, nu = parameters
-        leading_dim, D = T.shape(b)[:-1], T.shape(b)[-1]
-        z1 = T.zeros(T.concat([leading_dim, [D, 1]], 0), dtype=T.dtype(A))
-        z2 = T.zeros(T.concat([leading_dim, [1, 1]], 0), dtype=T.dtype(A))
-        b = b[...,None]
-        kappa, nu = (
-            T.reshape(kappa,
-                       T.concat([leading_dim, [1, 1]], 0)),
-            T.reshape(nu,
-                       T.concat([leading_dim, [1, 1]], 0))
-        )
-        return vs(( hs(( A,     b,      z1 )),
-                    hs(( t(z1), kappa,  z2 )),
-                    hs(( t(z1), z2,     nu ))))
+        return util.pack(parameters)
 
     @classmethod
-    def unpack(cls, A):
-        D = T.shape(A)[-1] - 2
-        return [A[...,:D, :D], A[...,:D,D], A[...,D,D], A[...,D+1,D+1]]
-
-hs = lambda x: T.concat(x, -1)
-vs = lambda x: T.concat(x, -2)
-t  = lambda x: T.matrix_transpose(x)
-
+    def unpack(cls, parameters):
+        return util.unpack(parameters)
 NIW = NormalInverseWishart
