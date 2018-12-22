@@ -149,6 +149,7 @@ class SpatialSoftmax(Layer):
     def __init__(self):
         super(SpatialSoftmax, self).__init__()
         self.dim_in = self.dim_out = None
+        self.x_map = self.y_map = None
 
     def get_dim_in(self):
         return self.dim_in
@@ -170,6 +171,12 @@ class SpatialSoftmax(Layer):
 
     def is_initialized(self):
         return not (self.dim_in is None or self.dim_out is None)
+
+    def __getstate__(self):
+        state = super(SpatialSoftmax, self).__getstate__()
+        state.pop('x_map')
+        state.pop('y_map')
+        return state
 
     def infer_shape(self, shape):
         if shape is None: return
