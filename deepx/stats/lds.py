@@ -23,7 +23,6 @@ class LDS(ExponentialFamily):
     def log_z(self):
         if not 'log_z' in self.cache:
             natparam = self.get_parameters('natural')
-            natparam = T.inspect(natparam)
             N, H, ds = T.shape(natparam)[0], natparam.get_shape()[1], (T.shape(natparam)[2] - 1) // 2
             pred_potential = T.zeros((N, ds+1, ds+1))
 
