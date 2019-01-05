@@ -37,6 +37,14 @@ class ExponentialFamily(Distribution):
     def natural_to_regular(cls, natural_parameters):
         raise NotImplementedError
 
+    @classmethod
+    def internal_to_natural(cls, internal_parameters):
+        raise NotImplementedError
+
+    @classmethod
+    def internal_to_regular(cls, internal_parameters):
+        raise NotImplementedError
+
     @abstractmethod
     def log_z(self):
         pass
@@ -56,9 +64,13 @@ class ExponentialFamily(Distribution):
     def get_parameters(self, parameter_type):
         if parameter_type not in self._parameter_cache:
             if parameter_type == 'regular':
-                self._parameter_cache['regular'] = self.natural_to_regular(self.get_parameters('natural'))
+                if 'natural' in self._parameter_cache:
+                    self._parameter_cache['regular'] = self.natural_to_regular(self.get_parameters('natural'))
+                elif 'internal' in self._parameter_cache:
+                    self._parameter_cache['regular'] = self.internal_to_regular(self.get_parameters('internal'))
             elif parameter_type == 'natural':
-                self._parameter_cache['natural'] = self.regular_to_natural(self.get_parameters('regular'))
-            elif parameter_type == 'packed':
-                self._parameter_cache['packed'] = self.natural_to_packed(self.get_parameters('natural'))
+                if 'regular' in self._parameter_cache:
+                    self._parameter_cache['natural'] = self.regular_to_natural(self.get_parameters('regular'))
+                elif 'internal' in self._parameter_cache:
+                    self._parameter_cache['natural'] = self.internal_to_natural(self.get_parameters('internal'))
         return self._parameter_cache[parameter_type]

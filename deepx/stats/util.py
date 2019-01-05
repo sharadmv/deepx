@@ -17,14 +17,10 @@ def kl_divergence(p, q):
     param_dim = p.get_param_dim()
     dist = p.__class__
     p_param, q_param = coerce_param(p.get_parameters('natural'), q.get_parameters('natural'))
-    if hasattr(p, 'needs_internal_params'):
-        p_internal, q_internal = p.get_parameters('internal'), q.get_parameters('internal')
     p, q = dist(p_param, 'natural'), dist(q_param, 'natural')
-    if hasattr(p, 'needs_internal_params') and p.needs_internal_params:
-        p.set_internal_params(p_internal)
-        q.set_internal_params(q_internal)
     p_stats = p.expected_sufficient_statistics()
-    p_log_z, q_log_z = p.log_z(), q.log_z()
+    p_log_z = p.log_z()
+    q_log_z = q.log_z()
     if isinstance(p_param, list):
         return sum([T.sum((a - b) * c, axis=list(range(-p_d, 0))) for a, b, c, p_d in zip(p_param, q_param, p_stats, param_dim)]) - p_log_z + q_log_z
     return T.sum((p_param - q_param) * p_stats, axis=list(range(-param_dim, 0))) - p_log_z + q_log_z
