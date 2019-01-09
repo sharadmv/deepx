@@ -1,5 +1,7 @@
+import numpy as np
 from .. import T
 from ..layer import ShapedLayer
+from ..initialization import initialize_weights
 from .full import Linear
 
 from .. import stats
@@ -8,6 +10,18 @@ from .. import stats
 __all__ = ['Gaussian', 'Bernoulli', 'IdentityVariance']
 
 class Gaussian(Linear):
+
+    def initialize(self):
+        if not self.elementwise:
+            dim_in, dim_out = self.get_dim_in()[-1], self.get_dim_out()[-1]
+            left = initialize_weights(self.initialization, [dim_in, dim_out // 2])
+            right = T.zeros([dim_in, dim_out // 2])
+            self.create_parameter('W', [dim_in, dim_out], initial_value=(
+                T.concatenate([
+                    left, right
+                ], -1)
+            ))
+            self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
 
     def __init__(self, *args, **kwargs):
         self.cov_type = kwargs.pop('cov_type', 'diagonal')
