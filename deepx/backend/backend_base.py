@@ -419,6 +419,20 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def softplus(self, x):
+        """
+        Returns the softplus of a tensor.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            The softplus applied elementwise to tensor `x`.
+        """
+        pass
+
+    @uses_device
+    @abstractmethod
     def dropout(self, x, p, seed=None):
         """
         Applies dropout to a tensor.

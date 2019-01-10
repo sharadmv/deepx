@@ -34,7 +34,7 @@ class Gaussian(Linear):
     def activate(self, X):
         if self.cov_type == 'diagonal':
             log_sigma, mu = T.split(X, 2, axis=-1)
-            sigma = T.core.matrix_diag(T.exp(log_sigma))
+            sigma = T.matrix_diag(T.softplus(log_sigma) + 1e-5)
             return stats.Gaussian([sigma, mu], parameter_type='regular')
         raise Exception("Undefined covariance type: %s" % self.cov_type)
 

@@ -166,6 +166,9 @@ class TensorflowBackend(BackendBase):
     def softmax(self, x, T=1.0):
         return tf.nn.softmax(x)
 
+    def softplus(self, x):
+        return tf.nn.softplus(x)
+
     def dropout(self, x, p, seed=None):
         retain_prob = 1. - p
         if seed is None:
@@ -348,7 +351,7 @@ class TensorflowBackend(BackendBase):
     def einsum(self, subscripts, *operands):
         return tf.einsum(subscripts, *operands)
 
-    def cholesky(self, A, lower=True, warn=True, correct=False):
+    def cholesky(self, A, lower=True, warn=True, correct=True):
         assert lower is True
 
         # Gradient through py_func adapted from https://gist.github.com/harpone/3453185b41d8d985356cbe5e57d67342
