@@ -553,6 +553,20 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def log1p(self, x):
+        """
+        Takes the elementwise natural logarithm1p of a tensor.
+
+        Args:
+            x: An input tensor.
+
+        Returns:
+            The elementwise log1p of `x`.
+        """
+        pass
+
+    @uses_device
+    @abstractmethod
     def exp(self, x):
         """
         Takes the elementwise exponent of a tensor.

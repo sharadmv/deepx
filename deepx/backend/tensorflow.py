@@ -290,6 +290,9 @@ class TensorflowBackend(BackendBase):
     def log(self, x):
         return tf.log(x)
 
+    def log1p(self, x):
+        return tf.log1p(x)
+
     def exp(self, x):
         return tf.exp(x)
 

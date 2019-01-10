@@ -21,14 +21,13 @@ class Bernoulli(ExponentialFamily):
         return sample
 
     def regular_to_natural(cls, regular_parameters):
-        return T.log(regular_parameters / (1 - regular_parameters))
+        return T.log(regular_parameters) - T.log1p(-1. * regular_parameters)
 
     def natural_to_regular(cls, eta):
-        return T.exp(eta) / (1 + T.exp(eta))
+        return T.sigmoid(eta)
 
     def log_likelihood(self, x):
-        p = self.get_parameters('regular')
-        return T.sum(x * T.log(T.epsilon() + p) + (1.0 - x) * T.log(T.epsilon() + 1.0 - p), -1)
+        return -T.core.nn.sigmoid_cross_entropy_with_logits(labels=x, logits=self.get_parameters('natural'))
 
     def log_z(self):
         raise NotImplementedError
