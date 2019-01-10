@@ -7,7 +7,10 @@ from functools import wraps
 from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
-from tensorflow.contrib.distributions import fill_triangular
+try:
+    from tensorflow.contrib.distributions import fill_triangular
+except:
+    print("Cannot find fill_triangular")
 
 class TensorflowFunction(FunctionBase):
 

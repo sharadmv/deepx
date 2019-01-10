@@ -40,7 +40,7 @@ class LDS(ExponentialFamily):
                 norm = 0.5 * T.logdet(-2 * filter_natparam[:, :ds, :ds]) + T.to_float(ds / 2) * T.log(2 * np.pi)
                 pred_potential = schur_comp - T.matrix_diag(T.concat([T.zeros(ds), T.ones(1)])) * norm[..., None, None]
 
-            self.cache['log_z'] = T.sum(pred_potential[:, -1, -1])
+            self.cache['log_z'] = pred_potential[:, -1, -1]
         return self.cache['log_z']
 
     def expected_sufficient_statistics(self):
