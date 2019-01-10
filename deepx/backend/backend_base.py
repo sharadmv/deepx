@@ -740,6 +740,11 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
+    def matrix_diag_part(self, a):
+        pass
+
+    @uses_device
+    @abstractmethod
     def set_diag(self, input, diagonal):
         pass
 

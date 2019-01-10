@@ -18,7 +18,7 @@ class Gaussian(Linear):
             right = T.zeros([dim_in, dim_out // 2])
             self.create_parameter('W', [dim_in, dim_out], initial_value=(
                 T.concatenate([
-                    left, right
+                    right, left
                 ], -1)
             ))
             self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
@@ -33,9 +33,9 @@ class Gaussian(Linear):
 
     def activate(self, X):
         if self.cov_type == 'diagonal':
-            log_sigma, mu = T.split(X, 2, axis=-1)
-            sigma = T.matrix_diag(T.softplus(log_sigma) + 1e-5)
-            return stats.Gaussian([sigma, mu], parameter_type='regular')
+            scale_diag, mu = T.split(X, 2, axis=-1)
+            scale_diag = T.softplus(scale_diag) + 1e-5
+            return stats.GaussianScaleDiag([scale_diag, mu], parameter_type='regular')
         raise Exception("Undefined covariance type: %s" % self.cov_type)
 
     def __str__(self):

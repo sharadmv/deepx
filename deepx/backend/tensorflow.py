@@ -438,6 +438,9 @@ class TensorflowBackend(BackendBase):
     def matrix_diag(self, a):
         return tf.matrix_diag(a)
 
+    def matrix_diag_part(self, a):
+        return tf.matrix_diag_part(a)
+
     def set_diag(self, input, diagonal):
         return tf.linalg.set_diag(input, diagonal)
 
