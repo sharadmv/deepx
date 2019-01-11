@@ -323,6 +323,12 @@ class TensorflowBackend(BackendBase):
         else:
             return tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
 
+    def binary_crossentropy(self, output, target, from_logits=False):
+        if from_logits:
+            return tf.nn.sigmoid_cross_entropy_with_logits(labels=target, logits=output)
+        else:
+            raise NotImplementedError
+
     def concatenate(self, tensors, axis=-1):
         return tf.concat(tensors, axis=axis)
 
@@ -357,7 +363,7 @@ class TensorflowBackend(BackendBase):
     def einsum(self, subscripts, *operands):
         return tf.einsum(subscripts, *operands)
 
-    def cholesky(self, A, lower=True, warn=True, correct=True):
+    def cholesky(self, A, lower=True, warn=True, correct=False):
         assert lower is True
 
         # Gradient through py_func adapted from https://gist.github.com/harpone/3453185b41d8d985356cbe5e57d67342

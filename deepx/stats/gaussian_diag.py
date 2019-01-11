@@ -70,3 +70,12 @@ class GaussianScaleDiag(Gaussian):
     def log_z(self):
         scale_diag, mu = self.get_parameters('regular')
         return 0.5 * T.sum(T.square(mu / scale_diag), -1) + T.sum(T.log(scale_diag), axis=-1)
+
+    def to_tfp(self):
+        import tensorflow_probability as tfp
+        tfd = tfp.distributions
+        scale_diag, mu = self.get_parameters('regular')
+        return tfd.MultivariateNormalDiag(
+            loc=mu,
+            scale_diag=scale_diag
+        )

@@ -620,7 +620,7 @@ class BackendBase(object):
 
     @uses_device
     @abstractmethod
-    def categorical_crossentropy(self, x, target, from_logits=False):
+    def categorical_crossentropy(self, output, target, from_logits=False):
         """
         Calculates the cross entropy of a distribution
         with relation to a target distribution.
@@ -632,6 +632,23 @@ class BackendBase(object):
                                         and if false `x` is softmax probabilities.
         Returns:
             A tensor of shape `[batch_size]` with cross entropy between the distributions.
+        """
+        pass
+
+    @uses_device
+    @abstractmethod
+    def binary_crossentropy(self, output, target, from_logits=False):
+        """
+        Calculates the binary cross entropy of a distribution
+        with relation to a target distribution.
+
+        Args:
+            x: An input 2D-tensor of shape `[batch_size, N]`.
+            target: An input 2D-tensor of shape `[batch_size, N]`.
+            from_logits (:obj:`bool`): If true `x` contains unscaled logits
+                                        and if false `x` is softmax probabilities.
+        Returns:
+            A tensor of shape `[batch_size]` with binary cross entropy between the distributions.
         """
         pass
 

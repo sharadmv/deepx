@@ -98,3 +98,12 @@ class Gaussian(ExponentialFamily):
         sigma, mu = self.get_parameters('regular')
         d = T.to_float(T.shape(mu)[-1])
         return 0.5 * T.logdet(sigma) + d / 2. * (1 + T.log(2 * np.pi))
+
+    def to_tfp(self):
+        import tensorflow_probability as tfp
+        tfd = tfp.distributions
+        sigma, mu = self.get_parameters('regular')
+        return tfd.MultivariateNormalFullCovariance(
+            loc=mu,
+            covariance_matrix=sigma
+        )

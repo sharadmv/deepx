@@ -27,7 +27,7 @@ class Bernoulli(ExponentialFamily):
         return T.sigmoid(eta)
 
     def log_likelihood(self, x):
-        return -T.core.nn.sigmoid_cross_entropy_with_logits(labels=x, logits=self.get_parameters('natural'))
+        return -T.sum(T.binary_crossentropy(self.get_parameters('natural'), x, from_logits=True), axis=-1)
 
     def log_z(self):
         raise NotImplementedError

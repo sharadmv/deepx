@@ -14,6 +14,13 @@ def coerce_param(p_param, q_param):
     return p_param, q_param
 
 def kl_divergence(p, q):
+    try:
+        p, q = p.to_tfp(), q.to_tfp()
+        import tensorflow_probability as tfp
+        tfd = tfp.distributions
+        return tfd.kl_divergence(p, q)
+    except :
+        pass
     param_dim = p.get_param_dim()
     dist = p.__class__
     p_param, q_param = coerce_param(p.get_parameters('natural'), q.get_parameters('natural'))

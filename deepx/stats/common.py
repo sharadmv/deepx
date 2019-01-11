@@ -17,6 +17,8 @@ class Distribution(object):
     def log_likelihood(self, x):
         pass
 
+    def to_tfp(self):
+        raise NotImplementedError
 
 class ExponentialFamily(Distribution):
 
