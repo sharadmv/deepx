@@ -9,7 +9,6 @@ class BatchNorm(Layer):
     def initialize(self):
         self.create_parameter('beta', self.get_dim_in(), value=0)
         self.create_parameter('gamma', self.get_dim_in(), value=1)
-        self.
 
     def infer(self, shape_in):
         return shape_in
