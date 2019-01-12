@@ -11,6 +11,12 @@ __all__ = ['Gaussian', 'Bernoulli', 'IdentityVariance']
 
 class Gaussian(Linear):
 
+    def __init__(self, *args, **kwargs):
+        self.cov_type = kwargs.pop('cov_type', 'diagonal')
+        self.min_stdev = kwargs.pop('min_stdev', 1e-2)
+        super(Gaussian, self).__init__(*args, **kwargs)
+        assert not self.elementwise
+
     def initialize(self):
         if not self.elementwise:
             dim_in, dim_out = self.get_dim_in()[-1], self.get_dim_out()[-1]
@@ -23,18 +29,13 @@ class Gaussian(Linear):
             ))
             self.create_parameter('b', [dim_out], initial_value=np.zeros([dim_out]))
 
-    def __init__(self, *args, **kwargs):
-        self.cov_type = kwargs.pop('cov_type', 'diagonal')
-        super(Gaussian, self).__init__(*args, **kwargs)
-        assert not self.elementwise
-
     def get_dim_out(self):
         return [self.dim_out[0] * 2]
 
     def activate(self, X):
         if self.cov_type == 'diagonal':
             scale_diag, mu = T.split(X, 2, axis=-1)
-            scale_diag = T.softplus(scale_diag) + 1e-5
+            scale_diag = T.softplus(scale_diag) + self.min_stdev
             return stats.GaussianScaleDiag([scale_diag, mu], parameter_type='regular')
         raise Exception("Undefined covariance type: %s" % self.cov_type)
 
