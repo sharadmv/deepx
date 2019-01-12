@@ -1,5 +1,5 @@
 from .. import T
-from ..core import Layer
+from ..layer import Layer
 
 class BatchNorm(Layer):
 
