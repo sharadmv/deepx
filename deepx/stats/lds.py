@@ -61,7 +61,7 @@ class LDS(ExponentialFamily):
         sig = ess[..., :ds, :ds] - T.outer(mu, mu)
         return Gaussian([sig, mu])
 
-    def filter(self):
+    def filter(self, max_steps=None):
         parameters = self.get_parameters('internal')
         (nh_Q_inv, Q_inv_AB, nh_AB_Q_inv_AB, nh_logdet_Q), prior, q_S, actions, horizon = parameters
 
@@ -122,10 +122,14 @@ class LDS(ExponentialFamily):
 
             return t + 1, (J_tt, h_tt), (J_, h_)
 
+        if max_steps is not None:
+            potentials = (potentials[0][:max_steps], potentials[1][:max_steps])
+
         _, filtered, _ = T.scan(kalman_filter, potentials,
                                 (0,
                                  (T.zeros([N, ds, ds]), T.zeros([N, ds])),
-                                 (-2 * prior_natparams[0], prior_natparams[1]))
+                                 (-2 * prior_natparams[0], prior_natparams[1]),
+                                 )
         )
         filtered = (T.transpose(filtered[0], [1, 0, 2, 3]), T.transpose(filtered[1], [1, 0, 2]))
 

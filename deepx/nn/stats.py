@@ -35,7 +35,10 @@ class Gaussian(Linear):
     def activate(self, X):
         if self.cov_type == 'diagonal':
             scale_diag, mu = T.split(X, 2, axis=-1)
-            scale_diag = T.softplus(scale_diag) + self.min_stdev
+            if hasattr(self, 'min_stdev'):
+                scale_diag = T.softplus(scale_diag) + self.min_stdev
+            else:
+                scale_diag = T.softplus(scale_diag) + 1e-5
             return stats.GaussianScaleDiag([scale_diag, mu], parameter_type='regular')
         raise Exception("Undefined covariance type: %s" % self.cov_type)
 
@@ -80,7 +83,4 @@ class IdentityVariance(ShapedLayer):
             self.dim_in = shape
 
     def forward(self, X):
-        shape = T.shape(X)
-        batch_shape = shape[:-1]
-        dim_out = shape[-1]
-        return stats.Gaussian([self.variance * T.eye(dim_out, batch_shape=batch_shape), X])
+        return stats.GaussianScaleDiag([np.sqrt(self.variance) * T.ones_like(X), X])
