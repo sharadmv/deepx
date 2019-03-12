@@ -144,7 +144,7 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def tanh(self, x, name=None):
-        return torch.tanh(x, name=name)
+        return torch.tanh(x)
 
     def sigmoid(self, x):
         return torch.sigmoid(x)
@@ -154,6 +154,9 @@ class PyTorchBackend(BackendBase):
 
     def softmax(self, x, T=1.0):
         return torch.nn.softmax(x)
+
+    def softplus(self, x):
+        return torch.nn.functional.softplus(x)
 
     def dropout(self, x, p, seed=None):
         raise NotImplementedError
@@ -177,6 +180,7 @@ class PyTorchBackend(BackendBase):
                                 (filter_cols - 1) + 1 - input_cols)
         cols_odd = (padding_cols % 2 != 0)
 
+        x = torch.nn.functional.pad(x, [padding_cols // 2, padding_cols // 2, padding_rows // 2, padding_rows // 2])
         if rows_odd or cols_odd:
             x = torch.nn.functional.pad(x, [0, int(cols_odd), 0, int(rows_odd)])
 
@@ -250,6 +254,9 @@ class PyTorchBackend(BackendBase):
     def log(self, x):
         return torch.log(x)
 
+    def log1p(self, x):
+        return torch.log1p(x)
+
     def exp(self, x):
         return torch.exp(x)
 
@@ -268,6 +275,9 @@ class PyTorchBackend(BackendBase):
         output /= output.sum(axis=-1, keepdim=True)
         output = output.clamp(self.epsilon(), 1 - self.epsilon())
         return -(target * torch.log(output)).sum(axis=-1)
+
+    def binary_crossentropy(self, output, target, from_logits=False):
+        raise NotImplementedError
 
     def concatenate(self, tensors, axis=-1):
         return torch.cat(tensors, dim=axis)
@@ -358,6 +368,16 @@ class PyTorchBackend(BackendBase):
 
     def matrix_diag(self, a):
         raise NotImplementedError
+
+    def matrix_diag_part(self, a):
+        raise NotImplementedError
+
+    def set_diag(self, input, diagonal):
+        raise NotImplementedError
+
+    def band_part(self, input, num_lower, num_upper):
+        raise NotImplementedError
+
 
     def vec(self, A):
         A = self.matrix_transpose(A)
