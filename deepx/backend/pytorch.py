@@ -18,6 +18,7 @@ class TorchPlaceholder(object):
 class TorchSession(object):
     pass
 
+@six.add_metaclass(DeviceDecorator)
 class PyTorchBackend(BackendBase):
 
     def __init__(self, **kwargs):
@@ -31,6 +32,7 @@ class PyTorchBackend(BackendBase):
     def use_device(cls, method):
         @wraps(method)
         def func(self, *args, **kwargs):
+            result = method(self, *args, **kwargs)
             return result.to(self.get_current_device())
         return func
 
