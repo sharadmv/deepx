@@ -1,1 +1,1 @@
-from .arithmetic import *
+from deepx.ops.identity import *

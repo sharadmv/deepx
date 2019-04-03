@@ -1,8 +1,8 @@
-import numpy as np
+from functools import reduce
+from operator import mul
 
-from .. import T
-
-from ..layer import Layer, ShapedLayer
+from deepx.core import ShapedLayer, Layer
+from deepx.backend import T
 
 class Reshape(ShapedLayer):
 
@@ -12,50 +12,38 @@ class Reshape(ShapedLayer):
     def initialize(self):
         pass
 
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
-
-    def infer_shape(self, shape):
-        pass
-
-    def forward(self, X, **kwargs):
+    def _forward(self, X, **kwargs):
         return T.reshape(X, [-1] + self.dim_out)
-
-    def __str__(self):
-        return "Reshape(%s, %s)" % (self.dim_in, self.dim_out)
 
 class Flatten(Layer):
 
-    def __init__(self, leading=1):
+    def __init__(self, leading_dim=1):
         super(Flatten, self).__init__()
-        self.dim_in = self.dim_out = None
-        self.leading = leading
+        self.leading_dim = 1
 
     def is_initialized(self):
-        return True
-
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
+        return self.get_shape_out() is not None
 
     def initialize(self):
         pass
 
-    def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = shape[self.leading - 1:]
-        self.dim_out = [np.prod(self.dim_in)]
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        if shape_in is not None:
+            assert len(shape_in) == 1
+            shape_in = shape_in[0]
+            out_dim = reduce(mul, shape_in[self.leading_dim:], 1)
+            self.set_shape_out([shape_in[:self.leading_dim] + [out_dim]])
 
-    def forward(self, X, **kwargs):
-        leading_shape = T.get_shape(X)[:self.leading]
-        result = T.flatten(X, leading=self.leading)
-        result.set_shape(leading_shape + self.dim_out)
-        return result
+    def _forward(self, X):
+        return T.reshape(X, self.get_shape_out()[0])
 
-    def __str__(self):
-        return "Flatten(%s)" % self.dim_out
+    def __repr__(self):
+        shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
+        if shape_in is not None:
+            shape_in = self.get_shape_in()[0][self.leading_dim:]
+        if shape_out is not None:
+            shape_out = self.get_shape_out()[0][self.leading_dim:]
+        return "Flatten({}, {})".format(
+            shape_in, shape_out
+        )

@@ -475,11 +475,6 @@ class TensorflowBackend(BackendBase):
         ], 0)))
 
     def kronecker(self, A, B):
-        # try:
-            # import kfac
-            # return kfac.utils.kronecker_product(A, B)
-        # except ModuleNotFoundError:
-            # raise Exception("Can't import kfac")
         C = (A[..., None, None] * B[..., None, None, :, :])
         blocks = [
             tf.unstack(a, axis=-3 % len(a.shape)) for a in

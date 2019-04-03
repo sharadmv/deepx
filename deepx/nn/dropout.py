@@ -1,5 +1,5 @@
-from .. import T
-from ..core import Layer
+from deepx.backend import T
+from deepx.core import Layer
 
 class Dropout(Layer):
 
@@ -11,11 +11,15 @@ class Dropout(Layer):
     def initialize(self):
         return
 
-    def infer(self, shape_in):
-        return shape_in
+    def is_initialized(self):
+        return True
 
-    def forward(self, X, dropout=True):
-        if dropout:
+    def shape_inference(self):
+        if self.get_shape_in() is not None:
+            self.set_shape_out(self.get_shape_in())
+
+    def _forward(self, X):
+        if T.get_context('train'):
             return T.dropout(X, self.p)
         else:
             return X
