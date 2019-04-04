@@ -8,10 +8,7 @@ class KerasLayer(Layer):
         self.layer = layer
 
     def shape_inference(self):
-        if self.get_shape_in() is not None:
-            placeholder = T.ones(self.get_shape_in()[0])
-            output = self.layer(placeholder)
-            self.set_shape_out([T.get_shape(output)])
+        return
 
     def is_initialized(self):
         return True

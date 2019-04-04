@@ -31,8 +31,6 @@ class Op(object):
         in_shape = [T.get_shape(input) for input in inputs]
         self.set_shape_in(in_shape)
         self.shape_inference()
-        if not self.is_initialized():
-            raise Exception("Op not initialized")
         output = self.forward(*inputs)
         if isinstance(output, list) or isinstance(output, tuple):
             if len(output) == 1:

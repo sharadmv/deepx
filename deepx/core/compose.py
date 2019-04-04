@@ -1,3 +1,4 @@
+from deepx.backend import T
 from deepx.core.op import Op
 
 class Compose(Op):
@@ -7,6 +8,9 @@ class Compose(Op):
 
     def forward(self, *inputs):
         outputs = self.left_op.forward(*inputs)
+        if self.left_op.get_shape_out() is None:
+            self.left_op.set_shape_out([T.get_shape(output) for output in outputs])
+        self.shape_inference()
         return self.right_op.forward(*outputs)
 
     def get_parameters(self):
