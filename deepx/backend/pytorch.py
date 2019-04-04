@@ -155,7 +155,7 @@ class PyTorchBackend(BackendBase):
         return torch.relu(x)
 
     def softmax(self, x, T=1.0):
-        return torch.nn.softmax(x)
+        return torch.nn.functional.softmax(x)
 
     def softplus(self, x):
         return torch.nn.functional.softplus(x)

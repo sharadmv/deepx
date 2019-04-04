@@ -15,6 +15,22 @@ class Reshape(ShapedLayer):
     def _forward(self, X, **kwargs):
         return T.reshape(X, [-1] + self.dim_out)
 
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        dim_in, dim_out = self.get_dim_in(), self.get_dim_out()
+        if shape_in is not None:
+            assert len(shape_in) == 1, "Cannot pass multiple inputs into layer"
+            shape_in = shape_in[0]
+            if dim_in is not None:
+                if dim_in != shape_in[-len(dim_in):]:
+                    raise Exception("Shape inference error")
+            self.dim_in = shape_in[1:]
+            assert dim_out is not None
+            self.set_shape_out([shape_in[:len(self.dim_in)] + dim_out])
+        if not self.initialized and self.get_shape_in() is not None and self.get_shape_out() is not None:
+            self.initialize()
+            self.initialized = True
+
 class Flatten(Layer):
 
     def __init__(self, leading_dim=1):
