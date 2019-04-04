@@ -27,7 +27,7 @@ y_test = keras.utils.to_categorical(y_test, num_classes)
 
 inputs = keras.Input((28, 28, 1))
 net = (
-    layers.Conv2D(32, (3, 3)) >> layers.ReLU()
+    nn.Repeat(layers.Conv2D(32, (3, 3)) >> layers.ReLU(), 2)
     >> layers.Conv2D(64, (3, 3)) >> layers.ReLU()
     >> layers.MaxPooling2D(pool_size=(2, 2))
     >> layers.Dropout(0.25)
