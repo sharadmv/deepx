@@ -81,7 +81,7 @@ class JaxBackend(BackendBase):
     # Unified interface
 
     def coerce(self, x, dtype=None):
-        return x.astype(type)
+        return np.array(x).astype(dtype)
 
     def cast(self, x, dtype):
         return x.astype(dtype)
@@ -192,7 +192,7 @@ class JaxBackend(BackendBase):
         if not isinstance(x, int):
             shape = tuple(shape)
         shape = tuple(-1 if s is None else s for s in shape)
-        return np.reshape(x, shape)
+        return np.reshape(x, tuple(map(int, shape)))
 
     def sum(self, x, axis=None, keepdims=False):
         return np.sum(x, dim=axis, keepdim=keepdims)
@@ -235,7 +235,8 @@ class JaxBackend(BackendBase):
         raise NotImplementedError
 
     def concatenate(self, tensors, axis=-1):
-        return np.cat(tensors, dim=axis)
+        values = [self.coerce(v, dtype=self.floatx()) for v in tensors]
+        return np.concatenate(values, axis=int(axis))
 
     def sort(self, tensor, axis=-1):
         return tensor.sort(dim=axis)
@@ -258,13 +259,13 @@ class JaxBackend(BackendBase):
     def logdet(self, A, **kwargs):
         A = (A + self.matrix_transpose(A)) / 2.
         term = np.log(np.diag(self.cholesky(A, **kwargs)))
-        return 2 * term.sum(dim=-1)
+        return 2 * np.sum(term, axis=-1)
 
     def einsum(self, subscripts, *operands):
         return np.einsum(subscripts, operands)
 
     def cholesky(self, A, lower=True, warn=False, correct=True):
-        return np.potrf(A, upper=not lower)
+        return np.linalg.cholesky(A)
 
     # Tensorflow interface
 
@@ -278,7 +279,7 @@ class JaxBackend(BackendBase):
         raise NotImplementedError
 
     def to_float(self, x):
-        return np.array(x).astype(self.floatx())
+        return np.array(x, dtype=self.floatx())
 
     def constant(self, value, dtype=None, shape=None):
         return np.array(value).astype(dtype)
@@ -290,8 +291,7 @@ class JaxBackend(BackendBase):
         return variable.numpy()
 
     def concat(self, values, axis=-1):
-        values = [self.coerce(v, dtype=self.floatx()) for v in values]
-        return np.concatenate(values, dim=axis)
+        return self.concatenate(values, axis=axis)
 
     def gather(self, params, indices):
         return params[indices]
@@ -319,7 +319,7 @@ class JaxBackend(BackendBase):
         return a.permute(*perm)
 
     def matrix_transpose(self, a):
-        return np.transpose(a, -1, -2)
+        return np.swapaxes(a, -1, -2)
 
     def matrix_diag(self, a):
         raise NotImplementedError
@@ -395,26 +395,16 @@ class JaxBackend(BackendBase):
         raise NotImplementedError
 
     def matrix_inverse(self, a):
-        return a.inverse()
+        return np.linalg.inv(a)
 
     def expand_dims(self, x, dim=-1):
-        return x.unsqueeze(dim)
+        return np.expand_dims(x, dim=dim)
 
     def tile(self, input, multiples):
-        return input.repeat(*map(int, multiples.numpy()))
+        return np.tile(input, multiples)
 
     def gradients(self, loss, variables):
-        solo = False
-        if not isinstance(variables, list):
-            solo = True
-        if solo:
-            variables = [variables]
-        [v.grad.zero_() if v.grad is not None else None for v in variables]
-        loss.backward()
-        result = [v.grad for v in variables]
-        if solo:
-            return result[0]
-        return result
+        raise NotImplementedError("Please use `jax.grad`")
 
     def square(self, x):
         return np.pow(x, 2)
@@ -435,14 +425,13 @@ class JaxBackend(BackendBase):
         return self.unstack(*args, **kwargs)
 
     def reduce_max(self, x, axis=None, keepdims=False):
-        return x.max(dim=axis, keepdim=keepdims)
+        return np.max(x, axis=axis, keepdim=keepdims)
 
     def reduce_logsumexp(self, x, axis=None, keepdims=False):
         raise NotImplementedError
 
     def matrix_solve(self, matrix, rhs, adjoint=None):
-        import ipdb; ipdb.set_trace()
-        return torch.gesv(rhs, matrix)[0]
+        return np.linalg.solve(matrix, rhs)
 
     # Theano interface
 
