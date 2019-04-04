@@ -27,5 +27,5 @@ class KerasLayer(Layer):
     def get_parameters(self):
         return self.layer.trainable_weights
 
-    def _forward(self, X):
+    def _forward(self, X, **kwargs):
         return self.layer(X)

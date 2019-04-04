@@ -18,7 +18,7 @@ class Dropout(Layer):
         if self.get_shape_in() is not None:
             self.set_shape_out(self.get_shape_in())
 
-    def _forward(self, X):
+    def _forward(self, X, **kwargs):
         if T.get_context('train'):
             return T.dropout(X, self.p)
         else:

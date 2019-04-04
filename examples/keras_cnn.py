@@ -1,3 +1,4 @@
+import tensorflow as tf
 from tensorflow import keras
 from deepx import keras as layers
 from deepx import nn
@@ -37,6 +38,13 @@ net = (
     >> layers.Dense(num_classes) >> layers.Softmax()
 )
 outputs = net(inputs)
+
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
+sess = tf.Session(config=config)
+keras.backend.set_session(sess)
+
 model = keras.Model(inputs=inputs, outputs=outputs)
 
 model.compile(loss=keras.losses.categorical_crossentropy,
