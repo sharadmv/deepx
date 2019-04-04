@@ -17,7 +17,7 @@ class Activation(Op):
     def shape_inference(self):
         self.set_shape_out(self.get_shape_in())
 
-    def forward(self, *inputs):
+    def forward(self, *inputs, **kwargs):
         return [self.activate(X) for X in inputs]
 
     def is_initialized(self):

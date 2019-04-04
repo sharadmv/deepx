@@ -47,8 +47,8 @@ class Convolution(Layer):
             self.initialize()
             self.initialized = True
 
-    def _forward(self, X):
-        W, b = self.get_parameter("W"), self.get_parameter("b")
+    def _forward(self, X, params=None):
+        W, b = self.get_parameter_list("W", "b", params=params)
         return (T.conv2d(X, W, border_mode=self.border_mode, strides=self.strides)
                 + b[None, None, None])
 
@@ -141,8 +141,8 @@ class Deconvolution(Layer):
             self.initialize()
             self.initialized = True
 
-    def _forward(self, X):
-        W, b = self.get_parameter("W"), self.get_parameter("b")
+    def _forward(self, X, params=None):
+        W, b = self.get_parameter_list("W", "b", params=params)
         result = (T.conv2d_transpose(X, W, self.dim_out, border_mode=self.border_mode, strides=self.strides)
                 + b[None, None, None])
         return result

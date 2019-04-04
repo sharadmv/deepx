@@ -7,12 +7,22 @@ class Compose(Op):
         self.left_op, self.right_op = left_op, right_op
         self.shape_inference()
 
-    def forward(self, *inputs):
-        outputs = self.left_op.forward(*inputs)
+    def forward(self, *inputs, **kwargs):
+        params = kwargs.pop('params', None)
+        if params is not None:
+            left_params = params[0]
+            right_params = params[1]
+        else:
+            left_params = right_params = None
+        outputs = self.left_op.forward(*inputs, params=left_params)
         if self.left_op.get_shape_out() is None:
             self.left_op.set_shape_out([T.get_shape(output) for output in outputs])
         self.shape_inference()
-        return self.right_op.forward(*outputs)
+        return self.right_op.forward(*outputs, params=right_params)
+
+    @property
+    def parameters(self):
+        return self.left_op.parameters, self.right_op.parameters
 
     def get_parameters(self):
         return self.left_op.get_parameters() + self.right_op.get_parameters()

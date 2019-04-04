@@ -191,6 +191,7 @@ class JaxBackend(BackendBase):
     def reshape(self, x, shape):
         if not isinstance(x, int):
             shape = tuple(shape)
+        shape = tuple(-1 if s is None else s for s in shape)
         return np.reshape(x, shape)
 
     def sum(self, x, axis=None, keepdims=False):

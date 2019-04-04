@@ -13,9 +13,9 @@ class Layer(Op):
     def get_dim_out(self):
         return self.dim_out
 
-    def forward(self, *inputs):
+    def forward(self, *inputs, **kwargs):
         assert len(inputs) == 1
-        output = self._forward(inputs[0])
+        output = self._forward(inputs[0], **kwargs)
         return [output]
 
     @abstractmethod

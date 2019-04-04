@@ -14,8 +14,14 @@ class Op(object):
     def get_parameters(self):
         return list(self.parameters.values())
 
-    def get_parameter(self, key):
-        return self.parameters[key]
+    def get_parameter_list(self, *args, **kwargs):
+        params = kwargs.pop('params', None)
+        return [self.get_parameter(a, params=params) for a in args]
+
+    def get_parameter(self, key, params=None):
+        if params is None:
+            return self.parameters[key]
+        return params[key]
 
     def set_parameter(self, key, value):
         self.parameters[key] = value
@@ -27,12 +33,12 @@ class Op(object):
             value = initial_value
         self.set_parameter(name, T.variable(value))
 
-    def __call__(self, *inputs):
+    def __call__(self, *inputs, **kwargs):
         if self.get_shape_in() is None:
             in_shape = [T.get_shape(input) for input in inputs]
             self.set_shape_in(in_shape)
             self.shape_inference()
-        output = self.forward(*inputs)
+        output = self.forward(*inputs, **kwargs)
         if isinstance(output, list) or isinstance(output, tuple):
             if len(output) == 1:
                 return output[0]
