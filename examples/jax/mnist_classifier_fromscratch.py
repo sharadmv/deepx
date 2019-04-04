@@ -40,10 +40,7 @@ def init_random_params(scale, layer_sizes, rng=npr.RandomState(0)):
             for m, n, in zip(layer_sizes[:-1], layer_sizes[1:])]
 
 network = (
-    nn.Reshape([784], [28, 28, 1])
-    >> nn.Convolution([2, 2, 16]) >> nn.Pool() >> nn.Relu()
-    >> nn.Convolution([2, 2, 16]) >> nn.Pool() >> nn.Relu()
-    >> nn.Flatten() >> nn.Relu(200) >> nn.Linear(10)
+        nn.Relu(784, 200) >> nn.Relu(200) >> nn.Linear(10)
 )
 def predict(params, inputs):
     logits = network(inputs, params=params)
