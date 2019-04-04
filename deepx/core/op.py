@@ -15,13 +15,13 @@ class Op(object):
         return list(self.parameters.values())
 
     def get_parameter(self, key):
-        context = T.get_param_context()
-        if context is not None:
-            return context[self][key]
         return self.parameters[key]
 
     def set_parameter(self, key, value):
         self.parameters[key] = value
+
+    def create_parameter(self, name, dims, initial_value=None):
+        if initial_value is None:
             value = T.random_normal(dims)
         else:
             value = initial_value
