@@ -2,7 +2,8 @@
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
-DeepX supports both  [Tensorflow](http://www.tensorflow.org) and [PyTorch](https://pytorch.org/).
+DeepX supports [Tensorflow](http://www.tensorflow.org), [PyTorch](https://pytorch.org/)
+and [Jax](https://github.com/google/jax).
 
 Installation
 ====================================
