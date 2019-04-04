@@ -26,7 +26,10 @@ class Reshape(ShapedLayer):
                     raise Exception("Shape inference error")
             self.dim_in = shape_in[1:]
             assert dim_out is not None
-            self.set_shape_out([shape_in[:len(self.dim_in)] + dim_out])
+        else:
+            if dim_in is not None:
+                self.set_shape_in([[None] + dim_in])
+        self.set_shape_out([self.get_shape_in()[0][:len(self.get_dim_in())] + dim_out])
         if not self.initialized and self.get_shape_in() is not None and self.get_shape_out() is not None:
             self.initialize()
             self.initialized = True

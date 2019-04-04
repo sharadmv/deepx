@@ -5,6 +5,7 @@ class Compose(Op):
 
     def __init__(self, left_op, right_op):
         self.left_op, self.right_op = left_op, right_op
+        self.shape_inference()
 
     def forward(self, *inputs):
         outputs = self.left_op.forward(*inputs)

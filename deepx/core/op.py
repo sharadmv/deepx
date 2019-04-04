@@ -15,22 +15,23 @@ class Op(object):
         return list(self.parameters.values())
 
     def get_parameter(self, key):
+        context = T.get_param_context()
+        if context is not None:
+            return context[self][key]
         return self.parameters[key]
 
     def set_parameter(self, key, value):
         self.parameters[key] = value
-
-    def create_parameter(self, name, dims, initial_value=None):
-        if initial_value is None:
             value = T.random_normal(dims)
         else:
             value = initial_value
         self.set_parameter(name, T.variable(value))
 
     def __call__(self, *inputs):
-        in_shape = [T.get_shape(input) for input in inputs]
-        self.set_shape_in(in_shape)
-        self.shape_inference()
+        if self.get_shape_in() is None:
+            in_shape = [T.get_shape(input) for input in inputs]
+            self.set_shape_in(in_shape)
+            self.shape_inference()
         output = self.forward(*inputs)
         if isinstance(output, list) or isinstance(output, tuple):
             if len(output) == 1:

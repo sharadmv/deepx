@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 jupyter = "*"
+ipdb = "*"
 
 [packages]
 deepx = {editable = true,path = "."}
