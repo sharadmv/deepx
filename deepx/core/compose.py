@@ -10,7 +10,7 @@ class Compose(Op):
         return self.right_op.forward(*outputs)
 
     def get_parameters(self):
-        return (self.left_op.get_parameters(), self.right_op.get_parameters())
+        return self.left_op.get_parameters() + self.right_op.get_parameters()
 
     def get_shape_in(self):
         return self.left_op.get_shape_in()

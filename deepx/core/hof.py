@@ -78,7 +78,7 @@ class Binary(Op):
         return self.left_op.is_initialized() and self.right_op.is_initialized()
 
     def get_parameters(self):
-        return (self.left_op.get_parameters(), self.right_op.get_parameters())
+        return self.left_op.get_parameters() + self.right_op.get_parameters()
 
     @abstractmethod
     def combinator(self, a, b):

@@ -12,7 +12,7 @@ class Op(object):
         self.shape_in, self.shape_out = None, None
 
     def get_parameters(self):
-        return self.parameters
+        return list(self.parameters.values())
 
     def get_parameter(self, key):
         return self.parameters[key]
