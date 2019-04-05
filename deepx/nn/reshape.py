@@ -1,3 +1,4 @@
+import numpy as np
 from functools import reduce
 from operator import mul
 
@@ -56,7 +57,7 @@ class Flatten(Layer):
             self.set_shape_out([shape_in[:self.leading_dim] + [out_dim]])
 
     def _forward(self, X, **kwargs):
-        return T.reshape(X, self.get_shape_out()[0])
+        return T.reshape(X, [-1, np.prod(self.get_shape_out()[0][1:])])
 
     def __repr__(self):
         shape_in, shape_out = self.get_shape_in(), self.get_shape_out()
