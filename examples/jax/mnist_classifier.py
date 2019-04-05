@@ -31,6 +31,8 @@ from jax import jit, grad
 from jax.scipy.special import logsumexp
 from jax.experimental import optimizers
 from examples import datasets
+import deepx.config
+deepx.config.set_backend("jax")
 
 from deepx import nn
 

@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
+import deepx.config
+deepx.config.set_backend("tensorflow")
 from deepx import keras as nn
 from deepx.backend import T
 
@@ -44,7 +46,7 @@ keras.backend.set_session(sess)
 
 model = keras.Model(inputs=inputs, outputs=outputs)
 
-model.compile(loss=T.categorical_crossentropy,
+model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adam(),
               metrics=['accuracy'])
 history = model.fit(x_train, y_train,

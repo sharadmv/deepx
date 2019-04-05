@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 import tqdm
+import deepx.config
+deepx.config.set_backend("tensorflow")
 from tensorflow import keras
 
 from deepx import keras as layers

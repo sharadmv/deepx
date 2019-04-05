@@ -26,6 +26,8 @@ import tqdm
 
 import numpy.random as npr
 
+import deepx.config
+deepx.config.set_backend("jax")
 from deepx import nn
 from deepx.backend import T
 from jax.api import jit, grad

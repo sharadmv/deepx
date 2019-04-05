@@ -2,6 +2,8 @@ from __future__ import print_function
 import os
 import argparse
 import torch
+import deepx.config
+deepx.config.set_backend("pytorch")
 from deepx import nn
 from deepx.backend import T
 import torch.nn.functional as F
