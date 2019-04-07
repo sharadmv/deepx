@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+jupyter = "*"
+ipdb = "*"
+tqdm = "*"
+
+[packages]
+deepx = {editable = true,path = "."}
+tensorflow = "*"
+torch = {file = "https://download.pytorch.org/whl/cpu/torch-1.0.1.post2-cp36-cp36m-linux_x86_64.whl"}
+jax = "*"
+jaxlib = {editable = true,path = "/home/sharad/local/src/jax"}
+tensorflow-datasets = "*"
+tensorflow-probability = "*"

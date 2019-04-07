@@ -4,60 +4,27 @@ Used the backend initialization script from Keras. Thanks a lot to @fchollet for
 import os
 import json
 import logging
+from deepx.config import CONFIG
 
-BACKENDS = {
-    'pytorch', 'tensorflow', 'theano'
-}
+backend_name = CONFIG['backend']
 
-_deepx_dir = os.path.expanduser(os.path.join('~', '.deepx'))
-if not os.path.exists(_deepx_dir):
-    os.makedirs(_deepx_dir)
-
-DEFAULT_BACKEND = 'tensorflow'
-
-_config_path = os.path.expanduser(os.path.join('~', '.deepx', 'deepx.json'))
-if os.path.exists(_config_path):
-    _config = json.load(open(_config_path))
-    _floatx = _config.get('floatx', None)
-    assert _floatx in {'float32', 'float64'}
-    _epsilon = _config.get('epsilon', None)
-    assert type(_epsilon) == float
-    _backend = _config.get('backend', DEFAULT_BACKEND)
-    assert _backend in BACKENDS
-
-else:
-    _floatx = 'float32'
-    _epsilon = 1e-7
-    _backend = DEFAULT_BACKEND
-
-    _config = {
-        'floatx': _floatx,
-        'epsilon': _epsilon,
-        'backend': _backend
-    }
-
-    with open(_config_path, 'w') as f:
-        f.write(json.dumps(_config) + '\n')
-
-if 'DEEPX_BACKEND' in os.environ:
-    _backend = os.environ['DEEPX_BACKEND']
-    assert _backend in BACKENDS
-
-_BACKEND = _backend
 try:
-    if _BACKEND == 'theano':
-        raise Exception("Theano backend no longer supported.")
-        from .theano_backend import TheanoBackend as Backend
-    elif _BACKEND == 'tensorflow':
-        from .tensorflow import TensorflowBackend as Backend
-    elif _BACKEND == 'pytorch':
-        from .pytorch import PyTorchBackend as Backend
+    if backend_name == 'tensorflow':
+        from deepx.backend.tensorflow import TensorflowBackend as Backend
+    elif backend_name == 'theano':
+        from deepx.backend.theano_backend import TheanoBackend as Backend
+    elif backend_name == 'pytorch':
+        from deepx.backend.pytorch import PyTorchBackend as Backend
+    elif backend_name == 'jax':
+        from deepx.backend.jax import JaxBackend as Backend
     else:
-        raise Exception('Unknown backend: ' + str(_BACKEND))
+        raise Exception('Unknown backend: ' + str(backend_name))
     backend = Backend()
-    backend.set_floatx(_floatx)
-    backend.set_epsilon(_epsilon)
-    logging.info("Backend: %s", _BACKEND)
+    backend.set_floatx(CONFIG["floatx"])
+    backend.set_epsilon(CONFIG["epsilon"])
+    logging.info("Backend: %s", backend_name)
 except:
-    logging.exception("Failed importing: {backend}".format(backend=_BACKEND))
-    raise Exception('Import failed: ' + str(_BACKEND))
+    logging.exception("Failed importing: {backend}".format(backend=backend_name))
+    raise Exception('Import failed: {backend}'.format(backend=backend_name))
+
+T = backend

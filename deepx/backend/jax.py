@@ -1,30 +1,33 @@
 import copy
-import torch
+import jax.random as random
 import logging
-import numpy as np
+import jax.numpy as np
+from jax import lax
 import six
 from functools import wraps
 from contextlib import contextmanager
 
 from .backend_base import BackendBase, FunctionBase, DeviceDecorator
 
-class TorchPlaceholder(object):
-    def __init__(self, dtype, shape, device, name=None):
-        self.dtype = dtype
-        self.shape = shape
-        self.device = device
-        self.name = name
+class PRNG(object):
 
-class TorchSession(object):
-    pass
+    def __init__(self, seed):
+        key = random.PRNGKey(0)
+        self.key = key
+        self.subkey = key
+
+    def __next__(self):
+        self.key, subkey = random.split(self.key)
+        return subkey
 
 @six.add_metaclass(DeviceDecorator)
-class PyTorchBackend(BackendBase):
+class JaxBackend(BackendBase):
 
     def __init__(self, **kwargs):
-        super(PyTorchBackend, self).__init__(**kwargs)
-        self.core = torch
+        super(JaxBackend, self).__init__(**kwargs)
+        self.core = np
         self._sessions = []
+        self.rng = PRNG(0)
 
     # General purpose methods
 
@@ -33,9 +36,7 @@ class PyTorchBackend(BackendBase):
         @wraps(method)
         def func(self, *args, **kwargs):
             result = method(self, *args, **kwargs)
-            if isinstance(result, tuple):
-                return tuple(r.to(self.get_current_device()) for r in result)
-            return result.to(self.get_current_device())
+            return result
         return func
 
     def cpu(self, id=0):
@@ -46,24 +47,20 @@ class PyTorchBackend(BackendBase):
 
     @property
     def int32(self):
-        return torch.int32
+        return np.int32
 
     @property
     def float32(self):
-        return torch.float32
+        return np.float32
 
     def _placeholder(self, dtype=None, shape=None, name=None):
-        return TorchPlaceholder(dtype, shape=shape, name=name, device=self.get_current_device())
+        raise NotImplementedError
 
     def _variable(self, initial_value=None, trainable=True, name=None):
-        if isinstance(initial_value, np.ndarray):
-            initial_value = torch.from_numpy(initial_value)
-        transferred = initial_value.to(self.get_current_device())
-        transferred.requires_grad = True
-        return transferred
+        return initial_value
 
     def _device(self, name):
-        return torch.device(name)
+        raise NotImplementedError
 
     def create_session(self, **kwargs):
         raise NotImplementedError
@@ -84,10 +81,10 @@ class PyTorchBackend(BackendBase):
     # Unified interface
 
     def coerce(self, x, dtype=None):
-        return torch.tensor(x, dtype=dtype)
+        return np.array(x).astype(dtype)
 
     def cast(self, x, dtype):
-        return x.type(dtype)
+        return x.astype(dtype)
 
     def dtype(self, x):
         return x.dtype
@@ -99,36 +96,37 @@ class PyTorchBackend(BackendBase):
         return len(x.shape)
 
     def abs(self, x):
-        return x.abs()
+        return np.abs(x)
 
     def set_value(self, x, value):
         raise NotImplementedError
 
     def floatx(self, as_string=False):
         if as_string:
-            return super(PyTorchBackend, self).floatx()
-        return getattr(torch, super(PyTorchBackend, self).floatx())
+            return super(JaxBackend, self).floatx()
+        return getattr(np, super(JaxBackend, self).floatx())
 
     def zeros(self, shape, dtype=None, name=None):
         dtype = dtype or self.floatx()
         if not isinstance(shape, int):
             shape = tuple(shape)
-        return torch.zeros(shape, dtype=dtype)
+        return np.zeros(shape, dtype=dtype)
 
     def zeros_like(self, x, dtype=None, name=None):
-        return torch.zeros_like(x, dtype=dtype)
+        return np.zeros_like(x, dtype=dtype)
 
     def ones(self, shape, dtype=None, name=None):
         dtype = dtype or self.floatx()
-        return torch.ones(shape, dtype=dtype)
+        return np.ones(shape, dtype=dtype)
 
     def ones_like(self, x, dtype=None, name=None):
-        return torch.ones_like(x, dtype=dtype)
+        return np.ones_like(x, dtype=dtype)
 
     def random_normal(self, shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
         dtype = dtype or self.floatx()
         shape = list(shape)
-        return mean + stddev * torch.randn(shape, dtype=dtype)
+        seed = next(self.rng)
+        return mean + stddev * random.normal(seed, shape, dtype=dtype)
 
     def random_truncated_normal(self, shape, mean=0.0, stddev=1.0, dtype=None, seed=None):
         raise NotImplementedError
@@ -138,7 +136,8 @@ class PyTorchBackend(BackendBase):
         if maxval is None:
             minval, maxval = 0.0, minval
         shape = list(shape)
-        samples = torch.rand(shape, dtype=dtype)
+        seed = next(self.rng)
+        samples = random.uniform(seed, shape, dtype=dtype)
         return samples * (maxval - minval) + minval
 
     def random_binomial(self, shape, p=0.5, dtype=None):
@@ -148,134 +147,82 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def tanh(self, x, name=None):
-        return torch.tanh(x)
+        return np.tanh(x)
 
     def sigmoid(self, x):
-        return torch.sigmoid(x)
+        return 1 / (1 + np.exp(-x))
 
     def relu(self, x, alpha=0.):
-        return torch.relu(x)
+        return np.maximum(x, 0.)
 
     def softmax(self, x, T=1.0):
-        return torch.nn.functional.softmax(x)
+        unnormalized = np.exp(x - x.max(-1, keepdims=True))
+        return unnormalized / unnormalized.sum(-1, keepdims=True)
 
     def softplus(self, x):
-        return torch.nn.functional.softplus(x)
+        return np.logaddexp(x, 0.)
 
     def dropout(self, x, p, seed=None):
-        return torch.nn.functional.dropout(x, p, True, False)
+        seed = next(self.rng)
+        p = 1 - p
+        keep = random.bernoulli(seed, p, x.shape)
+        return np.where(keep, x / p, 0)
 
     def conv2d(self, x, kernel, strides=(1, 1), border_mode='same',
                image_shape=None, filter_shape=None):
-        x = x.permute(0, 3, 1, 2)
-        kernel = kernel.permute(3, 2, 0, 1)
-
-        input_rows = x.size(2)
-        input_cols = x.size(3)
-        filter_rows = kernel.size(2)
-        filter_cols = kernel.size(3)
-
-        out_rows = (input_rows + strides[0] - 1) // strides[0]
-        padding_rows = max(0, (out_rows - 1) * strides[0] +
-                                (filter_rows - 1) + 1 - input_rows)
-        rows_odd = (padding_rows % 2 != 0)
-        out_cols = (input_cols + strides[0] - 1) // strides[0]
-        padding_cols = max(0, (out_cols - 1) * strides[0] +
-                                (filter_cols - 1) + 1 - input_cols)
-        cols_odd = (padding_cols % 2 != 0)
-
-        x = torch.nn.functional.pad(x, [padding_cols // 2, padding_cols // 2, padding_rows // 2, padding_rows // 2])
-        if rows_odd or cols_odd:
-            x = torch.nn.functional.pad(x, [0, int(cols_odd), 0, int(rows_odd)])
-
-        x = torch.nn.functional.conv2d(x, kernel, stride=strides)
-        x = x.permute(0, 2, 3, 1)
-        return x
+        return lax.conv_general_dilated(x, kernel, strides, border_mode,
+                                    dimension_numbers=("NHWC", "HWIO", "NHWC"))
 
     def conv2d_transpose(self, x, kernel, dim_out, strides=(1, 1), border_mode='same'):
         raise NotImplementedError
 
     def pool2d(self, x, pool_size, strides=(1, 1),
                border_mode='valid', pool_mode='max'):
-        '''
-        pool_size: tuple of 2 integers.
-        strides: tuple of 2 integers.
-        border_mode: one of "valid", "same".
-        dim_ordering: one of "th", "tf".
-        '''
-        x = x.permute(0, 3, 1, 2)
-
-        input_rows = x.size(2)
-        input_cols = x.size(3)
-        filter_rows = pool_size[0]
-        filter_cols = pool_size[1]
-
-        out_rows = (input_rows + strides[0] - 1) // strides[0]
-        padding_rows = max(0, (out_rows - 1) * strides[0] +
-                                (filter_rows - 1) + 1 - input_rows)
-        rows_odd = (padding_rows % 2 != 0)
-        out_cols = (input_cols + strides[0] - 1) // strides[0]
-        padding_cols = max(0, (out_cols - 1) * strides[0] +
-                                (filter_cols - 1) + 1 - input_cols)
-        cols_odd = (padding_cols % 2 != 0)
-
-        if rows_odd or cols_odd:
-            x = torch.nn.functional.pad(x, [0, int(cols_odd), 0, int(rows_odd)])
-
-        if pool_mode == 'max':
-            x = torch.nn.functional.max_pool2d(x, pool_size, stride=strides)
-        elif pool_mode == 'avg':
-            x = torch.nn.functional.avg_pool2d(x, pool_size, stride=strides)
-        else:
-            raise NotImplementedError
-        x = x.permute(0, 2, 3, 1)
-        return x
-
+        dims = (1,) + pool_size + (1,)
+        strides = (1,) + strides + (1,)
+        return lax.reduce_window(x, -np.inf, lax.max, dims, strides, border_mode)
 
     def flatten(self, x, leading=1):
         raise NotImplementedError
 
-    def split(self, x, num_splits, axis=-1):
-        split_size = x.shape[axis] // 2
-        return torch.split(x, split_size, dim=axis)
+    def split(self, x, num_splits, axis=None):
+        raise NotImplementedError
 
     def reshape(self, x, shape):
         if not isinstance(x, int):
             shape = tuple(shape)
         shape = tuple(-1 if s is None else s for s in shape)
-        return x.reshape(shape)
+        return np.reshape(x, tuple(map(int, shape)))
 
     def sum(self, x, axis=None, keepdims=False):
-        return x.sum(dim=axis, keepdim=keepdims)
+        return np.sum(x, dim=axis, keepdim=keepdims)
 
     def prod(self, x, axis=None, keepdims=False):
-        return x.prod(dim=axis, keepdim=keepdims)
+        return np.prod(x, dim=axis, keepdim=keepdims)
 
     def mean(self, x, axis=None, keepdims=False):
-        if axis is None:
-            return x.mean()
-        return x.mean(dim=axis, keepdim=keepdims)
+        return np.mean(x, dim=axis, keepdim=keepdims)
 
     def batch_norm(self, x, beta, gamma):
         raise NotImplementedError
 
     def log(self, x):
-        return torch.log(x)
+        return np.log(x)
 
     def log1p(self, x):
-        return torch.log1p(x)
+        return np.log1p(x)
 
     def exp(self, x):
-        return torch.exp(x)
+        return np.exp(x)
 
     def pow(self, x, a):
-        return torch.pow(x, a)
+        return np.pow(x, a)
 
     def mul(self, x, y):
-        return torch.mul(x, y)
+        return np.mul(x, y)
 
     def sqrt(self, x):
-        return torch.sqrt(x)
+        return np.sqrt(x)
 
     def categorical_crossentropy(self, output, target, from_logits=False):
         if from_logits:
@@ -288,7 +235,8 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def concatenate(self, tensors, axis=-1):
-        return torch.cat(tensors, dim=axis)
+        values = [self.coerce(v, dtype=self.floatx()) for v in tensors]
+        return np.concatenate(values, axis=int(axis))
 
     def sort(self, tensor, axis=-1):
         return tensor.sort(dim=axis)
@@ -310,14 +258,14 @@ class PyTorchBackend(BackendBase):
 
     def logdet(self, A, **kwargs):
         A = (A + self.matrix_transpose(A)) / 2.
-        term = torch.log(torch.diag(self.cholesky(A, **kwargs)))
-        return 2 * term.sum(dim=-1)
+        term = np.log(np.diag(self.cholesky(A, **kwargs)))
+        return 2 * np.sum(term, axis=-1)
 
     def einsum(self, subscripts, *operands):
-        return torch.einsum(subscripts, operands)
+        return np.einsum(subscripts, operands)
 
     def cholesky(self, A, lower=True, warn=False, correct=True):
-        return torch.potrf(A, upper=not lower)
+        return np.linalg.cholesky(A)
 
     # Tensorflow interface
 
@@ -331,10 +279,10 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def to_float(self, x):
-        return torch.tensor(x).type(self.floatx())
+        return np.array(x, dtype=self.floatx())
 
     def constant(self, value, dtype=None, shape=None):
-        return torch.from_numpy(np.array(value))
+        return np.array(value).astype(dtype)
 
     def get_shape(self, x):
         return list(x.shape)
@@ -343,17 +291,16 @@ class PyTorchBackend(BackendBase):
         return variable.numpy()
 
     def concat(self, values, axis=-1):
-        values = [self.coerce(v, dtype=self.floatx()) for v in values]
-        return torch.cat(values, dim=axis)
+        return self.concatenate(values, axis=axis)
 
     def gather(self, params, indices):
-        return torch.gather(params, indices)
+        return params[indices]
 
     def gather_nd(self, params, indices):
         raise NotImplementedError
 
     def equal(self, x, y):
-        return torch.equal(x, y)
+        return np.equal(x, y)
 
     def logical_and(self, x, y):
         return x and y
@@ -363,26 +310,19 @@ class PyTorchBackend(BackendBase):
             a = self.matrix_transpose(a)
         if transpose_b:
             b = self.matrix_transpose(b)
-        return torch.matmul(a, b)
+        return np.matmul(a, b)
 
     def trace(self, a):
-        return torch.trace(a)
+        return np.trace(a)
 
     def transpose(self, a, perm=None):
         return a.permute(*perm)
 
     def matrix_transpose(self, a):
-        return torch.transpose(a, -1, -2)
+        return np.swapaxes(a, -1, -2)
 
-    def matrix_diag(self, diagonal):
-        N = diagonal.shape[-1]
-        shape = diagonal.shape[:-1] + (N, N)
-        device, dtype = diagonal.device, diagonal.dtype
-        result = torch.zeros(shape, dtype=dtype, device=device)
-        indices = torch.arange(result.numel(), device=device).reshape(shape)
-        indices = indices.diagonal(dim1=-2, dim2=-1)
-        result.view(-1)[indices] = diagonal
-        return result
+    def matrix_diag(self, a):
+        raise NotImplementedError
 
     def matrix_diag_part(self, a):
         raise NotImplementedError
@@ -455,38 +395,28 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def matrix_inverse(self, a):
-        return a.inverse()
+        return np.linalg.inv(a)
 
     def expand_dims(self, x, dim=-1):
-        return x.unsqueeze(dim)
+        return np.expand_dims(x, dim=dim)
 
     def tile(self, input, multiples):
-        return input.repeat(*map(int, multiples.numpy()))
+        return np.tile(input, multiples)
 
     def gradients(self, loss, variables):
-        solo = False
-        if not isinstance(variables, list):
-            solo = True
-        if solo:
-            variables = [variables]
-        [v.grad.zero_() if v.grad is not None else None for v in variables]
-        loss.backward()
-        result = [v.grad for v in variables]
-        if solo:
-            return result[0]
-        return result
+        raise NotImplementedError("Please use `jax.grad`")
 
     def square(self, x):
-        return torch.pow(x, 2)
+        return np.pow(x, 2)
 
     def clip_by_value(self, x, low, high):
         return x.clamp(low, high)
 
     def stack(self, values, axis=0, name='stack'):
-        return torch.stack(values, dim=axis)
+        return np.stack(values, dim=axis)
 
     def unstack(self, values, num=None, axis=0):
-        return torch.unbind(values, dim=axis)
+        return np.unstack(values, dim=axis)
 
     def pack(self, *args, **kwargs):
         return self.stack(*args, **kwargs)
@@ -495,14 +425,13 @@ class PyTorchBackend(BackendBase):
         return self.unstack(*args, **kwargs)
 
     def reduce_max(self, x, axis=None, keepdims=False):
-        return x.max(dim=axis, keepdim=keepdims)
+        return np.max(x, axis=axis, keepdim=keepdims)
 
     def reduce_logsumexp(self, x, axis=None, keepdims=False):
         raise NotImplementedError
 
     def matrix_solve(self, matrix, rhs, adjoint=None):
-        import ipdb; ipdb.set_trace()
-        return torch.gesv(rhs, matrix)[0]
+        return np.linalg.solve(matrix, rhs)
 
     # Theano interface
 
@@ -539,7 +468,7 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def dot(self, x, y):
-        return x.mm(y)
+        return np.dot(x, y)
 
     def outer(self, x, y):
         if len(self.get_shape(x)) == 0:
@@ -547,7 +476,7 @@ class PyTorchBackend(BackendBase):
         return x[...,:,None] * y[...,None,:]
 
     def eye(self, d, batch_shape=None):
-        out = torch.eye(d)
+        out = np.eye(d)
         if batch_shape is not None:
             for _ in batch_shape:
                 out = out[None]
@@ -579,7 +508,7 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def range(self, start, limit=None, delta=1):
-        return torch.arange(start, limit, step=delta)
+        return np.arange(start, limit, step=delta)
 
     def solve(self, a, b):
         return self.matrix_solve(a, b)

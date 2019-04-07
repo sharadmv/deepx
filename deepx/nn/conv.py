@@ -1,10 +1,9 @@
 import math
-
 import numpy as np
 
-from .. import T
-from ..layer import Layer
-from .full import Relu
+from deepx.backend import T
+from deepx.core import Layer
+from deepx.nn.activations import Relu
 
 class Convolution(Layer):
 
@@ -15,12 +14,7 @@ class Convolution(Layer):
         self.strides = strides
         self.in_channels = None
         self.dim_in = self.dim_out = None
-
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
+        self.initialized = False
 
     def initialize(self):
         kernel_height, kernel_width, out_channels = self.kernel
@@ -28,11 +22,14 @@ class Convolution(Layer):
         self.create_parameter('b', [out_channels])
 
     def is_initialized(self):
-        return not (self.dim_in is None or self.dim_out is None)
+        return self.initialized
 
-    def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = shape[-3:]
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        if shape_in is None: return
+        assert len(shape_in) == 1
+        shape_in = shape_in[0]
+        self.dim_in = shape_in[-3:]
         self.in_channels = self.dim_in[-1]
         kernel_height, kernel_width, out_channels = self.kernel
         in_height, in_width = self.dim_in[:2]
@@ -45,13 +42,17 @@ class Convolution(Layer):
         else:
             raise Exception("Border mode must be {same, valid}.")
         self.dim_out = [out_height, out_width, out_channels]
+        self.set_shape_out([shape_in[:-3] + self.dim_out])
+        if not self.is_initialized():
+            self.initialize()
+            self.initialized = True
 
-    def forward(self, X, **kwargs):
-        W, b = self.get_parameter_list('W', 'b')
+    def _forward(self, X, params=None):
+        W, b = self.get_parameter_list("W", "b", params=params)
         return (T.conv2d(X, W, border_mode=self.border_mode, strides=self.strides)
                 + b[None, None, None])
 
-    def __str__(self):
+    def __repr__(self):
         return "Convolution(%s, %s)" % (self.dim_in, self.dim_out)
 
 class Pool(Layer):
@@ -63,12 +64,7 @@ class Pool(Layer):
         self.pool_type = pool_type
         self.border_mode = border_mode
         self.dim_in = self.dim_out = None
-
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
+        self.initialized = False
 
     def initialize(self):
         pass
@@ -76,9 +72,12 @@ class Pool(Layer):
     def is_initialized(self):
         return True
 
-    def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = shape[-3:]
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        if shape_in is None: return
+        assert len(shape_in) == 1
+        shape_in = shape_in[0]
+        self.dim_in = shape_in[-3:]
         kernel_height, kernel_width = self.kernel
         in_height, in_width = self.dim_in[:2]
         if self.border_mode == 'same':
@@ -90,11 +89,15 @@ class Pool(Layer):
         else:
             raise Exception("Border mode must be {same, valid}.")
         self.dim_out = [out_height, out_width, self.dim_in[-1]]
+        self.set_shape_out([shape_in[:-3] + self.dim_out])
+        if not self.is_initialized():
+            self.initialize()
+            self.initialized = True
 
-    def forward(self, X, **kwargs):
+    def _forward(self, X, **kwargs):
         return T.pool2d(X, self.kernel, strides=self.strides, border_mode=self.border_mode)
 
-    def __str__(self):
+    def __repr__(self):
         return "Pool(%s, %s)" % (self.dim_in, self.dim_out)
 
 class Deconvolution(Layer):
@@ -106,12 +109,7 @@ class Deconvolution(Layer):
         self.strides = strides
         self.in_channels = None
         self.dim_in = self.dim_out = None
-
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
+        self.initialized = False
 
     def initialize(self):
         kernel_height, kernel_width, out_channels = self.kernel
@@ -121,9 +119,12 @@ class Deconvolution(Layer):
     def is_initialized(self):
         return not (self.dim_in is None or self.dim_out is None)
 
-    def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = shape[-3:]
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        if shape_in is None: return
+        assert len(shape_in) == 1
+        shape_in = shape_in[0]
+        self.dim_in = shape_in[-3:]
         self.in_channels = self.dim_in[-1]
         kernel_height, kernel_width, out_channels = self.kernel
         in_height, in_width = self.dim_in[:2]
@@ -135,27 +136,27 @@ class Deconvolution(Layer):
         else:
             raise Exception("Border mode must be {same, valid}.")
         self.dim_out = [out_height, out_width, out_channels]
+        self.set_shape_out([shape_in[:-3] + self.dim_out])
+        if not self.is_initialized():
+            self.initialize()
+            self.initialized = True
 
-    def forward(self, X, **kwargs):
-        W, b = self.get_parameter_list('W', 'b')
+    def _forward(self, X, params=None):
+        W, b = self.get_parameter_list("W", "b", params=params)
         result = (T.conv2d_transpose(X, W, self.dim_out, border_mode=self.border_mode, strides=self.strides)
                 + b[None, None, None])
         return result
 
-    def __str__(self):
+    def __repr__(self):
         return "Deconvolution(%s, %s)" % (self.dim_in, self.dim_out)
 
 class SpatialSoftmax(Layer):
+
     def __init__(self):
         super(SpatialSoftmax, self).__init__()
-        self.dim_in = self.dim_out = None
         self.x_map = self.y_map = None
-
-    def get_dim_in(self):
-        return self.dim_in
-
-    def get_dim_out(self):
-        return self.dim_out
+        self.dim_in = self.dim_out = None
+        self.initialized = False
 
     def initialize(self):
         h, w = self.in_height, self.in_width
@@ -178,12 +179,19 @@ class SpatialSoftmax(Layer):
         state.pop('y_map')
         return state
 
-    def infer_shape(self, shape):
-        if shape is None: return
-        self.dim_in = self.in_height, self.in_width, self.in_channels = shape[-3:]
+    def shape_inference(self):
+        shape_in = self.get_shape_in()
+        if shape_in is None: return
+        assert len(shape_in) == 1
+        shape_in = shape_in[0]
+        self.dim_in = self.in_height, self.in_width, self.in_channels = shape_in[-3:]
         self.dim_out = [self.in_channels * 2]
+        self.set_shape_out([shape_in[:-3] + self.dim_out])
+        if not self.is_initialized():
+            self.initialize()
+            self.initialized = True
 
-    def forward(self, X, **kwargs):
+    def _forward(self, X):
         h, w, c = self.in_height, self.in_width, self.in_channels
         features = T.reshape(T.transpose(X, perm=[0, 3, 1, 2]), [-1, h * w])
         softmax = T.softmax(features)
@@ -191,9 +199,8 @@ class SpatialSoftmax(Layer):
         fp_y = T.sum(T.mul(self.y_map, softmax), axis=[1], keepdims=True)
         return T.reshape(T.concat([fp_x, fp_y], axis=1), [-1, c * 2])
 
-    def __str__(self):
+    def __repr__(self):
         return "Spatial(%s, %s)" % (self.dim_in, self.dim_out)
-
 
 def Conv(conv_kernel, pool_kernel=(2, 2), pool_strides=(2, 2), border_mode='same', pool_type='max', activation=Relu):
     return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> Pool(kernel=pool_kernel, strides=pool_strides)
@@ -203,4 +210,3 @@ def Deconv(deconv_kernel, border_mode='same', strides=(2, 2), activation=Relu):
 
 def SpatialConv(conv_kernel, pool_kernel=(2, 2), pool_strides=(2, 2), border_mode='same', pool_type='max', activation=Relu):
     return Convolution(conv_kernel, border_mode=border_mode) >> activation() >> SpatialSoftmax()
-

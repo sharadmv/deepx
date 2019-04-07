@@ -1,16 +1,13 @@
-# from ..core import HOF
-from ..ops import Identity
+from functools import reduce
+import copy
 
-def residualize(nodes):
-    node, transform = nodes
-    return node + transform
+from deepx.core import Unary, Op
 
-def Residual(node):
-    dim_in, dim_out = node.get_dim_in(), node.get_dim_out()
-    assert dim_in != None and dim_out != None
-    if dim_in != dim_out:
-        from ..nn import Linear
-        return node + Linear(dim_in, dim_out)
-    return node + Identity()
+class Residual(Unary):
 
-# Residual = HOF(lambda a, b: (a >> b) + a)
+    def combinator(self, inputs, outputs):
+        return [a + b for a, b in zip(inputs, outputs)]
+
+def Repeat(op, num_repeats):
+    ops = [copy.deepcopy(op) for _ in range(num_repeats)]
+    return reduce(lambda a, b: a >> b, ops)

@@ -71,15 +71,16 @@ class TensorflowBackend(BackendBase):
         return tf.device(name)
 
     def create_session(self, graph=None, **kwargs):
+        allow_growth = kwargs.pop('allow_growth', False)
         config_proto = tf.ConfigProto(**kwargs)
+        config_proto.gpu_options.allow_growth = allow_growth
         sess = tf.Session(graph=graph, config=config_proto)
         self._initialize(sess)
         return sess
 
     @contextmanager
-    def session(self, graph=None, **kwargs):
-        config_proto = tf.ConfigProto(**kwargs)
-        with tf.Session(graph=graph, config=config_proto) as sess:
+    def session(self, **kwargs):
+        with self.create_session(**kwargs) as sess:
             self._sessions.append(sess)
             self._initialize(sess)
             yield sess
@@ -193,13 +194,14 @@ class TensorflowBackend(BackendBase):
         else:
             raise Exception('Invalid border mode: ' + str(border_mode))
 
-        strides = (1,) + strides + (1,)
+        # strides =  strides# + (1,)
 
         if self.floatx() == 'float64':
             x = tf.cast(x, 'float32')
             kernel = tf.cast(kernel, 'float32')
 
-        x = tf.nn.conv2d(x, kernel, strides, padding=padding)
+        x = tf.nn.convolution(input=x, filter=kernel, strides=strides, padding=padding,
+                              data_format='NHWC')
 
         if self.floatx() == 'float64':
             x = tf.cast(x, 'float64')
@@ -311,17 +313,15 @@ class TensorflowBackend(BackendBase):
                              tf.cast(np.inf, dtype=self.floatx()))
         return tf.sqrt(x)
 
-    def categorical_crossentropy(self, output, target, from_logits=False):
+    def categorical_crossentropy(self, output, target, from_logits=False, axis=-1):
         if not from_logits:
-            output /= tf.reduce_sum(output,
-                                    axis=len(output.get_shape())-1,
-                                    keepdims=True)
-            output = tf.clip_by_value(output, tf.cast(self.epsilon(), dtype=self.floatx()),
-                                    tf.cast(1.- self.epsilon(), dtype=self.floatx()))
-            return - tf.reduce_sum(target * tf.log(output),
-                                   axis=len(output.get_shape()) - 1)
+            # scale preds so that the class probas of each sample sum to 1
+            output = output / tf.reduce_sum(output, axis, True)
+            # manual computation of crossentropy
+            output = tf.clip_by_value(output, self.epsilon(), 1. - self.epsilon())
+            return -tf.reduce_sum(target * tf.log(output), axis)
         else:
-            return tf.nn.softmax_cross_entropy_with_logits(logits=output, labels=target)
+            return tf.nn.softmax_cross_entropy_with_logits_v2(logits=output, labels=target)
 
     def binary_crossentropy(self, output, target, from_logits=False):
         if from_logits:
@@ -475,11 +475,6 @@ class TensorflowBackend(BackendBase):
         ], 0)))
 
     def kronecker(self, A, B):
-        # try:
-            # import kfac
-            # return kfac.utils.kronecker_product(A, B)
-        # except ModuleNotFoundError:
-            # raise Exception("Can't import kfac")
         C = (A[..., None, None] * B[..., None, None, :, :])
         blocks = [
             tf.unstack(a, axis=-3 % len(a.shape)) for a in
@@ -607,9 +602,6 @@ class TensorflowBackend(BackendBase):
 
     def eye(self, d, batch_shape=None):
         return tf.eye(d, batch_shape=batch_shape)
-        if not (isinstance(d, list) or isinstance(d, tuple)):
-            d = [d]
-        return tf.diag(tf.ones(d))
 
     def function(self, inputs, outputs, updates=[]):
         return TensorflowFunction(self, inputs, outputs, updates)

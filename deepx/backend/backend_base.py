@@ -36,14 +36,24 @@ class BackendBase(object):
     def __init__(self, use_cudnn=True):
         self._FLOATX = 'float32'
         self._EPSILON = 10e-8
-        self._DEFAULT_DEVICE = self.cpu(0)
+        self._DEFAULT_DEVICE = self.gpu()
         self._DEFAULT_INITIALIZATION = 'glorot_uniform'
         self._device_stack = []
         self._initialization_stack = []
         self._initialized = False
         self.use_cudnn = use_cudnn
+        self.contexts = set()
 
     # Global functions
+
+    @contextmanager
+    def context(self, context_name):
+        self.contexts.add(context_name)
+        yield
+        self.contexts.remove(context_name)
+
+    def get_context(self, context_name):
+        return context_name in self.contexts
 
     def epsilon(self):
         return self._EPSILON

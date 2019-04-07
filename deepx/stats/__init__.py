@@ -1,15 +1,9 @@
-from .dirichlet import Dirichlet
-from .niw import NIW
-from .gaussian import Gaussian
-from .gaussian_diag import GaussianScaleDiag
-from .categorical import Categorical
-from .bernoulli import Bernoulli
-from .mniw import MNIW
-from .mn import MN
-from .iw import IW
-from .gumbel import Gumbel
-from .exponential import Exponential
-from .gamma import Gamma
-from .lds import LDS
-from .common import Distribution
-from .util import kl_divergence
+import deepx.config as _config
+
+_backend = _config.get_backend()
+if _backend == 'tensorflow':
+    from deepx.stats.tensorflow import *
+elif _backend == 'pytorch':
+    from deepx.stats.pytorch import *
+elif _backend == 'jax':
+    from deepx.stats.jax import *
