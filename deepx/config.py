@@ -23,3 +23,6 @@ CONFIG['backend'] = os.environ.get("DEEPX_BACKEND", CONFIG["backend"])
 
 def set_backend(backend_name):
     CONFIG['backend'] = backend_name
+
+def get_backend():
+    return CONFIG['backend']

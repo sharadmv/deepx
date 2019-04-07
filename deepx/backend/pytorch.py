@@ -33,6 +33,8 @@ class PyTorchBackend(BackendBase):
         @wraps(method)
         def func(self, *args, **kwargs):
             result = method(self, *args, **kwargs)
+            if isinstance(result, tuple):
+                return tuple(r.to(self.get_current_device()) for r in result)
             return result.to(self.get_current_device())
         return func
 
@@ -233,8 +235,9 @@ class PyTorchBackend(BackendBase):
     def flatten(self, x, leading=1):
         raise NotImplementedError
 
-    def split(self, x, num_splits, axis=None):
-        raise NotImplementedError
+    def split(self, x, num_splits, axis=-1):
+        split_size = x.shape[axis] // 2
+        return torch.split(x, split_size, dim=axis)
 
     def reshape(self, x, shape):
         if not isinstance(x, int):
@@ -243,13 +246,15 @@ class PyTorchBackend(BackendBase):
         return x.reshape(shape)
 
     def sum(self, x, axis=None, keepdims=False):
-        return inputs.sum(dim=axis, keepdim=keepdims)
+        return x.sum(dim=axis, keepdim=keepdims)
 
     def prod(self, x, axis=None, keepdims=False):
-        return inputs.prod(dim=axis, keepdim=keepdims)
+        return x.prod(dim=axis, keepdim=keepdims)
 
     def mean(self, x, axis=None, keepdims=False):
-        return inputs.mean(dim=axis, keepdim=keepdims)
+        if axis is None:
+            return x.mean()
+        return x.mean(dim=axis, keepdim=keepdims)
 
     def batch_norm(self, x, beta, gamma):
         raise NotImplementedError
@@ -369,8 +374,15 @@ class PyTorchBackend(BackendBase):
     def matrix_transpose(self, a):
         return torch.transpose(a, -1, -2)
 
-    def matrix_diag(self, a):
-        raise NotImplementedError
+    def matrix_diag(self, diagonal):
+        N = diagonal.shape[-1]
+        shape = diagonal.shape[:-1] + (N, N)
+        device, dtype = diagonal.device, diagonal.dtype
+        result = torch.zeros(shape, dtype=dtype, device=device)
+        indices = torch.arange(result.numel(), device=device).reshape(shape)
+        indices = indices.diagonal(dim1=-2, dim2=-1)
+        result.view(-1)[indices] = diagonal
+        return result
 
     def matrix_diag_part(self, a):
         raise NotImplementedError

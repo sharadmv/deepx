@@ -28,7 +28,7 @@ class Op(object):
 
     def create_parameter(self, name, dims, initial_value=None):
         if initial_value is None:
-            value = T.random_normal(dims)
+            value = T.random_normal(dims) * 0.01
         else:
             value = initial_value
         self.set_parameter(name, T.variable(value))
