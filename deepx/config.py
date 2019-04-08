@@ -22,7 +22,17 @@ else:
 CONFIG['backend'] = os.environ.get("DEEPX_BACKEND", CONFIG["backend"])
 
 def set_backend(backend_name):
+    """Sets the DeepX backend.
+
+    This only works if it's the first thing
+    you do when using DeepX.
+
+    Args:
+        backend_name (str): one of "tensorflow", "pytorch" or "jax"
+    """
     CONFIG['backend'] = backend_name
 
 def get_backend():
+    """Returns the current DeepX backend
+    """
     return CONFIG['backend']

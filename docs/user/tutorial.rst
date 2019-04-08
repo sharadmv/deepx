@@ -3,19 +3,18 @@
 Tutorial
 =================
 The main element of DeepX's shorthand
-is the chain operator, `>>`.
-The chain operator takes two
+is the compose operator, :code:`>>`.
+The compose operator takes two
 networks
 and connects the output of
 one into the inputs of the other.
 
 For example, take
-two example networks `A` and `B`.
-Chain acts as a composition
-operator, so `A >> B` would be
+two example networks :code:`A` and :code:`B`.
+:code:`A >> B` would be
 a new neural network, whose input
-first passes through `A` and then
-through `B`.
+first passes through :code:`A` and then
+through :code:`B`.
 
 In DeepX, everything can be
 seen as a "network",
@@ -24,220 +23,118 @@ or deeper networks is just a
 series of compositions of
 smaller networks.
 
-Example Networks (`deepx.nn`)
--------------------------------
+Example Networks
+--------------------------------------
 DeepX is declarative,
 so it's probably easiest
 to learn by example.
 
-For starters, you can import networks
-by just running `from deepx.nn import *`.
+For starters, you can import layers
+by running :code:`from deepx import nn`.
 
 #. A multilayer perceptron that classifies MNIST.
 
     .. code-block:: python
 
-        mlp = Vector(784) >> Tanh(200) >> Tanh(200) >> Softmax(10)
+        network = nn.Relu(784, 200) >> nn.Relu(200) >> nn.Softmax(10)
 
 
-    DeepX provides functions that can help compress
-    your neural network description, while keeping it as readable.
-    An equivalent network is:
+   DeepX provides functions that can help compress
+   your neural network description, while keeping it as readable.
+   An equivalent network is:
 
     .. code-block:: python
 
-        mlp = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10)
+        network = nn.Repeat(nn.Relu(200), 2) >> nn.Softmax(10)
 
 #. A convolutional neural network that classifies MNIST.
 
     .. code-block:: python
 
-        convnet = Image((1, 28, 28)) >> Conv((10, 2, 2)) >> Conv((20, 2, 2)) >> Flatten() >> Softmax(10)
+        network = (
+            nn.Reshape([28, 28, 1])
+            >> nn.Repeat(nn.Convolution([5, 5, 64]) >> nn.Relu() >> nn.Pool(), 2)
+            >> nn.Flatten() >> nn.Repeat(nn.Relu(200), 2) >> nn.Softmax(10)
+        )
 
-    In DeepX, the `Conv` network is just shorthand
-    for a `Convolution` followed by an activation function (`Relu`),
-    and then a `Pool`.
-
-    .. code-block:: python
-
-        >>> Image((1, 28, 28)) >> Conv((10, 2, 2))
-        Image((1, 28, 28)) >> Convolution((1, 28, 28), (10, 28, 28)) >> Relu() >> Pool((10, 28, 28), (10, 14, 14))
-
-
-#. A network that concatenates two vectors.
+    In DeepX, :code:`Conv` is syntactic
+    for a :code:`Convolution` followed by an activation function (by default :code:`Relu`),
+    and then a :code:`Pool`, so we can further compress this definition.
 
     .. code-block:: python
 
-        network = (Vector(5), Vector(5)) >> Concatenate()
-
-    An alternate way of writing this using operator overloading is
-
-    .. code-block:: python
-
-        network = Vector(5) | Vector(5)
-
-#. A network that adds two vectors.
-
-    .. code-block:: python
-
-        network = (Vector(5), Vector(5)) >> Add()
-
-    An alternate way of writing this using operator overloading is
-
-    .. code-block:: python
-
-        network = Vector(5) + Vector(5)
-
-#. Chain a network to several networks.
-
-    .. code-block:: python
-
-        input = Vector(10)
-        net1, net2 = Repeat(Tanh(5), 2), Repeat(Relu(5), 2)
-        outputs = input >> (net1, net2)
+        network = (
+            nn.Reshape([28, 28, 1])
+            >> nn.Repeat(nn.Conv([5, 5, 64]), 2)
+            >> nn.Flatten() >> nn.Repeat(nn.Relu(200), 2) >> nn.Softmax(10)
+        )
 
 #. A network with dropout.
 
     .. code-block:: python
 
-        network = Vector(784) >> Tanh(200) >> Dropout(0.5) >> Tanh(200) >> Dropout(0.5) >> Softmax(10)
+        network = nn.Tanh(200) >> nn.Dropout(0.5) >> nn.Tanh(200) >> nn.Dropout(0.5) >> nn.Softmax(10)
 
     or equivalently:
 
     .. code-block:: python
 
-        network = Vector(784) >> Repeat(Tanh(200) >> Dropout(0.5), 2) >> Softmax(10)
-        
-#. A recurrent neural network (LSTM).
+        network = nn.Repeat(nn.Tanh(200) >> nn.Dropout(0.5), 2) >> nn.Softmax(10)
 
-    .. code-block:: python
-
-        network = Sequence(Vector(20)) >> LSTM(10) >> LSTM(10)
-To get details about the networks in DeepX,
+To get details about the layers offered by DeepX,
 please refer to the API docs.
 
-Running a network
--------------------
-Given a network, we need to define a session (a la Tensorflow)
-to actually utilize it. 
-Entering a sesssion
-will instantiate weight matrices
-and assign the parameters to devices.
-Doing a forward pass
-of the network is just as simple
-as calling it on a numpy array.
-
-.. code-block:: python
-
-    network = Vector(10) >> Tanh(5) >> Sigmoid(1)
-    with T.session():
-        data = np.ones((1, 10))
-        predictions = network(data)
-
-
-Minimizing loss functions (`deepx.loss`, `deepx.optimize`)
--------------------------------------------------------------
-
-After creating a network definition,
-we generally aim to minimize some
-loss function over a dataset.
-
-In classification, a common loss function to use
-is cross entropy.
-
-.. code-block:: python
-
-    mlp = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10)
-    loss = mlp >> CrossEntropy()
-
-Loss functions are treated as nodes in a network
-that output scalar values. The one difference
-between a loss function and a normal
-neural network layer is that a loss function
-typically accepts two inputs: the network output
-and a set of targets.
-
-In DeepX by default, adding
-a loss function
-will implicitly add an input
-for the targets.
-However, you can also explictly pass
-in a target node.
-
-.. code-block:: python
-
-    input = Vector(784)
-    output = input >> Repeat(Tanh(200), 2) >> Softmax(10)
-    target = Vector(10)
-    loss = (output, target) >> CrossEntropy()
-
-Note that the chain operator allows
-multiple inputs to a node.
-
-Finally, after we have a network
-that produces a loss,
-we can optimize.
-
-.. code-block:: python
-
-    loss = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10) >> CrossEntropy()
-    optimizer = SGD(loss)
-    with T.session():
-        optimizer.train(X_train, y_train, learning_rate)
-
-Since loss functions are just
-networks in DeepX, we can compose
-them with the chain operator.
-
-.. code-block:: python
-
-    network = Vector(784) >> Repeat(Tanh(200), 2) >> Softmax(10)
-    loss1, loss2 = network >> CrossEntropy(), network >> MSE()
-    loss = (loss1, loss2) >> Add() # same as loss1 + loss2
-    optimizer = SGD(loss)
-
-Working with Theano and Tensorflow
+Working with backends
 -------------------------------------
 
-DeepX eventually turns a network into a
-symbolic graph expression.
+DeepX is backend agnostic, but you need
+to set the backend globally before
+creating the network, so it knows
+which library's functions to call.
 Currently, DeepX supports
-Theano and Tensorflow symbolic graph
-backends, making it simple to run a
-network on a GPU.
+Tensorflow (both graph and eager),
+Pytorch, and Jax. 
 
-To choose a backend, you can
-either set the environment variable
-`DEEPX_BACKEND` to one of `tensorflow`
-or `theano`, or edit `~/.deepx/deepx.json`.
+To choose a backend, 
+you have several options, each which takes
+priority over the next.
 
-To obtain the backend graph
-expressions, you can say:
+#. You can use :code:`deepx.config` to set the 
+   backend before actually using any other 
+   parts of DeepX. Specifically, you can do
 
-.. code-block:: python
+   .. code-block:: python
 
-    network = Vector(10) >> Tanh(5)
-    backend_outputs = network.get_graph_outputs()
+         import deepx.config
+         deepx.config.set_backend("<tensorflow|pytorch|jax>")
 
-`get_graph_outputs()` returns a list of
-of the backend expressions for a network,
-since nodes are multiple input/output.
+
+#. You can set set the environment variable
+   :code:`DEEPX_BACKEND` to :code:`tensorflow`
+   :code:`pytorch`, or :code:`jax`
+
+
+#. DeepX generates a config file :code:`~/.deepx/deepx.json`,
+   which you can edit.
 
 Multiple GPU support
 -----------------------
 
-.. _Tensorflow: https://www.tensorflow.org/versions/r0.10/how_tos/using_gpu/index.html
+.. _Tensorflow: https://www.tensorflow.org/guide/using_gpu
 
-DeepX borrows the `Tensorflow`_ syntax of
-selecting devices to store network outputs.
+DeepX borrows the `Tensorflow`_ style of
+selecting devices to store network outputs,
+specifically using :code:`with` statements.
 
 .. code-block:: python
 
-    with T.device('/cpu:0'):
-        input = Vector(784)
+    with T.device(T.cpu()):
+        y_cpu = network(x)
 
-    with T.device('/gpu:0'):
-        output = input >> Tanh(200)
+    with T.device(T.gpu(0)):
+        y_gpu = network(x)
 
-This notation works with both
-Theano and Tensorflow.
+:code:`y_cpu` lives on CPU
+and :code:`y_gpu` lives on GPU 0.
+This syntax works for Tensorflow and Pytorch
+but isn't yet supported for Jax.

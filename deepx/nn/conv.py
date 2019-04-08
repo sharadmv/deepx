@@ -6,8 +6,21 @@ from deepx.core import Layer
 from deepx.nn.activations import Relu
 
 class Convolution(Layer):
+    """A layer that performs 2D convolution.
+    """
 
-    def __init__(self, kernel=(1, 2, 2), border_mode='same', strides=(1, 1)):
+    def __init__(self, kernel, border_mode='same', strides=(1, 1)):
+        """
+        Parameters:
+        ---------------
+        kernel: :obj:`tuple` of :obj:`int`
+            A tuple (output_channels, kernel_width, kernel_height)
+        border_mode: str
+            One of :obj:`same:` or :obj:`valid`
+        strides: :obj:`tuple` of :obj:`int`
+            A tuple (strides_row, strides_column) that describes
+            the stride sizes of the convolution
+        """
         super(Convolution, self).__init__()
         self.kernel = kernel
         self.border_mode = border_mode

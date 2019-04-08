@@ -2,6 +2,8 @@ from deepx.backend import T
 from deepx.core import ShapedLayer
 
 class Linear(ShapedLayer):
+    """A layer that performs matrix multiply and bias add.
+    """
 
     def initialize(self):
         dim_in, dim_out = self.get_dim_in()[-1], self.get_dim_out()[-1]

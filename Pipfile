@@ -7,6 +7,10 @@ verify_ssl = true
 jupyter = "*"
 ipdb = "*"
 tqdm = "*"
+sphinx = "*"
+solar-theme = "*"
+recommonmark = "*"
+sphinx-rtd-theme = "*"
 
 [packages]
 deepx = {editable = true,path = "."}

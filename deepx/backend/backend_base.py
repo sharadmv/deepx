@@ -30,12 +30,12 @@ class BackendBase(object):
     """
     Base class for DeepX backends.
     Outlines the methods and signatures for a general set of methods
-    used in building and utilizing symbolic graphs.
+    used for neural networks.
     """
 
     def __init__(self, use_cudnn=True):
         self._FLOATX = 'float32'
-        self._EPSILON = 10e-8
+        self._EPSILON = 10e-7
         self._DEFAULT_DEVICE = self.gpu()
         self._DEFAULT_INITIALIZATION = 'glorot_uniform'
         self._device_stack = []
@@ -96,26 +96,37 @@ class BackendBase(object):
 
     @abstractmethod
     def cpu(self, id=0):
+        """
+        The device name corresponding to a CPU
+        """
         pass
 
     @abstractmethod
     def gpu(self, id=0):
+        """
+        The device name corresponding to a GPU #id
+        """
         pass
 
     @property
     @abstractmethod
     def int32(self):
+        """
+        The `int32` type for the particular backend
+        """
         pass
 
     @property
     @abstractmethod
     def float32(self):
+        """
+        The `float32` type for the particular backend
+        """
         pass
 
     @contextmanager
     def device(self, name):
         """
-        device(name)
         Assigns a device context to `deepx` functions.
 
         Args:
@@ -124,13 +135,14 @@ class BackendBase(object):
         Examples:
             Using DeepX backend directly:
                 >>> from deepx import T
-                >>> with T.device('/gpu:0'):
+                >>> with T.device(T.gpu(0)):
                 ...     X = T.matrix()
 
             Using DeepX to define a network:
-                >>> from deepx import T
-                >>> with T.device('/gpu:0'):
-                ...     network = Vector(784) >> Tanh(200) >> Softmax(10)
+                >>> from deepx.backend import T
+                >>> from deepx import nn
+                >>> with T.device(T.gpu(0)):
+                ...     network = nn.Tanh(200) >> nn.Tanh(200) >> nn.Softmax(10)
         """
         self.push_device(name)
         yield
@@ -192,7 +204,6 @@ class BackendBase(object):
     @contextmanager
     def session(self, allow_soft_placement=False, log_device_placement=False):
         """
-        session()
         Assigns a session context to `deepx` functions.
         """
         pass
@@ -215,25 +226,63 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def cast(self, x, dtype):
+        """
+        Casts backend object `x` to backend `dtype`
+
+        Returns:
+            A new tensor with type `dtype`.
+
+        Args:
+            x: an input tensor
+            dtype: a dtype
+        """
         pass
 
     @abstractmethod
     def dtype(self, x):
+        """
+        Returns:
+            The dtype of tensor `x`
+
+        Args:
+            x: an input tensor.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def shape(self, x):
+        """
+        Returns the shape of input tensor `x`.
+
+        Returns:
+            A tensor `shape`.
+
+        Args:
+            x: an input tensor.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def rank(self, x):
+        """
+        Returns the rank of tensor `x`.
+
+        Args:
+            x: an input tensor.
+        """
         pass
 
     @uses_device
     @abstractmethod
     def abs(self, x):
+        """
+        Returns the absolute value of `x`.
+
+        Args:
+            x: an input tensor.
+        """
         pass
 
     @uses_device
@@ -256,7 +305,7 @@ class BackendBase(object):
     @abstractmethod
     def zeros_like(self, x, dtype=None, name=None):
         """
-        Creates a tensor filled with zeros.
+        Creates a tensor filled with zeros with the same shape as x.
 
         Args:
             x: An input tensor.
@@ -525,11 +574,31 @@ class BackendBase(object):
     @uses_device
     @abstractmethod
     def sum(self, x, axis=None, keepdims=False):
-        pass
+        """
+        Takes the sum of a tensor along a particular axis (or none).
+
+        Args:
+            x: An input tensor.
+            axis (:obj:`int`, optional): The axis which is reduced. Defaults to all axes.
+            keepdims (:obj:`bool`, optional): Keeps the reduced dimensions if True.
+
+        Returns:
+            The sum of the tensor along the specified axis.
+        """
 
     @abstractmethod
     def prod(self, x, axis=None, keepdims=False):
-        pass
+        """
+        Takes the product of a tensor along a particular axis (or none).
+
+        Args:
+            x: An input tensor.
+            axis (:obj:`int`, optional): The axis which is reduced. Defaults to all axes.
+            keepdims (:obj:`bool`, optional): Keeps the reduced dimensions if True.
+
+        Returns:
+            The product of the tensor along the specified axis.
+        """
 
     @uses_device
     @abstractmethod
@@ -545,7 +614,6 @@ class BackendBase(object):
         Returns:
             The mean of the tensor along the specified axis.
         """
-        pass
 
     @uses_device
     @abstractmethod
@@ -559,13 +627,12 @@ class BackendBase(object):
         Returns:
             The elementwise log of `x`.
         """
-        pass
 
     @uses_device
     @abstractmethod
     def log1p(self, x):
         """
-        Takes the elementwise natural logarithm1p of a tensor.
+        Takes the elementwise natural logarithm of one plus a tensor.
 
         Args:
             x: An input tensor.
@@ -573,7 +640,6 @@ class BackendBase(object):
         Returns:
             The elementwise log1p of `x`.
         """
-        pass
 
     @uses_device
     @abstractmethod
@@ -587,7 +653,6 @@ class BackendBase(object):
         Returns:
             The elementwise exponent of `x`.
         """
-        pass
 
     @uses_device
     @abstractmethod
@@ -602,7 +667,6 @@ class BackendBase(object):
         Returns:
             The elementwise power of `x` to `a`.
         """
-        pass
 
     @uses_device
     @abstractmethod
@@ -616,7 +680,6 @@ class BackendBase(object):
         Returns:
             the elementwise square root of `x`.
         """
-        pass
 
     @uses_device
     @abstractmethod

@@ -11,51 +11,133 @@ as simple as humanly possible.
 Our approach is an intuitive shorthand
 that allows concise, but expressive
 model definitions.
-This shorthand creates
-a Tensorflow or Theano graph,
-enabling efficient GPU
-utilization.
+This shorthand is
+an abstract definition of
+a neural network that can plug in
+to several choices of backend.
+Specifically, we support 
+[Tensorflow](http://www.tensorflow.org), [PyTorch](https://pytorch.org/)
+and [Jax](https://github.com/google/jax).
+
+DeepX is agnostic to the framework
+you use for training and deployment, and only aims
+to make defining complex neural network
+architectures simple. However, it is very modular
+and fits into any training/deployment pipeline seamlessly.
 
 Quickstart
 ------------------------------
 Let's consider the task of building
-a multilayer perceptron (MLP)
+a multilayer perceptron (MLP) in DeepX
 that will classify MNIST digits
-in DeepX. We first define
+We first define
 the structure of the network.
 
 .. code-block:: python
 
-    from deepx.nn import Vector, Tanh, Softmax
-    mlp = Vector(784) >> Tanh(200) >> Tanh(200) >> Softmax(10) 
+  from deepx import nn
+  network = nn.Relu(200) >> nn.Relu(200) >> nn.Softmax(10) 
 
-In order to train this neural network,
-we need to specify a loss function.
+Note that we did not tell the network the input size (784,
+in the case of MNIST). DeepX is *lazy*
+and won’t initialize weights in
+the network until the last minute. In this case,
+DeepX won’t know the input size until we actually pass
+something in.
 
-.. code-block:: python
-
-    from deepx.loss import CrossEntropy
-    loss = mlp >> CrossEntropy()
-
-Finally, we need to use an
-optimization algorithm to
-minimize the loss function
-with respect to minibatches of data.
+Let's try something a bit harder: a convolutional neural network classifier
 
 .. code-block:: python
 
-    from deepx.optimizer import Adam
-    adam = Adam(loss)
-    adam.train(x_batch, y_batch, learning_rate)
+    from deepx import nn
+    network = (
+        nn.Reshape([28, 28, 1])
+        >> nn.Convolution([5, 5, 64]) >> nn.Relu() >> nn.Pool()
+        >> nn.Convolution([5, 5, 64]) >> nn.Relu() >> nn.Pool()
+        >> nn.Flatten() >> nn.Relu(200) >> nn.Relu(200) >> nn.Softmax(10)
+    )
 
-Check out the :doc:`tutorial <user/tutorial>` if you want to learn more!
+This network definition is a bit repetitive, so DeepX offers
+higher order functions that can help definitions be a bit more concise.
 
-Otherwise, you can browse the various
-layers, loss functions, and
-optimizers we have implemented so far.
+.. code-block:: python
+
+    from deepx import nn
+    network = (
+        nn.Reshape([28, 28, 1])
+        >> nn.Repeat(nn.Convolution([5, 5, 64]) >> nn.Relu() >> nn.Pool(), 2)
+        >> nn.Flatten() >> nn.Repeat(nn.Relu(200), 2) >> nn.Softmax(10)
+    )
+
+:code:`nn.Repeat` is syntactic sugar, so we get the exact same network 
+in both the previous definitinos.
+
+Example usage
+------------------------------
+In all cases, these neural networks are *functions*, that take in batches
+of vectors as inputs
+and return output vectors. How you use them is specific to the
+backend you are using and its paradigm. For example,
+if we are using Tensorflow (graph), this network
+would used for graph construction, but if we are using Tensorflow (eager) or PyTorch,
+the network would be called in the training loop.
+
+
+
+Tensorflow (graph):
+
+.. code-block:: python
+    
+    image = tf.placeholder(tf.float32, [None, 784])
+    label = tf.placeholder(tf.float32, [None, 10])
+    prediction = network(x)
+    weights = network.get_parameters()
+    loss = loss_function(label, prediction)
+    train_op = tf.train.AdamOptimizer(1e-3).minimize(loss, var_list=weights)
+    with tf.Session() as sess:
+        for i in range(num_iters):
+            image_, label_ = next_batch()
+            sess.run(train_op, {
+              image: image_,
+              label: label_
+            })
+
+Tensorflow (eager):
+
+.. code-block:: python
+
+    optimizer = tf.train.AdamOptimizer(1e-3)
+    weights = network.get_parameters()
+    for i in range(num_iters):
+        with tf.GradientTape() as tape:
+            image, label = next_batch()
+            prediction = network(image)
+            loss = loss_function(label, prediction)
+            grads = tape.gradient(loss, weights)
+        optimizer.apply_gradients(zip(grads, weights))
+
+Pytorch:
+
+.. code-block:: python
+
+    weights = network.get_parameters()
+    optimizer = torch.optim.Adam(weights, 1e-3)
+    for i in range(num_iters):
+        image, label = next_batch()
+        optimizer.zero_grad()
+        prediction = network(image)
+        loss = loss_function(label, prediction)
+        loss.backward()
+        optimizer.step()
+
+
+.. automodule:: deepx.nn
 
 Table of Contents
 =======================
 
 .. toctree::
-    user/tutorial
+   :caption: API
+
+   user/tutorial
+   source/modules

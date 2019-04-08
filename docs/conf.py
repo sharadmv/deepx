@@ -18,9 +18,9 @@ import deepx
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../../'))
 
 # -- General configuration ------------------------------------------------
 
@@ -32,13 +32,13 @@ import deepx
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.linkcode',
+    'sphinx.ext.autodoc',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -47,8 +47,11 @@ templates_path = ['_templates']
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-# source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown'
+}
+# source_suffix = '.rst'
 
 # The encoding of source files.
 #
@@ -59,7 +62,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'DeepX'
-copyright = u'2016, Sharad Vikram'
+copyright = u'2019, Sharad Vikram'
 author = u'Sharad Vikram'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -67,7 +70,7 @@ author = u'Sharad Vikram'
 # built documents.
 #
 # The short X.Y version.
-version = u'0.2'
+version = deepx.__version__
 # The full version, including alpha/beta/rc tags.
 release = u'dev'
 
@@ -112,7 +115,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'monokai'
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -130,7 +133,7 @@ todo_include_todos = True
 # a list of builtin themes.
 import solar_theme
 #
-html_theme = 'solar_theme'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
