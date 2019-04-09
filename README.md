@@ -45,3 +45,21 @@ We can also use a convolutional neural network for classification and it'll work
 
 
 That's it, we're done!
+
+Keras
+=====================================
+DeepX allows you to use Keras layers with the same `>>` composition format.
+It's really easy! All layers in `tf.keras.layers` are wrapped in the `deepx.keras` package.
+This allows you to compose them. 
+
+```python
+>>> import deepx.keras as nn
+>>> net = (
+        nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
+        >> nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
+        >> nn.Flatten() >> nn.Dense(1024)
+        >> nn.ReLU() >> nn.Dense(10) >> nn.Softmax()
+    )
+```
+These layers are only compatible with Tensorflow, however, since the only compatible backend between
+Keras and DeepX is Tensorflow.
