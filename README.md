@@ -20,8 +20,8 @@ The model is the input-output structure of your network.
 Let's consider the task of classifying MNIST with a multilayer perceptron (MLP).
 
 ```python
->>> from deepx.nn import *
->>> net = Relu(200) >> Relu(200) >> Softmax(10)
+>>> from deepx import nn
+>>> net = nn.Relu(200) >> nn.Relu(200) >> nn.Softmax(10)
 ```
 
 Our model behaves like a function.
