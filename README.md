@@ -3,7 +3,9 @@ DeepX is a deep learning library designed with flexibility and succinctness in m
 The key aspect is an expressive shorthand to describe your neural network architecture.
 
 DeepX supports [Tensorflow](http://www.tensorflow.org), [PyTorch](https://pytorch.org/)
-and [Jax](https://github.com/google/jax).
+and [Jax](https://github.com/google/jax). DeepX is also still in alpha, so there are likely
+going to be changes that change the API/names/design. I'm very open to feedback and suggestions,
+so shoot me an email if you are interested in contributing.
 
 Installation
 ====================================
@@ -26,21 +28,21 @@ Let's consider the task of classifying MNIST with a multilayer perceptron (MLP).
 
 Our model behaves like a function.
 ```python
->>> import tensorflow as tf
->>> net(tf.ones((10, 784)))
+import tensorflow as tf
+net(tf.ones((10, 784)))
 ```
 To get the weights out of the network, we can just say:
 ```python
->>> net.get_parameters()
+net.get_parameters()
 ```
 
 We can also use a convolutional neural network for classification and it'll work exactly the same!
 ```python
->>> net = (Reshape([28, 28, 1])
-            >> Conv([2, 2, 64])
-            >> Conv([2, 2, 32])
-            >> Conv([2, 2, 16])
-            >> Flatten() >> Relu(200) >> Relu(200) >> Softmax(10))
+net = (nn.Reshape([28, 28, 1])
+        >> nn.Conv([2, 2, 64])
+        >> nn.Conv([2, 2, 32])
+        >> nn.Conv([2, 2, 16])
+        >> nn.Flatten() >> nn.Relu(200) >> nn.Relu(200) >> nn.Softmax(10))
 ```
 
 
@@ -53,13 +55,22 @@ It's really easy! All layers in `tf.keras.layers` are wrapped in the `deepx.kera
 This allows you to compose them. 
 
 ```python
->>> import deepx.keras as nn
->>> net = (
-        nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
-        >> nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
-        >> nn.Flatten() >> nn.Dense(1024)
-        >> nn.ReLU() >> nn.Dense(10) >> nn.Softmax()
-    )
+import deepx.keras as nn
+net = (
+    nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
+    >> nn.Conv2D(64, (5, 5), padding='same') >> nn.ReLU() >> nn.MaxPooling2D(padding='same')
+    >> nn.Flatten() >> nn.Dense(1024)
+    >> nn.ReLU() >> nn.Dense(10) >> nn.Softmax()
+)
 ```
 These layers are only compatible with Tensorflow, however, since the only compatible backend between
 Keras and DeepX is Tensorflow.
+
+Distributions
+========================
+DeepX also wraps the distributions that ship with [Tensorflow Probability](https://www.tensorflow.org/probability) and [PyTorch](https://pytorch.org/docs/stable/distributions.html).
+This enables you write probabilistic neural networks (like those in the VAE) very easily.
+```python
+decoder = nn.Relu(L, 500) >> nn.Relu(500) >> layers.Bernoulli(D)
+encoder = nn.Relu(D, 500) >> nn.Relu(500) >> layers.Gaussian(L)
+```
