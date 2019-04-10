@@ -311,7 +311,7 @@ class PyTorchBackend(BackendBase):
             state = step_function(input[i], state)
             states.append(state)
         out = [torch.stack([state[i] for state in states]) for i in range(num_states)]
-        return out[0]
+        return torch.transpose(out[0], 0, 1)
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError

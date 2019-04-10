@@ -249,10 +249,11 @@ class JaxBackend(BackendBase):
 
     def rnn(self, step_function, input, initial_states, **kwargs):
         input = np.swapaxes(input, 0, 1)
-        def step(state, input):
-            state = step_function(input, state, **kwargs)
+        def step(state, input_):
+            state = step_function(input_, state, **kwargs)
             return state
-        return lax.scan(step, initial_states, input)[0]
+        result = lax.scan(step, initial_states, input)[0]
+        return np.swapaxes(result, 0, 1)
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError

@@ -353,8 +353,8 @@ class TensorflowBackend(BackendBase):
         def step(state, value):
             result = step_function(value, state, **kwargs)
             return result
-        result = tf.scan(step, input, initial_states)
-        return result[0]
+        result = tf.scan(step, input, initial_states)[0]
+        return self.transpose(result, perm)
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         return tf.while_loop(condition, body, loop_vars)
