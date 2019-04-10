@@ -37,7 +37,7 @@ class BackendBase(object):
         self._FLOATX = 'float32'
         self._EPSILON = 10e-7
         self._DEFAULT_DEVICE = self.gpu()
-        self._DEFAULT_INITIALIZATION = 'glorot_uniform'
+        self._DEFAULT_INITIALIZATION = 'glorot_uniform', {}
         self._device_stack = []
         self._initialization_stack = []
         self._initialized = False
@@ -168,7 +168,7 @@ class BackendBase(object):
         return self._device_stack[-1]
 
     @contextmanager
-    def initialization(self, initialization):
+    def initialization(self, initialization, **kwargs):
         """
         initialization(initialization)
         Assigns an initialization context to `deepx` networks.
@@ -177,7 +177,7 @@ class BackendBase(object):
             initialization (str): The name of the device
 
         """
-        self.push_initialization(initialization)
+        self.push_initialization((initialization, kwargs))
         yield
         self.pop_initialization()
 
@@ -249,7 +249,6 @@ class BackendBase(object):
         """
         pass
 
-    @uses_device
     @abstractmethod
     def shape(self, x):
         """

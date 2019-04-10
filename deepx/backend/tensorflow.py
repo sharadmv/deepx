@@ -33,6 +33,7 @@ class TensorflowBackend(BackendBase):
         super(TensorflowBackend, self).__init__(**kwargs)
         self.core = tf
         self._sessions = []
+        self.set_default_device(self.gpu() if tf.test.is_gpu_available() else self.cpu())
 
     # General purpose methods
 
@@ -44,6 +45,9 @@ class TensorflowBackend(BackendBase):
                 result = method(self, *args, **kwargs)
             return result
         return func
+
+    def enable_eager(self):
+        tf.enable_eager_execution()
 
     def cpu(self, id=0):
         return 'cpu/:%u' % id
@@ -342,12 +346,15 @@ class TensorflowBackend(BackendBase):
     def map(self, function, input):
         return tf.map_fn(function, input)
 
-    def rnn(self, step_function, input, initial_states):
-        def step(accumulator, value):
-            _, new_accumulator = step_function(value, accumulator)
-            return new_accumulator
+    def rnn(self, step_function, input, initial_states, **kwargs):
+        num_dims = self.rank(input)
+        perm = self.concat([[1, 0], self.range(2, num_dims)])
+        input = self.transpose(input, perm)
+        def step(state, value):
+            result = step_function(value, state, **kwargs)
+            return result
         result = tf.scan(step, input, initial_states)
-        return result
+        return result[0]
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         return tf.while_loop(condition, body, loop_vars)
@@ -593,6 +600,10 @@ class TensorflowBackend(BackendBase):
         return tf.sparse_tensor_dense_matmul(x, y)
 
     def dot(self, x, y):
+        if len(x.get_shape()) != len(y.get_shape()):
+            len_y = len(y.get_shape())
+            new_y_shape = tf.concat([tf.shape(x)[:-len_y], tf.shape(y)], 0)
+            y = tf.broadcast_to(y, new_y_shape)
         return tf.matmul(x, y)
 
     def outer(self, x, y):

@@ -1,7 +1,8 @@
 from deepx.backend import T
 from deepx import nn
 
-net = (nn.Reshape([28, 28, 1])
+with T.initialization('normal'):
+    net = (nn.Reshape([28, 28, 1])
             >> nn.Conv([2, 2, 64])
             >> nn.Conv([2, 2, 32])
             >> nn.Conv([2, 2, 16])

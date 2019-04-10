@@ -25,6 +25,7 @@ class PyTorchBackend(BackendBase):
         super(PyTorchBackend, self).__init__(**kwargs)
         self.core = torch
         self._sessions = []
+        self.set_default_device(self.gpu() if torch.cuda.is_available() else self.cpu())
 
     # General purpose methods
 
@@ -35,6 +36,8 @@ class PyTorchBackend(BackendBase):
             result = method(self, *args, **kwargs)
             if isinstance(result, tuple):
                 return tuple(r.to(self.get_current_device()) for r in result)
+            elif isinstance(result, list):
+                return list(r.to(self.get_current_device()) for r in result)
             return result.to(self.get_current_device())
         return func
 
@@ -157,7 +160,7 @@ class PyTorchBackend(BackendBase):
         return torch.relu(x)
 
     def softmax(self, x, T=1.0):
-        return torch.nn.functional.softmax(x)
+        return torch.nn.functional.softmax(x, dim=-1)
 
     def softplus(self, x):
         return torch.nn.functional.softplus(x)
@@ -299,8 +302,16 @@ class PyTorchBackend(BackendBase):
     def map(self, function, input):
         return map(function, input)
 
-    def rnn(self, step_function, input, initial_states):
-        raise NotImplementedError
+    def rnn(self, step_function, input, initial_states, **kwargs):
+        input = torch.transpose(input, 0, 1)
+        state = initial_states
+        states = []
+        num_states = len(initial_states)
+        for i in range(input.shape[0]):
+            state = step_function(input[i], state)
+            states.append(state)
+        out = [torch.stack([state[i] for state in states]) for i in range(num_states)]
+        return out[0]
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError
@@ -539,7 +550,7 @@ class PyTorchBackend(BackendBase):
         raise NotImplementedError
 
     def dot(self, x, y):
-        return x.mm(y)
+        return torch.matmul(x, y)
 
     def outer(self, x, y):
         if len(self.get_shape(x)) == 0:

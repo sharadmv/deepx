@@ -2,6 +2,7 @@ import six
 from abc import ABCMeta, abstractmethod
 
 from deepx.backend import T
+from deepx.initialization import get_initializer
 
 @six.add_metaclass(ABCMeta)
 class Op(object):
@@ -10,6 +11,7 @@ class Op(object):
         self.parameters = {}
         self.device = T.get_current_device()
         self.shape_in, self.shape_out = None, None
+        self.initializer = T.get_current_initialization()
 
     def get_parameters(self):
         return list(self.parameters.values())
@@ -26,12 +28,18 @@ class Op(object):
     def set_parameter(self, key, value):
         self.parameters[key] = value
 
-    def create_parameter(self, name, dims, initial_value=None):
-        if initial_value is None:
-            value = T.random_normal(dims) * 0.01
+    def create_parameter(self, name, shape, initializer=None):
+        if initializer is None:
+            initializer = self.initializer
+        if isinstance(initializer, tuple):
+            init_type, kwargs = initializer
         else:
-            value = initial_value
-        self.set_parameter(name, T.variable(value))
+            init_type, kwargs =  initializer, {}
+        if callable(init_type):
+            init = lambda: init_type(shape, **kwargs)
+        else:
+            init = get_initializer(init_type)(shape, **kwargs)
+        self.set_parameter(name, T.variable(init()))
 
     def __call__(self, *inputs, **kwargs):
         if self.get_shape_in() is None:

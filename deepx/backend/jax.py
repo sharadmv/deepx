@@ -247,8 +247,12 @@ class JaxBackend(BackendBase):
     def map(self, function, input):
         return map(function, input)
 
-    def rnn(self, step_function, input, initial_states):
-        raise NotImplementedError
+    def rnn(self, step_function, input, initial_states, **kwargs):
+        input = np.swapaxes(input, 0, 1)
+        def step(state, input):
+            state = step_function(input, state, **kwargs)
+            return state
+        return lax.scan(step, initial_states, input)[0]
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError
