@@ -1,6 +1,6 @@
 # DeepX [![Build Status](https://travis-ci.org/sharadmv/deepx.svg?branch=master)](https://travis-ci.org/sharadmv/deepx) [![Coverage Status](https://coveralls.io/repos/sharadmv/deepx/badge.svg?branch=master&service=github)](https://coveralls.io/github/sharadmv/deepx?branch=master) [![PyPI](https://img.shields.io/pypi/v/deepx.svg)](https://pypi.python.org/pypi/deepx)
 DeepX is a deep learning library designed with flexibility and succinctness in mind.
-The key aspect is an expressive shorthand to describe your neural network architecture.
+The key aspect is an point-free shorthand to describe your neural network architecture.
 
 DeepX supports [Tensorflow](http://www.tensorflow.org), [PyTorch](https://pytorch.org/)
 and [Jax](https://github.com/google/jax). DeepX is also still in alpha, so there are likely
