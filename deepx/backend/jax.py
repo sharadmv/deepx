@@ -225,11 +225,7 @@ class JaxBackend(BackendBase):
         return np.sqrt(x)
 
     def categorical_crossentropy(self, output, target, from_logits=False):
-        if from_logits:
-            raise NotImplementedError
-        output /= output.sum(axis=-1, keepdim=True)
-        output = output.clamp(self.epsilon(), 1 - self.epsilon())
-        return -(target * torch.log(output)).sum(axis=-1)
+        raise NotImplementedError
 
     def binary_crossentropy(self, output, target, from_logits=False):
         raise NotImplementedError
@@ -239,10 +235,10 @@ class JaxBackend(BackendBase):
         return np.concatenate(values, axis=int(axis))
 
     def sort(self, tensor, axis=-1):
-        return tensor.sort(dim=axis)
+        return np.sort(tensor, axis=axis)
 
     def argmin(self, tensor, axis=0):
-        return tensor.argmin(dim=axis)
+        return np.argmin(tensor, axis=axis)
 
     def map(self, function, input):
         return map(function, input)
@@ -252,8 +248,8 @@ class JaxBackend(BackendBase):
         def step(state, input_):
             state = step_function(input_, state, **kwargs)
             return state
-        result = lax.scan(step, initial_states, input)[0]
-        return np.swapaxes(result, 0, 1)
+        result = lax.scan(step, initial_states, input)
+        return np.swapaxes(result[0], 0, 1)
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError

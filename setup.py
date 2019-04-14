@@ -4,8 +4,8 @@ import deepx
 
 recommended = {
     'tensorflow': ['tensorflow'],
-    'theano': ['Theano==1.0.1'],
-    'mxnet': [],
+    'pytorch': ['torch'],
+    'jax': ['jax', 'jaxlib'],
 }
 
 setup(
@@ -17,7 +17,6 @@ setup(
     license = "MIT",
     keywords = "theano, tensorflow, pytorch",
     packages=['deepx'],
-    classifiers=[
-    ],
-    extra_requires = recommended,
+    classifiers=[],
+    extras_require = recommended,
 )

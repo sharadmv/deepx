@@ -11,6 +11,8 @@ sphinx = "*"
 solar-theme = "*"
 recommonmark = "*"
 sphinx-rtd-theme = "*"
+twine = "*"
+nose = "*"
 
 [packages]
 deepx = {editable = true,path = "."}
