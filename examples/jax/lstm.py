@@ -18,7 +18,7 @@ net = LSTM(4, 50) >> Repeat(LSTM(200), 2) >> Softmax(2)
 init_params = net.parameters
 
 X = T.random_normal([N, 20, 4])
-Y = T.concat([T.zeros(N)[..., None], T.onest(N)[..., None]], -1)
+Y = T.concat([T.zeros(N)[..., None], T.ones(N)[..., None]], -1)
 
 @jit
 def loss(params, data):
