@@ -125,7 +125,8 @@ class RecurrentLayer(Op):
 
     def forward(self, *inputs, **kwargs):
         assert len(inputs) == 1
-        result = T.rnn(self.step, inputs[0], self._initial_state(inputs[0]), **kwargs)
+        input_ = inputs[0]
+        result = T.rnn(self.step, input_, self._initial_state(input_), **kwargs)
         return [result]
 
     @abstractmethod

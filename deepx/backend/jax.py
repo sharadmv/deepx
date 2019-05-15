@@ -201,7 +201,7 @@ class JaxBackend(BackendBase):
         return np.prod(x, dim=axis, keepdim=keepdims)
 
     def mean(self, x, axis=None, keepdims=False):
-        return np.mean(x, dim=axis, keepdim=keepdims)
+        return np.mean(x, axis=axis, keepdims=keepdims)
 
     def batch_norm(self, x, beta, gamma):
         raise NotImplementedError
@@ -225,7 +225,9 @@ class JaxBackend(BackendBase):
         return np.sqrt(x)
 
     def categorical_crossentropy(self, output, target, from_logits=False):
-        raise NotImplementedError
+        if from_logits:
+            raise NotImplementedError
+        return -np.mean(np.log(output) * target, axis=-1)
 
     def binary_crossentropy(self, output, target, from_logits=False):
         raise NotImplementedError
@@ -246,16 +248,16 @@ class JaxBackend(BackendBase):
     def rnn(self, step_function, input, initial_states, **kwargs):
         input = np.swapaxes(input, 0, 1)
         def step(state, input_):
-            state = step_function(input_, state, **kwargs)
-            return state
-        result = lax.scan(step, initial_states, input)
-        return np.swapaxes(result[0], 0, 1)
+            output, state = step_function(input_, state, **kwargs)
+            return state, output
+        state, output = self.scan(step, input, initial_states)
+        return np.swapaxes(output, 0, 1)
 
     def while_loop(self, condition, body, loop_vars, **kwargs):
         raise NotImplementedError
 
     def scan(self, fn, elems, initializer=None):
-        raise NotImplementedError
+        return lax.scan(fn, initializer, elems)
 
     def logdet(self, A, **kwargs):
         A = (A + self.matrix_transpose(A)) / 2.
@@ -494,7 +496,7 @@ class JaxBackend(BackendBase):
         return self.square(x)
 
     def argmax(self, x, axis=None):
-        return self.argmax(x, axis=axis)
+        return np.argmax(x, axis=axis)
 
     def max(self, x, axis=None, keepdims=False):
         return self.reduce_max(x, axis=axis, keepdims=keepdims)

@@ -85,4 +85,4 @@ class LSTM(RecurrentLayer):
             output = output_gate * T.tanh(state)
         else:
             output = output_gate * state
-        return [output, state]
+        return output, [output, state]
