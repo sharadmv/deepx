@@ -23,10 +23,7 @@ class Op(object):
     def get_parameter(self, key, params=None):
         if params is None:
             return self.parameters[key]
-        try:
-            return params[key]
-        except:
-            import ipdb; ipdb.set_trace()
+        return params[key]
 
     def set_parameter(self, key, value):
         self.parameters[key] = value
