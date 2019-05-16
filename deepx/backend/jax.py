@@ -248,8 +248,8 @@ class JaxBackend(BackendBase):
     def rnn(self, step_function, input, initial_states, **kwargs):
         input = np.swapaxes(input, 0, 1)
         def step(state, input_):
-            output, state = step_function(input_, state, **kwargs)
-            return state, output
+            _, state = step_function(input_, state, **kwargs)
+            return state, state[0]
         state, output = self.scan(step, input, initial_states)
         return np.swapaxes(output, 0, 1)
 

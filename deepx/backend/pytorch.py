@@ -308,7 +308,7 @@ class PyTorchBackend(BackendBase):
         states = []
         num_states = len(initial_states)
         for i in range(input.shape[0]):
-            state = step_function(input[i], state)
+            output, state = step_function(input[i], state)
             states.append(state)
         out = [torch.stack([state[i] for state in states]) for i in range(num_states)]
         return torch.transpose(out[0], 0, 1)

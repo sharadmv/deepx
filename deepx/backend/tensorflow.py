@@ -350,9 +350,9 @@ class TensorflowBackend(BackendBase):
         num_dims = self.rank(input)
         perm = self.concat([[1, 0], self.range(2, num_dims)])
         input = self.transpose(input, perm)
-        def step(state, value):
-            result = step_function(value, state, **kwargs)
-            return result
+        def step(state, input_):
+            output, state = step_function(input_, state, **kwargs)
+            return state
         result = tf.scan(step, input, initial_states)[0]
         return self.transpose(result, perm)
 

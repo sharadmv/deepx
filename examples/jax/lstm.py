@@ -13,11 +13,12 @@ num_epochs = 100
 N = 1000
 step_size = 1e-2
 batch_size = 50
+H = 50
 
 net = LSTM(4, 50) >> Repeat(LSTM(200), 2) >> Softmax(2)
 init_params = net.parameters
 
-X = T.random_normal([N, 20, 4])
+X = T.random_normal([N, H, 4])
 Y = T.concat([T.zeros(N)[..., None], T.ones(N)[..., None]], -1)
 
 @jit
